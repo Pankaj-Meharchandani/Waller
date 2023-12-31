@@ -40,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
         btnGenerate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                // Clear existing images
+                adapter.clear();//delete this line if want to generate new images without deleting old
                 // Generate 10 random gradient images
                 for (int i = 0; i < 10; i++) {
                     Bitmap gradientImage = generateRandomGradient();
