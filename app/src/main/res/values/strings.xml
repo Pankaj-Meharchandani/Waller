@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Waller</string>
+    <string name="generate_new_images">Generate New Images</string>
 </resources>
