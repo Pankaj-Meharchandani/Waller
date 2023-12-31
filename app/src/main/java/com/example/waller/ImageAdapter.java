@@ -16,9 +16,9 @@ public class ImageAdapter extends ArrayAdapter<Bitmap> {
         super(context, 0);
     }
 
-    @NonNull
+
     @Override
-    public View getView(int position, View convertView, @NonNull ViewGroup parent) {
+    public View getView(int position, View convertView,ViewGroup parent) {
         ImageView imageView;
         if (convertView == null) {
             imageView = new ImageView(getContext());
