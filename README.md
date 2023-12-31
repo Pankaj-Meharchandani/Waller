@@ -21,7 +21,7 @@ These instructions will help you set up the project on your local machine for de
 1. Clone the repository to your local machine:
 
 ```bash
-git clone https://github.com/your-username/waller-app.git
+git clone https://github.com/Pankaj-Meharchandani/waller-app.git
 ```
 2. Open the project in Android Studio.
 3. Connect your Android device or use an emulator. 
