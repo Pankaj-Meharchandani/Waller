@@ -102,6 +102,10 @@ public class MainActivity extends AppCompatActivity {
         int screenWidth = displayMetrics.widthPixels;
         int screenHeight = displayMetrics.heightPixels;
 
+        // Ensure the width is always smaller than the height for portrait orientation
+        int height = Math.min(screenWidth, screenHeight);
+        int width = (int) (height / 2.5); // Adjust the aspect ratio as needed
+
         // Implement logic to generate a random gradient image
         // For simplicity, you can use GradientDrawable and convert it to a Bitmap
         GradientDrawable gradientDrawable = new GradientDrawable();
@@ -121,8 +125,6 @@ public class MainActivity extends AppCompatActivity {
         gradientDrawable.setColors(new int[]{startColor, endColor});
 
         // Convert the drawable to a Bitmap
-        int width = screenWidth; // Use screen width
-        int height = screenHeight; // Use screen height
         Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         gradientDrawable.setBounds(0, 0, width, height);
         Canvas canvas = new Canvas(bitmap);

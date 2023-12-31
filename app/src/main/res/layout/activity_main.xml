@@ -13,14 +13,17 @@
         android:id="@+id/btnGenerate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Generate New Images"
+        android:text="@string/generate_new_images"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="16dp"/>
 
     <GridView
         android:id="@+id/gridView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="wrap_content"
+        android:layout_height="651dp"
         android:layout_below="@id/btnGenerate"
-        android:numColumns="2"/>
+        android:horizontalSpacing="15dp"
+        android:numColumns="2"
+        android:scrollbarStyle="outsideInset"
+        android:verticalSpacing="5dp" />
 </RelativeLayout>
