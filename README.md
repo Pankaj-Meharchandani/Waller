@@ -74,6 +74,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - The project uses [Android Studio](https://developer.android.com/studio) for development.
 - Thanks to the [Android Developers](https://developer.android.com/) community for valuable resources.
 
+## Contribute
+Contribute us with either your knowledge or financially
+to donate contact me via my website [pankajmeharchandani.myportfolio.com](https://pankajmeharchandani.myportfolio.com/) or mail me [Pankajmeharchandani@gmail.com](mailto:Pankajmeharchandani@gmail.com)
+
 ## Contact
 
 For issues or inquiries, please contact [Pankajmeharchandani@gmail.com](mailto:Pankajmeharchandani@gmail.com).
