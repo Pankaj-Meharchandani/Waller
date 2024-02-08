@@ -1,7 +1,8 @@
 package com.example.waller;
-// MainActivity.java
+
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -17,7 +18,6 @@ import android.content.DialogInterface;
 import java.io.IOException;
 import android.app.WallpaperManager;
 
-
 public class MainActivity extends AppCompatActivity {
 
     @Override
@@ -31,21 +31,24 @@ public class MainActivity extends AppCompatActivity {
         // Set up the adapter for the GridView
         final ArrayAdapter<Bitmap> adapter = new ImageAdapter(this);
         gridView.setAdapter(adapter);
-        //generate 10 images by default
+
+        // Generate 10 random images (either gradient or abstract)
         for (int i = 0; i < 10; i++) {
-            Bitmap gradientImage = generateRandomGradient();
-            adapter.add(gradientImage);
+            Bitmap randomImage = generateRandomImage();
+            adapter.add(randomImage);
         }
+
         // Set up click listener for the Generate button
         btnGenerate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // Clear existing images
-                adapter.clear();//delete this line if want to generate new images without deleting old
-                // Generate 10 random gradient images
+                adapter.clear();
+
+                // Generate 10 random images (either gradient or abstract)
                 for (int i = 0; i < 10; i++) {
-                    Bitmap gradientImage = generateRandomGradient();
-                    adapter.add(gradientImage);
+                    Bitmap randomImage = generateRandomImage();
+                    adapter.add(randomImage);
                 }
             }
         });
@@ -85,8 +88,8 @@ public class MainActivity extends AppCompatActivity {
                         .show();
             }
         });
-
     }
+
     private void setWallpaper(Bitmap bitmap, int flags) {
         WallpaperManager wallpaperManager = WallpaperManager.getInstance(MainActivity.this);
         try {
@@ -97,7 +100,8 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this, "Failed to set wallpaper", Toast.LENGTH_SHORT).show();
         }
     }
-    private Bitmap generateRandomGradient() {
+
+    private Bitmap generateRandomImage() {
         // Get the dimensions of the device screen
         DisplayMetrics displayMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
@@ -140,5 +144,4 @@ public class MainActivity extends AppCompatActivity {
     private int getRandomColor() {
         return (int) (Math.random() * 0x1000000) | 0xFF000000; // Random color with full alpha
     }
-
 }
