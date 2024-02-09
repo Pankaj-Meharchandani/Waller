@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.AdapterView;
@@ -19,12 +20,20 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import java.io.IOException;
+import java.util.Random;
+
 import android.app.WallpaperManager;
 
 public class MainActivity extends AppCompatActivity {
     private int startColor = 0xFF0000FF; // Default start color
     private int endColor = 0xFFFF0000;   // Default end color
     private GridView gridView;
+
+    // Initialize color variables to 0 initially
+    private int selectedColor1 = 0;
+    private int selectedColor2 = 0;
+    private int selectedColor3 = 0;
+    private int selectedColor4 = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Generate 10 random images (either gradient or abstract)
         for (int i = 0; i < 10; i++) {
-            Bitmap randomImage = generateRandomImage();
+            Bitmap randomImage = generateRandomImage(0, 0);
             adapter.add(randomImage);
         }
 
@@ -53,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // Generate 10 random images (either gradient or abstract)
                 for (int i = 0; i < 10; i++) {
-                    Bitmap randomImage = generateRandomImage();
+                    Bitmap randomImage = generateRandomImage(0, 0);
                     adapter.add(randomImage);
                 }
             }
@@ -98,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
                                 dialog.dismiss();
                             }
                         })
+
                         .create()
                         .show();
             }
@@ -109,11 +119,24 @@ public class MainActivity extends AppCompatActivity {
         dialog.setContentView(R.layout.color_picker_dialog);
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 
-        final EditText editTextStartColor = dialog.findViewById(R.id.editTextStartColor);
-        final EditText editTextEndColor = dialog.findViewById(R.id.editTextEndColor);
+        final EditText editTextColor1 = dialog.findViewById(R.id.editTextColor1);
+        final EditText editTextColor2 = dialog.findViewById(R.id.editTextColor2);
+        final EditText editTextColor3 = dialog.findViewById(R.id.editTextColor3);
+        final EditText editTextColor4 = dialog.findViewById(R.id.editTextColor4);
 
-        editTextStartColor.setText(ColorUtils.colorToHexString(startColor));
-        editTextEndColor.setText(ColorUtils.colorToHexString(endColor));
+        // Update EditText fields with previously selected colors if available
+        if (selectedColor1 != 0) {
+            editTextColor1.setText(ColorUtils.colorToHexString(selectedColor1).substring(1)); // Remove '#'
+        }
+        if (selectedColor2 != 0) {
+            editTextColor2.setText(ColorUtils.colorToHexString(selectedColor2).substring(1)); // Remove '#'
+        }
+        if (selectedColor3 != 0) {
+            editTextColor3.setText(ColorUtils.colorToHexString(selectedColor3).substring(1)); // Remove '#'
+        }
+        if (selectedColor4 != 0) {
+            editTextColor4.setText(ColorUtils.colorToHexString(selectedColor4).substring(1)); // Remove '#'
+        }
 
         final View colorPreview = dialog.findViewById(R.id.colorPreview);
 
@@ -121,14 +144,12 @@ public class MainActivity extends AppCompatActivity {
         btnSaveColors.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Save selected colors from hex codes
-                startColor = ColorUtils.hexStringToColor(editTextStartColor.getText().toString());
-                endColor = ColorUtils.hexStringToColor(editTextEndColor.getText().toString());
-
-                // Regenerate images with the selected colors
-                regenerateImages();
-
-                dialog.dismiss();
+                // Validate and save selected colors from hex codes
+                if (validateAndSaveColors(editTextColor1, editTextColor2, editTextColor3, editTextColor4)) {
+                    // Regenerate images with the selected colors
+                    regenerateImages(selectedColor2, selectedColor3);
+                    dialog.dismiss();
+                }
             }
         });
 
@@ -136,6 +157,53 @@ public class MainActivity extends AppCompatActivity {
 
         dialog.show();
     }
+
+    private boolean validateAndSaveColors(EditText editText1, EditText editText2, EditText editText3, EditText editText4) {
+        if (validateAndSaveColor(editText1, 1) &&
+                validateAndSaveColor(editText2, 2) &&
+                validateAndSaveColor(editText3, 3) &&
+                validateAndSaveColor(editText4, 4)) {
+            return true;
+        }
+
+        else {
+            //Toast.makeText(MainActivity.this, "Invalid color code(s)", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+    }
+
+    private boolean validateAndSaveColor(EditText editText, int colorNumber) {
+        String hexCode = editText.getText().toString();
+        if (!TextUtils.isEmpty(hexCode)) {
+            try {
+                int color = ColorUtils.hexStringToColor("#" + hexCode);
+                switch (colorNumber) {
+                    case 1:
+                        selectedColor1 = color;
+                        break;
+                    case 2:
+                        selectedColor2 = color;
+                        break;
+                    case 3:
+                        selectedColor3 = color;
+                        break;
+                    case 4:
+                        selectedColor4 = color;
+                        break;
+                }
+                return true;
+            } catch (IllegalArgumentException e) {
+                // Invalid color code
+                Toast.makeText(MainActivity.this, "Invalid color code for Color " + colorNumber, Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        } else {
+            // Empty color code
+            Toast.makeText(MainActivity.this, "Empty color code for Color " + colorNumber, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+    }
+
 
     private void setWallpaper(Bitmap bitmap, int flags) {
         WallpaperManager wallpaperManager = WallpaperManager.getInstance(MainActivity.this);
@@ -148,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private Bitmap generateRandomImage() {
+    private Bitmap generateRandomImage(int color2, int color3) {
         // Get the dimensions of the device screen
         DisplayMetrics displayMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
@@ -163,11 +231,6 @@ public class MainActivity extends AppCompatActivity {
         // For simplicity, you can use GradientDrawable and convert it to a Bitmap
         GradientDrawable gradientDrawable = new GradientDrawable();
 
-        // Set random start color
-        int startColor = getRandomColor();
-        // Set random end color
-        int endColor = getRandomColor();
-
         // Set the gradient type (linear gradient in this example)
         gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
 
@@ -175,6 +238,9 @@ public class MainActivity extends AppCompatActivity {
         gradientDrawable.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT);
 
         // Set the colors for the gradient
+        int startColor = (color2 != 0) ? shuffleColor(color2) : getRandomColor();
+        int endColor = (color3 != 0) ? shuffleColor(color3) : getRandomColor();
+
         gradientDrawable.setColors(new int[]{startColor, endColor});
 
         // Convert the drawable to a Bitmap
@@ -186,18 +252,31 @@ public class MainActivity extends AppCompatActivity {
         return bitmap;
     }
 
-    // Add this method to regenerate images when colors are changed
-    private void regenerateImages() {
+    private int shuffleColor(int color) {
+        Random random = new Random();
+        int red = Color.red(color) + random.nextInt(201) - 100; // Adjust the range as needed
+        int green = Color.green(color) + random.nextInt(201) - 100;
+        int blue = Color.blue(color) + random.nextInt(201) - 100;
+
+        // Ensure RGB values stay within valid range
+        red = Math.max(0, Math.min(255, red));
+        green = Math.max(0, Math.min(255, green));
+        blue = Math.max(0, Math.min(255, blue));
+
+        return Color.rgb(red, green, blue);
+    }
+
+
+    private void regenerateImages(int color2, int color3) {
         ImageAdapter adapter = (ImageAdapter) gridView.getAdapter();
         adapter.clear();
 
         for (int i = 0; i < 10; i++) {
-            Bitmap randomImage = generateRandomImage();
+            Bitmap randomImage = generateRandomImage(color2, color3);
             adapter.add(randomImage);
         }
     }
 
-    // Helper method to generate a random color
     private int getRandomColor() {
         return (int) (Math.random() * 0x1000000) | 0xFF000000; // Random color with full alpha
     }
