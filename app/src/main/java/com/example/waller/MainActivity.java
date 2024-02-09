@@ -1,8 +1,10 @@
 package com.example.waller;
 
+import android.app.Dialog;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Paint;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -10,6 +12,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,13 +22,16 @@ import java.io.IOException;
 import android.app.WallpaperManager;
 
 public class MainActivity extends AppCompatActivity {
+    private int startColor = 0xFF0000FF; // Default start color
+    private int endColor = 0xFFFF0000;   // Default end color
+    private GridView gridView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        GridView gridView = findViewById(R.id.gridView);
+        gridView = findViewById(R.id.gridView);
         Button btnGenerate = findViewById(R.id.btnGenerate);
 
         // Set up the adapter for the GridView
@@ -50,6 +56,14 @@ public class MainActivity extends AppCompatActivity {
                     Bitmap randomImage = generateRandomImage();
                     adapter.add(randomImage);
                 }
+            }
+        });
+
+        Button btnSelectColors = findViewById(R.id.btnSelectColors);
+        btnSelectColors.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showColorPickerDialog();
             }
         });
 
@@ -88,6 +102,39 @@ public class MainActivity extends AppCompatActivity {
                         .show();
             }
         });
+    }
+
+    private void showColorPickerDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.color_picker_dialog);
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        final EditText editTextStartColor = dialog.findViewById(R.id.editTextStartColor);
+        final EditText editTextEndColor = dialog.findViewById(R.id.editTextEndColor);
+
+        editTextStartColor.setText(ColorUtils.colorToHexString(startColor));
+        editTextEndColor.setText(ColorUtils.colorToHexString(endColor));
+
+        final View colorPreview = dialog.findViewById(R.id.colorPreview);
+
+        Button btnSaveColors = dialog.findViewById(R.id.btnSaveColors);
+        btnSaveColors.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Save selected colors from hex codes
+                startColor = ColorUtils.hexStringToColor(editTextStartColor.getText().toString());
+                endColor = ColorUtils.hexStringToColor(editTextEndColor.getText().toString());
+
+                // Regenerate images with the selected colors
+                regenerateImages();
+
+                dialog.dismiss();
+            }
+        });
+
+        // ... (additional code for dialog)
+
+        dialog.show();
     }
 
     private void setWallpaper(Bitmap bitmap, int flags) {
@@ -139,6 +186,16 @@ public class MainActivity extends AppCompatActivity {
         return bitmap;
     }
 
+    // Add this method to regenerate images when colors are changed
+    private void regenerateImages() {
+        ImageAdapter adapter = (ImageAdapter) gridView.getAdapter();
+        adapter.clear();
+
+        for (int i = 0; i < 10; i++) {
+            Bitmap randomImage = generateRandomImage();
+            adapter.add(randomImage);
+        }
+    }
 
     // Helper method to generate a random color
     private int getRandomColor() {

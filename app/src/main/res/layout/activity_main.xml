@@ -17,13 +17,23 @@
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="16dp"/>
 
+    <Button
+        android:id="@+id/btnSelectColors"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select Colors"
+        android:layout_below="@id/btnGenerate"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"/>
+
     <GridView
         android:id="@+id/gridView"
         android:layout_width="wrap_content"
         android:layout_height="651dp"
-        android:layout_below="@id/btnGenerate"
+        android:layout_below="@id/btnSelectColors"
         android:horizontalSpacing="15dp"
         android:numColumns="2"
         android:scrollbarStyle="outsideInset"
         android:verticalSpacing="5dp" />
+
 </RelativeLayout>
