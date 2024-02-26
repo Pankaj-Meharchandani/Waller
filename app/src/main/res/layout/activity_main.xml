@@ -3,36 +3,46 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingLeft="16dp"
-    android:paddingTop="16dp"
-    android:paddingRight="16dp"
-    android:paddingBottom="16dp"
+    android:padding="16dp"
     tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/btnGenerate"
-        android:layout_width="wrap_content"
+    <!-- Buttons placed side by side at the top -->
+    <LinearLayout
+        android:id="@+id/topButtonsLayout"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/refresh_images"
+        android:orientation="horizontal"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginTop="5dp">
 
-    <Button
-        android:id="@+id/btnSelectColors"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Select Colors"
-        android:layout_below="@id/btnGenerate"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="16dp"/>
+        <Button
+            android:id="@+id/btnSelectColors"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Select Colors"
+            android:textColor="@android:color/white"
+            android:background="@drawable/button_outline"/>
+
+        <Button
+            android:id="@+id/btnGenerate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/refresh_images"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/button_color"/>
+
+    </LinearLayout>
 
     <GridView
         android:id="@+id/gridView"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/btnSelectColors"
+        android:layout_below="@id/topButtonsLayout"
         android:horizontalSpacing="7dp"
         android:numColumns="2"
-        android:verticalSpacing="5dp" />
+        android:verticalSpacing="5dp"
+        android:layout_marginTop="16dp" />
 
 </RelativeLayout>
