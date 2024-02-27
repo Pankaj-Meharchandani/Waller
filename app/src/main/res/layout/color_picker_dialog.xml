@@ -43,8 +43,7 @@
         android:id="@+id/colorPreview"
         android:layout_width="match_parent"
         android:layout_height="40dp"
-        android:layout_below="@id/editTextColor4"
-        android:layout_marginTop="16dp"/>
+        android:layout_below="@id/editTextColor4"/>
 
     <Button
         android:id="@+id/btnSaveColors"
@@ -53,6 +52,42 @@
         android:text="Save Colors"
         android:layout_below="@id/colorPreview"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="16dp"/>
+        android:layout_marginTop="16dp"
+        android:background="@drawable/button_color"/>
+
+    <View
+        android:id="@+id/view2"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_below="@id/btnSaveColors" />
+
+    <LinearLayout
+        android:id="@+id/topButtonsLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/view2">
+
+        <Button
+            android:id="@+id/Light"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Light theme"
+            android:textColor="@android:color/white"
+            android:background="@drawable/button_outline"/>
+
+        <Button
+            android:id="@+id/Dark"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Dark theme"
+            android:layout_marginStart="8dp"
+            android:textColor="@android:color/white"
+            android:background="@drawable/button_outline"/>
+
+    </LinearLayout>
 
 </RelativeLayout>

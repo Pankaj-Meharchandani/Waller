@@ -1,12 +1,19 @@
 package com.example.waller;
 
 import android.app.Dialog;
+import android.app.DownloadManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.view.View;
@@ -152,7 +159,28 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
+        Button btnLightTheme = dialog.findViewById(R.id.Light);
+        btnLightTheme.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Fill textboxes with 'FFFFFF' for light theme
+                editTextColor1.setText("FFFFFF");
+                editTextColor2.setText("FFFFFF");
+                editTextColor3.setText("FFFFFF");
+                editTextColor4.setText("FFFFFF");
+            }
+        });
+        Button btnDarkTheme = dialog.findViewById(R.id.Dark);
+        btnDarkTheme.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Fill textboxes with '000000' for dark theme
+                editTextColor1.setText("000000");
+                editTextColor2.setText("000000");
+                editTextColor3.setText("000000");
+                editTextColor4.setText("000000");
+            }
+        });
         // ... (additional code for dialog)
 
         dialog.show();
