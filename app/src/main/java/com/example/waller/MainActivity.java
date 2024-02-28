@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -14,6 +15,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.view.View;
@@ -23,18 +25,29 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import java.io.IOException;
 import java.util.Random;
 
 import android.app.WallpaperManager;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 
 public class MainActivity extends AppCompatActivity {
     private int startColor = 0xFF0000FF; // Default start color
     private int endColor = 0xFFFF0000;   // Default end color
     private GridView gridView;
+    private Bitmap selectedImage;
 
     // Initialize color variables to 0 initially
     private int selectedColor1 = 0;
@@ -87,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                final Bitmap selectedImage = adapter.getItem(position);
+                final Bitmap clickedImage = adapter.getItem(position);
 
                 // Show AlertDialog for wallpaper options
                 AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
@@ -97,13 +110,13 @@ public class MainActivity extends AppCompatActivity {
                             public void onClick(DialogInterface dialog, int which) {
                                 switch (which) {
                                     case 0:
-                                        setWallpaper(selectedImage, WallpaperManager.FLAG_SYSTEM);
+                                        setWallpaper(clickedImage, WallpaperManager.FLAG_SYSTEM);
                                         break;
                                     case 1:
-                                        setWallpaper(selectedImage, WallpaperManager.FLAG_LOCK);
+                                        setWallpaper(clickedImage, WallpaperManager.FLAG_LOCK);
                                         break;
                                     case 2:
-                                        setWallpaper(selectedImage, WallpaperManager.FLAG_SYSTEM | WallpaperManager.FLAG_LOCK);
+                                        setWallpaper(clickedImage, WallpaperManager.FLAG_SYSTEM | WallpaperManager.FLAG_LOCK);
                                         break;
                                 }
                             }
@@ -114,12 +127,81 @@ public class MainActivity extends AppCompatActivity {
                                 dialog.dismiss();
                             }
                         })
-
+                        .setNeutralButton("Download", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                if (clickedImage != null) {
+                                    selectedImage = clickedImage;  // Update the selectedImage field
+                                    checkAndRequestPermissions();
+                                    // No need to save the image here, it will be saved after obtaining permission
+                                } else {
+                                    Toast.makeText(MainActivity.this, "No image selected", Toast.LENGTH_SHORT).show();
+                                }
+                                dialog.dismiss();
+                            }
+                        })
                         .create()
                         .show();
             }
         });
+
     }
+
+    private static final int PERMISSION_REQUEST_CODE = 123;
+
+    private void checkAndRequestPermissions() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Permission is not granted, request it
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    PERMISSION_REQUEST_CODE
+            );
+        } else {
+            // Permission is already granted, save the image
+            saveImageToGallery(selectedImage);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted, save the image
+                saveImageToGallery(selectedImage);
+            } else {
+                Toast.makeText(this, "Permission denied. Unable to save the image.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void saveImageToGallery(Bitmap image) {
+        String savedImageURL = MediaStore.Images.Media.insertImage(
+                getContentResolver(),
+                image,
+                "Wallpaper_" + System.currentTimeMillis(),
+                "Generated wallpaper"
+        );
+
+        // If the image is saved successfully, get the image URI
+        if (savedImageURL != null) {
+            Uri savedImageURI = Uri.parse(savedImageURL);
+
+            // Broadcast the media scanner to add the new image to the gallery
+            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+            mediaScanIntent.setData(savedImageURI);
+            sendBroadcast(mediaScanIntent);
+
+            // Show Toast message after successful download
+            Toast.makeText(this, "Image downloaded successfully!", Toast.LENGTH_SHORT).show();
+        } else {
+            // Show Toast message if there is an issue with saving the image
+            Toast.makeText(this, "Failed to save the image.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
 
     private void showColorPickerDialog() {
         final Dialog dialog = new Dialog(this);
@@ -272,13 +354,14 @@ public class MainActivity extends AppCompatActivity {
         gradientDrawable.setColors(new int[]{startColor, endColor});
 
         // Convert the drawable to a Bitmap
-        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        selectedImage = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         gradientDrawable.setBounds(0, 0, width, height);
-        Canvas canvas = new Canvas(bitmap);
+        Canvas canvas = new Canvas(selectedImage);
         gradientDrawable.draw(canvas);
 
-        return bitmap;
+        return selectedImage;
     }
+
 
     private int shuffleColor(int color) {
         Random random = new Random();
