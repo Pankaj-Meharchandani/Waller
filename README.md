@@ -13,7 +13,7 @@ Waller is an Android app that allows users to generate and set gradient wallpape
 ## Screenshots
 <img src="https://github.com/Pankaj-Meharchandani/Waller/assets/65183354/dcf1ead4-dd2d-44de-acb1-1ea4057cb6be" width="20%" alt="Screenshot_20240229_183340">
 <img src="https://github.com/Pankaj-Meharchandani/Waller/assets/65183354/fdf50ebc-c35f-4c76-958a-cc335841c744" width="20%" alt="Screenshot_20240229_183419">
-<img src="https://github.com/Pankaj-Meharchandani/Waller/assets/65183354/1bbfc445-c357-4c1b-a531-21082a2d338b" width="320%" alt="Screenshot_20240229_183425">
+<img src="https://github.com/Pankaj-Meharchandani/Waller/assets/65183354/1bbfc445-c357-4c1b-a531-21082a2d338b" width="20%" alt="Screenshot_20240229_183425">
 <img src="https://github.com/Pankaj-Meharchandani/Waller/assets/65183354/894081bd-8bfe-4513-aeb1-ded478e164f3" width="20%" alt="Screenshot_20240229_183442">
 <img src="https://github.com/Pankaj-Meharchandani/Waller/assets/65183354/ec052814-888d-4520-b0a3-098374c43c24" width="20%" alt="Screenshot_20240229_183449">
 
