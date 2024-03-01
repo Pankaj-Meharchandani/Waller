@@ -379,17 +379,14 @@ public class MainActivity extends AppCompatActivity {
         switch (gradientType) {
             case LINEAR:
                 gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
-                gradientDrawable.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT);
+                gradientDrawable.setOrientation(GradientDrawable.Orientation.RIGHT_LEFT);
                 break;
             case ANGULAR:
                 gradientDrawable.setGradientType(GradientDrawable.SWEEP_GRADIENT);
                 gradientDrawable.setOrientation(GradientDrawable.Orientation.TOP_BOTTOM);
                 break;
-
-
             case BILINEAR:
                 gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
-
             case DIAGONAL:
                 // For diagonal gradient, you can use LinearGradient with a diagonal angle
                 gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
