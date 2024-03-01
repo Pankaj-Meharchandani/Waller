@@ -1,11 +1,7 @@
-package com.example.waller;
+package com.pankaj.waller;
 
 import android.app.Dialog;
-import android.app.DownloadManager;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -14,7 +10,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
@@ -38,9 +33,8 @@ import java.util.Random;
 
 import android.app.WallpaperManager;
 import android.Manifest;
-import android.content.pm.PackageManager;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+
+import com.example.waller.R;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -166,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // Permission granted, save the image

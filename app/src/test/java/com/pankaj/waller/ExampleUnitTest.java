@@ -1,4 +1,4 @@
-package com.example.waller;
+package com.pankaj.waller;
 
 import org.junit.Test;
 

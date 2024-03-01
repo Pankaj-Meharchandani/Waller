@@ -1,9 +1,8 @@
-package com.example.waller;
+package com.pankaj.waller;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.view.View;
@@ -19,8 +18,9 @@ public class ImageAdapter extends ArrayAdapter<Bitmap> {
         super(context, 0);
     }
 
+    @NonNull
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
+    public View getView(int position, View convertView, @NonNull ViewGroup parent) {
         RoundedCornerImageView imageView;
         if (convertView == null) {
             imageView = new RoundedCornerImageView(getContext());

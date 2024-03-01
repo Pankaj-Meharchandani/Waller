@@ -7,7 +7,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.waller"
+        applicationId = "com.pankaj.waller"
         minSdk = 28
         targetSdk = 34
         versionCode = 1

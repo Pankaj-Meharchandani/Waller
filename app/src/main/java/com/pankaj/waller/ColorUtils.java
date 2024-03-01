@@ -1,21 +1,8 @@
-package com.example.waller;
+package com.pankaj.waller;
 
 import android.graphics.Color;
 
 public class ColorUtils {
-
-    public static int colorToSeekBarProgress(int color) {
-        // Extract RGB components
-        int red = Color.red(color);
-        int green = Color.green(color);
-        int blue = Color.blue(color);
-
-        // Convert RGB to grayscale
-        int grayscale = (red + green + blue) / 3;
-
-        // Convert grayscale to SeekBar progress (0-100)
-        return (int) (grayscale / 2.55); // 2.55 = 255 / 100
-    }
 
     public static int getSeekBarColor(int progress) {
         // Convert SeekBar progress to grayscale
