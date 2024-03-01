@@ -16,7 +16,7 @@
         android:theme="@style/Theme.Waller"
         tools:targetApi="31">
         <activity
-            android:name="com.pankaj.waller.MainActivity"
+            android:name="com.example.waller.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -1,4 +1,4 @@
-package com.pankaj.waller;
+package com.example.waller;
 
 import android.graphics.Color;
 
