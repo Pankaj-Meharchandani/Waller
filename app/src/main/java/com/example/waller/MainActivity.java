@@ -1,4 +1,4 @@
-package com.pankaj.waller;
+package com.example.waller;
 
 import android.app.Dialog;
 import android.content.Intent;
@@ -33,8 +33,6 @@ import java.util.Random;
 
 import android.app.WallpaperManager;
 import android.Manifest;
-
-import com.example.waller.R;
 
 
 public class MainActivity extends AppCompatActivity {
