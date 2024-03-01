@@ -4,21 +4,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:padding="16dp">
 
-    <EditText
-        android:id="@+id/editTextColor1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="textCapCharacters"
-        android:hint="Color 1 (hex)"/>
+<!--    <EditText-->
+<!--        android:id="@+id/editTextColor1"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:inputType="textCapCharacters"-->
+<!--        android:hint="Color 1 (hex)"/>-->
 
     <EditText
         android:id="@+id/editTextColor2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="textCapCharacters"
-        android:layout_below="@id/editTextColor1"
         android:layout_marginTop="16dp"
-        android:hint="Color 2 (hex)"/>
+        android:hint="Color 1 (hex)"/>
 
     <EditText
         android:id="@+id/editTextColor3"
@@ -27,23 +26,23 @@
         android:inputType="textCapCharacters"
         android:layout_below="@id/editTextColor2"
         android:layout_marginTop="16dp"
-        android:hint="Color 3 (hex)"/>
+        android:hint="Color 2 (hex)"/>
 
-    <EditText
-        android:id="@+id/editTextColor4"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="textCapCharacters"
-        android:layout_below="@id/editTextColor3"
-        android:layout_marginTop="16dp"
-        android:hint="Color 4 (hex)"/>
+<!--    <EditText-->
+<!--        android:id="@+id/editTextColor4"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:inputType="textCapCharacters"-->
+<!--        android:layout_below="@id/editTextColor3"-->
+<!--        android:layout_marginTop="16dp"-->
+<!--        android:hint="Color 4 (hex)"/>-->
 
 
     <View
         android:id="@+id/colorPreview"
         android:layout_width="match_parent"
         android:layout_height="40dp"
-        android:layout_below="@id/editTextColor4"/>
+        android:layout_below="@id/editTextColor3"/>
 
     <Button
         android:id="@+id/btnSaveColors"

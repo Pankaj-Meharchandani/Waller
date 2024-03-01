@@ -201,24 +201,23 @@ public class MainActivity extends AppCompatActivity {
         dialog.setContentView(R.layout.color_picker_dialog);
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 
-        final EditText editTextColor1 = dialog.findViewById(R.id.editTextColor1);
+//        final EditText editTextColor1 = dialog.findViewById(R.id.editTextColor1);
         final EditText editTextColor2 = dialog.findViewById(R.id.editTextColor2);
         final EditText editTextColor3 = dialog.findViewById(R.id.editTextColor3);
-        final EditText editTextColor4 = dialog.findViewById(R.id.editTextColor4);
 
         // Update EditText fields with previously selected colors if available
-        if (selectedColor1 != 0) {
-            editTextColor1.setText(ColorUtils.colorToHexString(selectedColor1).substring(1)); // Remove '#'
-        }
+//        if (selectedColor1 != 0) {
+//            editTextColor1.setText(ColorUtils.colorToHexString(selectedColor1).substring(1)); // Remove '#'
+//        }
         if (selectedColor2 != 0) {
             editTextColor2.setText(ColorUtils.colorToHexString(selectedColor2).substring(1)); // Remove '#'
         }
         if (selectedColor3 != 0) {
             editTextColor3.setText(ColorUtils.colorToHexString(selectedColor3).substring(1)); // Remove '#'
         }
-        if (selectedColor4 != 0) {
-            editTextColor4.setText(ColorUtils.colorToHexString(selectedColor4).substring(1)); // Remove '#'
-        }
+//        if (selectedColor4 != 0) {
+//            editTextColor4.setText(ColorUtils.colorToHexString(selectedColor4).substring(1)); // Remove '#'
+//        }
 
         final View colorPreview = dialog.findViewById(R.id.colorPreview);
 
@@ -227,7 +226,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // Validate and save selected colors from hex codes
-                if (validateAndSaveColors(editTextColor1, editTextColor2, editTextColor3, editTextColor4)) {
+                if (validateAndSaveColors(editTextColor2, editTextColor3)) {
+                    selectedColor2 = ColorUtils.hexStringToColor("#" + editTextColor2.getText().toString());
+                    selectedColor3 = ColorUtils.hexStringToColor("#" + editTextColor3.getText().toString());
                     // Regenerate images with the selected colors
                     regenerateImages(selectedColor2, selectedColor3);
                     dialog.dismiss();
@@ -239,10 +240,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // Fill textboxes with 'FFFFFF' for light theme
-                editTextColor1.setText("FFFFFF");
+                //editTextColor1.setText("FFFFFF");
                 editTextColor2.setText("FFFFFF");
                 editTextColor3.setText("FFFFFF");
-                editTextColor4.setText("FFFFFF");
+                //editTextColor4.setText("FFFFFF");
             }
         });
         Button btnDarkTheme = dialog.findViewById(R.id.Dark);
@@ -250,10 +251,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // Fill textboxes with '000000' for dark theme
-                editTextColor1.setText("000000");
+               // editTextColor1.setText("000000");
                 editTextColor2.setText("000000");
                 editTextColor3.setText("000000");
-                editTextColor4.setText("000000");
+                //editTextColor4.setText("000000");
             }
         });
         // ... (additional code for dialog)
@@ -261,11 +262,9 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private boolean validateAndSaveColors(EditText editText1, EditText editText2, EditText editText3, EditText editText4) {
-        if (validateAndSaveColor(editText1, 1) &&
-                validateAndSaveColor(editText2, 2) &&
-                validateAndSaveColor(editText3, 3) &&
-                validateAndSaveColor(editText4, 4)) {
+    private boolean validateAndSaveColors(EditText editText2, EditText editText3) {
+        if (    validateAndSaveColor(editText2, 1) &&
+                validateAndSaveColor(editText3, 2)) {
             return true;
         }
 
