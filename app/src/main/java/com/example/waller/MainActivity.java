@@ -60,10 +60,31 @@ public class MainActivity extends AppCompatActivity {
         gridView.setAdapter(adapter);
 
         // Generate 10 random images (either gradient or abstract)
-        for (int i = 0; i < 10; i++) {
-            Bitmap randomImage = generateRandomImage(0, 0);
+        // Generate 10 random images with different gradient types
+        for (int i = 0; i < 16; i++) {
+            Bitmap randomImage;
+
+            // Switch between gradient types for each iteration
+            switch (i % 4) {
+                case 0:
+                    randomImage = generateRandomImage(0, GradientType.LINEAR);
+                    break;
+                case 1:
+                    randomImage = generateRandomImage(0, GradientType.ANGULAR);
+                    break;
+                case 2:
+                    randomImage = generateRandomImage(0, GradientType.BILINEAR);
+                    break;
+                case 3:
+                    randomImage = generateRandomImage(0, GradientType.DIAGONAL);
+                    break;
+                default:
+                    randomImage = generateRandomImage(0, GradientType.LINEAR);
+            }
+
             adapter.add(randomImage);
         }
+
 
         // Set up click listener for the Generate button
         btnGenerate.setOnClickListener(new View.OnClickListener() {
@@ -73,10 +94,31 @@ public class MainActivity extends AppCompatActivity {
                 adapter.clear();
 
                 // Generate 10 random images (either gradient or abstract)
-                for (int i = 0; i < 10; i++) {
-                    Bitmap randomImage = generateRandomImage(0, 0);
+                // Generate 10 random images with different gradient types
+                for (int i = 0; i < 16; i++) {
+                    Bitmap randomImage;
+
+                    // Switch between gradient types for each iteration
+                    switch (i % 4) {
+                        case 0:
+                            randomImage = generateRandomImage(0, GradientType.LINEAR);
+                            break;
+                        case 1:
+                            randomImage = generateRandomImage(0, GradientType.ANGULAR);
+                            break;
+                        case 2:
+                            randomImage = generateRandomImage(0, GradientType.BILINEAR);
+                            break;
+                        case 3:
+                            randomImage = generateRandomImage(0, GradientType.DIAGONAL);
+                            break;
+                        default:
+                            randomImage = generateRandomImage(0, GradientType.LINEAR);
+                    }
+
                     adapter.add(randomImage);
                 }
+
             }
         });
 
@@ -251,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // Fill textboxes with '000000' for dark theme
-               // editTextColor1.setText("000000");
+                // editTextColor1.setText("000000");
                 editTextColor2.setText("000000");
                 editTextColor3.setText("000000");
                 //editTextColor4.setText("000000");
@@ -318,7 +360,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private Bitmap generateRandomImage(int color2, int color3) {
+    private Bitmap generateRandomImage(int color2, GradientType gradientType) {
         // Get the dimensions of the device screen
         DisplayMetrics displayMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
@@ -333,15 +375,28 @@ public class MainActivity extends AppCompatActivity {
         // For simplicity, you can use GradientDrawable and convert it to a Bitmap
         GradientDrawable gradientDrawable = new GradientDrawable();
 
-        // Set the gradient type (linear gradient in this example)
-        gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
+        // Set the gradient type
+        switch (gradientType) {
+            case LINEAR:
+                gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
+                gradientDrawable.setOrientation(GradientDrawable.Orientation.RIGHT_LEFT);
+                break;
+            case ANGULAR:
+                gradientDrawable.setGradientType(GradientDrawable.SWEEP_GRADIENT);
+                gradientDrawable.setOrientation(GradientDrawable.Orientation.TOP_BOTTOM);
+                break;
+            case BILINEAR:
+                gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
+            case DIAGONAL:
+                // For diagonal gradient, you can use LinearGradient with a diagonal angle
+                gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
+                gradientDrawable.setOrientation(GradientDrawable.Orientation.TL_BR);
+                break;
+        }
 
-        // Set the gradient orientation (you can experiment with different angles)
-        gradientDrawable.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT);
-
-        // Set the colors for the gradient
+        // Set the gradient colors
         int startColor = (color2 != 0) ? shuffleColor(color2) : getRandomColor();
-        int endColor = (color3 != 0) ? shuffleColor(color3) : getRandomColor();
+        int endColor = (selectedColor3 != 0) ? shuffleColor(selectedColor3) : getRandomColor();
 
         gradientDrawable.setColors(new int[]{startColor, endColor});
 
@@ -352,6 +407,11 @@ public class MainActivity extends AppCompatActivity {
         gradientDrawable.draw(canvas);
 
         return selectedImage;
+    }
+
+    // Enumeration for gradient types
+    private enum GradientType {
+        LINEAR, ANGULAR, BILINEAR, DIAGONAL
     }
 
 
@@ -374,10 +434,31 @@ public class MainActivity extends AppCompatActivity {
         ImageAdapter adapter = (ImageAdapter) gridView.getAdapter();
         adapter.clear();
 
-        for (int i = 0; i < 10; i++) {
-            Bitmap randomImage = generateRandomImage(color2, color3);
+        // Generate 20 random images with different gradient types
+        for (int i = 0; i < 16; i++) {
+            Bitmap randomImage;
+
+            // Switch between gradient types for each iteration
+            switch (i % 4) {
+                case 0:
+                    randomImage = generateRandomImage(0, GradientType.LINEAR);
+                    break;
+                case 1:
+                    randomImage = generateRandomImage(0, GradientType.ANGULAR);
+                    break;
+                case 2:
+                    randomImage = generateRandomImage(0, GradientType.BILINEAR);
+                    break;
+                case 3:
+                    randomImage = generateRandomImage(0, GradientType.DIAGONAL);
+                    break;
+                default:
+                    randomImage = generateRandomImage(0, GradientType.LINEAR);
+            }
+
             adapter.add(randomImage);
         }
+
     }
 
     private int getRandomColor() {
