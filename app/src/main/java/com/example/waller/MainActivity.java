@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Generate 10 random images (either gradient or abstract)
         // Generate 10 random images with different gradient types
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 16; i++) {
             Bitmap randomImage;
 
             // Switch between gradient types for each iteration
@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // Generate 10 random images (either gradient or abstract)
                 // Generate 10 random images with different gradient types
-                for (int i = 0; i < 10; i++) {
+                for (int i = 0; i < 16; i++) {
                     Bitmap randomImage;
 
                     // Switch between gradient types for each iteration
@@ -378,17 +378,21 @@ public class MainActivity extends AppCompatActivity {
         // Set the gradient type
         switch (gradientType) {
             case LINEAR:
-//                gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
+                gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
                 gradientDrawable.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT);
                 break;
             case ANGULAR:
                 gradientDrawable.setGradientType(GradientDrawable.SWEEP_GRADIENT);
+                gradientDrawable.setOrientation(GradientDrawable.Orientation.TOP_BOTTOM);
                 break;
+
+
             case BILINEAR:
                 gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
 
             case DIAGONAL:
                 // For diagonal gradient, you can use LinearGradient with a diagonal angle
+                gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
                 gradientDrawable.setOrientation(GradientDrawable.Orientation.TL_BR);
                 break;
         }
@@ -433,8 +437,8 @@ public class MainActivity extends AppCompatActivity {
         ImageAdapter adapter = (ImageAdapter) gridView.getAdapter();
         adapter.clear();
 
-        // Generate 10 random images with different gradient types
-        for (int i = 0; i < 10; i++) {
+        // Generate 20 random images with different gradient types
+        for (int i = 0; i < 16; i++) {
             Bitmap randomImage;
 
             // Switch between gradient types for each iteration
