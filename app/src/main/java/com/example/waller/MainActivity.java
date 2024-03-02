@@ -383,7 +383,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case ANGULAR:
                 gradientDrawable.setGradientType(GradientDrawable.SWEEP_GRADIENT);
-                gradientDrawable.setOrientation(GradientDrawable.Orientation.TOP_BOTTOM);
+                gradientDrawable.setOrientation(GradientDrawable.Orientation.BOTTOM_TOP);
                 break;
             case BILINEAR:
                 gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);

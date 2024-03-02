@@ -2,7 +2,8 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="@drawable/background_border2">
 
 <!--    <EditText-->
 <!--        android:id="@+id/editTextColor1"-->
@@ -17,7 +18,9 @@
         android:layout_height="wrap_content"
         android:inputType="textCapCharacters"
         android:layout_marginTop="16dp"
-        android:hint="Color 1 (hex)"/>
+        android:hint="Color 1 (hex)"
+        android:textColorHint="#898989"
+        android:textColor="@color/white"/>
 
     <EditText
         android:id="@+id/editTextColor3"
@@ -26,7 +29,9 @@
         android:inputType="textCapCharacters"
         android:layout_below="@id/editTextColor2"
         android:layout_marginTop="16dp"
-        android:hint="Color 2 (hex)"/>
+        android:hint="Color 2 (hex)"
+        android:textColorHint="#898989"
+        android:textColor="@color/white"/>
 
 <!--    <EditText-->
 <!--        android:id="@+id/editTextColor4"-->
