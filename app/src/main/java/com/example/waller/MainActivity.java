@@ -85,7 +85,6 @@ public class MainActivity extends AppCompatActivity {
             adapter.add(randomImage);
         }
 
-
         // Set up click listener for the Generate button
         btnGenerate.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -118,7 +117,6 @@ public class MainActivity extends AppCompatActivity {
 
                     adapter.add(randomImage);
                 }
-
             }
         });
 
@@ -178,7 +176,6 @@ public class MainActivity extends AppCompatActivity {
                         .show();
             }
         });
-
     }
 
     private static final int PERMISSION_REQUEST_CODE = 123;
@@ -236,30 +233,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-
     private void showColorPickerDialog() {
         final Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.color_picker_dialog);
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 
-//        final EditText editTextColor1 = dialog.findViewById(R.id.editTextColor1);
         final EditText editTextColor2 = dialog.findViewById(R.id.editTextColor2);
         final EditText editTextColor3 = dialog.findViewById(R.id.editTextColor3);
 
         // Update EditText fields with previously selected colors if available
-//        if (selectedColor1 != 0) {
-//            editTextColor1.setText(ColorUtils.colorToHexString(selectedColor1).substring(1)); // Remove '#'
-//        }
         if (selectedColor2 != 0) {
             editTextColor2.setText(ColorUtils.colorToHexString(selectedColor2).substring(1)); // Remove '#'
         }
         if (selectedColor3 != 0) {
             editTextColor3.setText(ColorUtils.colorToHexString(selectedColor3).substring(1)); // Remove '#'
         }
-//        if (selectedColor4 != 0) {
-//            editTextColor4.setText(ColorUtils.colorToHexString(selectedColor4).substring(1)); // Remove '#'
-//        }
 
         final View colorPreview = dialog.findViewById(R.id.colorPreview);
 
@@ -277,29 +265,26 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
         Button btnLightTheme = dialog.findViewById(R.id.Light);
         btnLightTheme.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // Fill textboxes with 'FFFFFF' for light theme
-                //editTextColor1.setText("FFFFFF");
                 editTextColor2.setText("FFFFFF");
                 editTextColor3.setText("FFFFFF");
-                //editTextColor4.setText("FFFFFF");
             }
         });
+
         Button btnDarkTheme = dialog.findViewById(R.id.Dark);
         btnDarkTheme.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // Fill textboxes with '000000' for dark theme
-                // editTextColor1.setText("000000");
                 editTextColor2.setText("000000");
                 editTextColor3.setText("000000");
-                //editTextColor4.setText("000000");
             }
         });
-        // ... (additional code for dialog)
 
         dialog.show();
     }
@@ -322,17 +307,11 @@ public class MainActivity extends AppCompatActivity {
             try {
                 int color = ColorUtils.hexStringToColor("#" + hexCode);
                 switch (colorNumber) {
-                    case 1:
-                        selectedColor1 = color;
-                        break;
                     case 2:
                         selectedColor2 = color;
                         break;
                     case 3:
                         selectedColor3 = color;
-                        break;
-                    case 4:
-                        selectedColor4 = color;
                         break;
                 }
                 return true;
@@ -347,7 +326,6 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     }
-
 
     private void setWallpaper(Bitmap bitmap, int flags) {
         WallpaperManager wallpaperManager = WallpaperManager.getInstance(MainActivity.this);
@@ -414,7 +392,6 @@ public class MainActivity extends AppCompatActivity {
         LINEAR, ANGULAR, BILINEAR, DIAGONAL
     }
 
-
     private int shuffleColor(int color) {
         Random random = new Random();
         int red = Color.red(color) + random.nextInt(201) - 100; // Adjust the range as needed
@@ -428,7 +405,6 @@ public class MainActivity extends AppCompatActivity {
 
         return Color.rgb(red, green, blue);
     }
-
 
     private void regenerateImages(int color2, int color3) {
         ImageAdapter adapter = (ImageAdapter) gridView.getAdapter();
@@ -458,7 +434,6 @@ public class MainActivity extends AppCompatActivity {
 
             adapter.add(randomImage);
         }
-
     }
 
     private int getRandomColor() {
