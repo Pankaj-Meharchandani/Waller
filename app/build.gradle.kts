@@ -37,4 +37,5 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     implementation ("io.github.eltos:simpledialogfragments:3.8.3")
+    implementation ("com.google.android.material:material")
 }
