@@ -33,6 +33,10 @@ import java.util.Random;
 
 import android.app.WallpaperManager;
 import android.Manifest;
+//appcenter
+import com.microsoft.appcenter.AppCenter;
+import com.microsoft.appcenter.analytics.Analytics;
+import com.microsoft.appcenter.crashes.Crashes;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -49,6 +53,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        AppCenter.start(getApplication(), "d96f022d-9006-48d0-aa2d-ad88ebfdf723",
+                Analytics.class, Crashes.class);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
