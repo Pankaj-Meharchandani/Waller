@@ -276,9 +276,9 @@ public class MainActivity extends AppCompatActivity {
         btnLightTheme.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Fill textboxes with 'FFFFFF' for light theme
-                editTextColor2.setText("FFFFFF");
-                editTextColor3.setText("FFFFFF");
+                selectedColor3 = Color.WHITE;
+                regenerateImages(selectedColor2, selectedColor3);
+                dialog.dismiss();
             }
         });
 
@@ -286,9 +286,11 @@ public class MainActivity extends AppCompatActivity {
         btnDarkTheme.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Fill textboxes with '000000' for dark theme
-                editTextColor2.setText("000000");
-                editTextColor3.setText("000000");
+                // Set selectedColor3 to "000000" for dark theme
+                selectedColor3 = Color.BLACK;
+                // Regenerate images with the selected colors
+                regenerateImages(selectedColor2, selectedColor3);
+                dialog.dismiss();
             }
         });
 
@@ -309,30 +311,25 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean validateAndSaveColor(EditText editText, int colorNumber) {
         String hexCode = editText.getText().toString();
-        if (!TextUtils.isEmpty(hexCode)) {
-            try {
-                int color = ColorUtils.hexStringToColor("#" + hexCode);
-                switch (colorNumber) {
-                    case 2:
-                        selectedColor2 = color;
-                        break;
-                    case 3:
-                        selectedColor3 = color;
-                        break;
-                }
-                return true;
-            } catch (IllegalArgumentException e) {
-                // Invalid color code
-                Toast.makeText(MainActivity.this, "Invalid color code for Color " + colorNumber, Toast.LENGTH_SHORT).show();
-                return false;
+
+        try {
+            int color = ColorUtils.hexStringToColor("#" + hexCode);
+            switch (colorNumber) {
+                case 2:
+                    selectedColor2 = color;
+                    break;
+                case 3:
+                    selectedColor3 = color;
+                    break;
             }
-        } else {
-            // Empty color code
-            Toast.makeText(MainActivity.this, "Empty color code for Color " + colorNumber, Toast.LENGTH_SHORT).show();
-            return false;
+            return true;
+        } catch (IllegalArgumentException e) {
+            // Invalid color code
+            Toast.makeText(MainActivity.this, "Invalid color code for Color " + colorNumber+"\n Usng Default color", Toast.LENGTH_SHORT).show();
+            editText.setText("BABABA");
+            return true;
         }
     }
-
     private void setWallpaper(Bitmap bitmap, int flags) {
         WallpaperManager wallpaperManager = WallpaperManager.getInstance(MainActivity.this);
         try {
@@ -379,7 +376,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Set the gradient colors
-        int startColor = (color2 != 0) ? shuffleColor(color2) : getRandomColor();
+        int startColor = (selectedColor2 != 0) ? shuffleColor(selectedColor2) : getRandomColor();
         int endColor = (selectedColor3 != 0) ? shuffleColor(selectedColor3) : getRandomColor();
 
         gradientDrawable.setColors(new int[]{startColor, endColor});
