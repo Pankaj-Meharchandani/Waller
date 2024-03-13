@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:inputType="textCapCharacters"
         android:layout_marginTop="16dp"
-        android:hint="Color 1 (hex)"
+        android:hint="Primary Color (hex)"
         android:textColorHint="#898989"
         android:textColor="@color/white"/>
 
@@ -29,7 +29,7 @@
         android:inputType="textCapCharacters"
         android:layout_below="@id/editTextColor2"
         android:layout_marginTop="16dp"
-        android:hint="Color 2 (hex)"
+        android:hint="Secondary Color (hex)"
         android:textColorHint="#898989"
         android:textColor="@color/white"/>
 
@@ -78,7 +78,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Light theme"
+            android:text="Light Themes"
             android:textColor="@android:color/white"
             android:background="@drawable/button_outline"/>
 
@@ -87,7 +87,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Dark theme"
+            android:text="Dark Themes"
             android:layout_marginStart="8dp"
             android:textColor="@android:color/white"
             android:background="@drawable/button_outline"/>
