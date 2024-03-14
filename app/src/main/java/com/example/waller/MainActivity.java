@@ -22,7 +22,10 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.Toast;
-
+import android.app.AlertDialog;
+import android.app.WallpaperManager;
+import android.content.DialogInterface;
+import com.google.android.material.color.DynamicColors;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -56,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
         AppCenter.start(getApplication(), "d96f022d-9006-48d0-aa2d-ad88ebfdf723",
                 Analytics.class, Crashes.class);
         super.onCreate(savedInstanceState);
+        DynamicColors.applyToActivityIfAvailable(this);
         setContentView(R.layout.activity_main);
 
         gridView = findViewById(R.id.gridView);
