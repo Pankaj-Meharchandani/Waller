@@ -11,7 +11,9 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.AdapterView;
@@ -255,6 +257,24 @@ public class MainActivity extends AppCompatActivity {
             editTextColor3.setText(ColorUtils.colorToHexString(selectedColor3).substring(1)); // Remove '#'
         }
 
+        // Add a TextWatcher to the first EditText
+        editTextColor2.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (s.length() == 6) { // Check if 6 digits have been entered
+                    editTextColor3.requestFocus(); // Move focus to the next EditText
+                }
+            }
+        });
+
         final View colorPreview = dialog.findViewById(R.id.colorPreview);
 
         Button btnSaveColors = dialog.findViewById(R.id.btnSaveColors);
@@ -296,6 +316,12 @@ public class MainActivity extends AppCompatActivity {
 
         dialog.show();
     }
+//    private void clearTextFields() {
+//        EditText editTextColor2 = findViewById(R.id.editTextColor2);
+//        EditText editTextColor3 = findViewById(R.id.editTextColor3);
+//        editTextColor2.setText("");
+//        editTextColor3.setText("");
+//    }
 
     private boolean validateAndSaveColors(EditText editText2, EditText editText3) {
         if (    validateAndSaveColor(editText2, 1) &&

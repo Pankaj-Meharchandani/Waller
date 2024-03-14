@@ -18,6 +18,7 @@
         android:layout_height="wrap_content"
         android:inputType="textCapCharacters"
         android:layout_marginTop="16dp"
+        android:maxLength="6"
         android:hint="Primary Color (hex)"
         android:textColorHint="#898989"
         android:textColor="@color/white"/>
@@ -28,6 +29,7 @@
         android:layout_height="wrap_content"
         android:inputType="textCapCharacters"
         android:layout_below="@id/editTextColor2"
+        android:maxLength="6"
         android:layout_marginTop="16dp"
         android:hint="Secondary Color (hex)"
         android:textColorHint="#898989"
@@ -58,6 +60,15 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="16dp"
         android:background="@drawable/button_color"/>
+<!--    <Button-->
+<!--        android:id="@+id/btnClearColors"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_weight="1"-->
+<!--        android:text="cls"-->
+<!--        android:layout_marginTop="400dp"-->
+<!--        android:textColor="@android:color/white"-->
+<!--        android:background="@drawable/button_outline"/>-->
 
     <View
         android:id="@+id/view2"
