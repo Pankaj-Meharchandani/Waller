@@ -42,9 +42,7 @@ import com.microsoft.appcenter.crashes.Crashes;
 
 
 public class MainActivity extends AppCompatActivity {
-    private int startColor = 0xFF0000FF; // Default start color
-    private int endColor = 0xFFFF0000;   // Default end color
-    private GridView gridView;
+     private GridView gridView;
     private Bitmap selectedImage;
 
     // Initialize color variables to 0 initially
@@ -67,7 +65,6 @@ public class MainActivity extends AppCompatActivity {
         final ArrayAdapter<Bitmap> adapter = new ImageAdapter(this);
         gridView.setAdapter(adapter);
 
-        // Generate 10 random images (either gradient or abstract)
         // Generate 10 random images with different gradient types
         for (int i = 0; i < 16; i++) {
             Bitmap randomImage;
@@ -100,7 +97,6 @@ public class MainActivity extends AppCompatActivity {
                 // Clear existing images
                 adapter.clear();
 
-                // Generate 10 random images (either gradient or abstract)
                 // Generate 10 random images with different gradient types
                 for (int i = 0; i < 16; i++) {
                     Bitmap randomImage;
