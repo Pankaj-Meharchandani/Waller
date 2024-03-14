@@ -337,23 +337,43 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean validateAndSaveColor(EditText editText, int colorNumber) {
         String hexCode = editText.getText().toString();
-
-        try {
-            int color = ColorUtils.hexStringToColor("#" + hexCode);
-            switch (colorNumber) {
-                case 2:
-                    selectedColor2 = color;
-                    break;
-                case 3:
-                    selectedColor3 = color;
-                    break;
+        if (!TextUtils.isEmpty(hexCode)) {
+            try {
+                int color = ColorUtils.hexStringToColor("#" + hexCode);
+                switch (colorNumber) {
+                    case 2:
+                        selectedColor2 = color;
+                        break;
+                    case 3:
+                        selectedColor3 = color;
+                        break;
+                }
+                return true;
+            } catch (IllegalArgumentException e) {
+                // Invalid color code
+                Toast.makeText(MainActivity.this, "Invalid color code for Color " + colorNumber, Toast.LENGTH_SHORT).show();
+                return false;
             }
-            return true;
-        } catch (IllegalArgumentException e) {
-            // Invalid color code
-            Toast.makeText(MainActivity.this, "Invalid color code for Color " + colorNumber+"\n Usng Default color", Toast.LENGTH_SHORT).show();
-            editText.setText("BABABA");
-            return true;
+        } else {
+            // Empty color code
+            Toast.makeText(MainActivity.this, "Empty color code for Color " + colorNumber, Toast.LENGTH_SHORT).show();
+            return false;
+//        try {
+//            int color = ColorUtils.hexStringToColor("#" + hexCode);
+//            switch (colorNumber) {
+//                case 2:
+//                    selectedColor2 = color;
+//                    break;
+//                case 3:
+//                    selectedColor3 = color;
+//                    break;
+//            }
+//            return true;
+//        } catch (IllegalArgumentException e) {
+//            // Invalid color code
+//            Toast.makeText(MainActivity.this, "Invalid color code for Color " + colorNumber+"\n Usng Default color", Toast.LENGTH_SHORT).show();
+//            editText.setText("BABABA");
+//            return true;
         }
     }
     private void setWallpaper(Bitmap bitmap, int flags) {
