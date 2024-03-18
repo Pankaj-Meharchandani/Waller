@@ -4,10 +4,11 @@ Waller is an Android app that allows users to generate and set gradient wallpape
 
 ## Features
 
+- Material You based dynamic theming.
 - Generate random gradient wallpapers.
 - Set wallpapers for the home screen, lock screen, or both.
-- Download wallpapers
-- generate according to your specific color instructions
+- Download wallpapers.
+- generate according to your specific color instructions.
 - Easy-to-use interface with a GridView to preview and select wallpapers.
 
 ## Screenshots
