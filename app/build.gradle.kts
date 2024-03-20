@@ -38,7 +38,6 @@ dependencies {
     implementation("io.github.eltos:simpledialogfragments:3.8.3")
     implementation("com.google.android.material:material")
     implementation("androidx.palette:palette:1.0.0")
-
     // App Center dependencies
     val appCenterSdkVersion = "5.0.4"
     implementation("com.microsoft.appcenter:appcenter-analytics:$appCenterSdkVersion")
