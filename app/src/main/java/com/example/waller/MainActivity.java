@@ -249,26 +249,24 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
         final Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.color_picker_dialog);
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.setOnDismissListener(dialog1 -> {
+            editPrimaryColor = null;
+            editSecondaryColor = null;
+        });
 
         editPrimaryColor = dialog.findViewById(R.id.editColor2);
         editSecondaryColor = dialog.findViewById(R.id.editColor3);
 
         ImageButton colorPaletteButton = dialog.findViewById(R.id.colorPaletteButton);
-        colorPaletteButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Call the method to show the color wheel dialog
-                showColorWheelDialog(TAG_PRIMARY_COLOR);
-            }
+        colorPaletteButton.setOnClickListener(v -> {
+            // Call the method to show the color wheel dialog
+            showColorWheelDialog(TAG_PRIMARY_COLOR);
         });
 
         ImageButton colorPaletteButton2 = dialog.findViewById(R.id.colorPaletteButton2);
-        colorPaletteButton2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Call the method to show the color wheel dialog
-                showColorWheelDialog(TAG_SECONDARY_COLOR);
-            }
+        colorPaletteButton2.setOnClickListener(v -> {
+            // Call the method to show the color wheel dialog
+            showColorWheelDialog(TAG_SECONDARY_COLOR);
         });
 
         // Update EditText fields with previously selected colors if available
@@ -286,7 +284,7 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
             @Override
             public void onClick(View v) {
                 // Validate and save selected colors from hex codes
-                if (validateAndSaveColors(editPrimaryColor, editSecondaryColor)) {
+                if (validateAndSaveColors()) {
                     selectedColor2 = ColorUtils.hexStringToColor("#" + editPrimaryColor.getText().toString());
                     selectedColor3 = ColorUtils.hexStringToColor("#" + editSecondaryColor.getText().toString());
                     // Regenerate images with the selected colors
@@ -329,14 +327,10 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
                 .show(this, tag);
     }
 
-    private boolean validateAndSaveColors(EditText editText2, EditText editText3) {
-        if (validateAndSaveColor(editText2, 1) &&
-                validateAndSaveColor(editText3, 2)) {
-            return true;
-        } else {
-            //Toast.makeText(MainActivity.this, "Invalid color code(s)", Toast.LENGTH_SHORT).show();
-            return false;
-        }
+    private boolean validateAndSaveColors() {
+        //Toast.makeText(MainActivity.this, "Invalid color code(s)", Toast.LENGTH_SHORT).show();
+        return validateAndSaveColor(editPrimaryColor, 1) &&
+                validateAndSaveColor(editSecondaryColor, 2);
     }
 
     private boolean validateAndSaveColor(EditText editText, int colorNumber) {
@@ -431,14 +425,12 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
             int selectedColor = extras.getInt(SimpleColorDialog.COLOR);
 
             // Get the hex code from the selected color
-            String hexCode = String.format("#%06X", (0xFFFFFF & selectedColor));
+            String hexCode = String.format("%06X", (0xFFFFFF & selectedColor));
 
             if (dialogTag.equals(TAG_PRIMARY_COLOR) && editPrimaryColor != null) {
                 editPrimaryColor.setText(hexCode);
-                editPrimaryColor = null;
             } else if (dialogTag.equals(TAG_SECONDARY_COLOR) && editSecondaryColor != null) {
                 editSecondaryColor.setText(hexCode);
-                editSecondaryColor = null;
             } else {
                 return false;
             }
