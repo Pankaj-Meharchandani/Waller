@@ -5,15 +5,9 @@
     android:padding="16dp"
     android:background="@drawable/background_border2">
 
-<!--    <EditText-->
-<!--        android:id="@+id/editTextColor1"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:inputType="textCapCharacters"-->
-<!--        android:hint="Color 1 (hex)"/>-->
 
     <EditText
-        android:id="@+id/editTextColor2"
+        android:id="@+id/editColor2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="textCapCharacters"
@@ -24,32 +18,41 @@
         android:textColor="@color/white"/>
 
     <EditText
-        android:id="@+id/editTextColor3"
+        android:id="@+id/editColor3"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="textCapCharacters"
-        android:layout_below="@id/editTextColor2"
+        android:layout_below="@id/editColor2"
         android:maxLength="6"
+        android:inputType="textCapCharacters"
         android:layout_marginTop="16dp"
         android:hint="Secondary Color (hex)"
         android:textColorHint="#898989"
         android:textColor="@color/white"/>
+    <ImageButton
+        android:id="@+id/colorPaletteButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@id/editColor2"
+        android:layout_alignBottom="@id/editColor2"
+        android:layout_alignEnd="@id/editColor2"
+        android:src="@drawable/ic_palette_color"
+        android:background="?attr/selectableItemBackgroundBorderless" />
 
-<!--    <EditText-->
-<!--        android:id="@+id/editTextColor4"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:inputType="textCapCharacters"-->
-<!--        android:layout_below="@id/editTextColor3"-->
-<!--        android:layout_marginTop="16dp"-->
-<!--        android:hint="Color 4 (hex)"/>-->
-
+    <ImageButton
+        android:id="@+id/colorPaletteButton2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@id/editColor3"
+        android:layout_alignBottom="@id/editColor3"
+        android:layout_alignEnd="@id/editColor3"
+        android:src="@drawable/ic_palette_color"
+        android:background="?attr/selectableItemBackgroundBorderless" />
 
     <View
         android:id="@+id/colorPreview"
         android:layout_width="match_parent"
         android:layout_height="40dp"
-        android:layout_below="@id/editTextColor3"/>
+        android:layout_below="@id/editColor3"/>
 
     <Button
         android:id="@+id/btnSaveColors"
@@ -59,16 +62,7 @@
         android:layout_below="@id/colorPreview"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="16dp"
-        android:background="@drawable/button_color"/>
-<!--    <Button-->
-<!--        android:id="@+id/btnClearColors"-->
-<!--        android:layout_width="wrap_content"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:layout_weight="1"-->
-<!--        android:text="cls"-->
-<!--        android:layout_marginTop="400dp"-->
-<!--        android:textColor="@android:color/white"-->
-<!--        android:background="@drawable/button_outline"/>-->
+        android:background="@drawable/button_color" />
 
     <View
         android:id="@+id/view2"

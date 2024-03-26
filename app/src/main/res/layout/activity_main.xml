@@ -41,23 +41,13 @@
     <!-- GridView -->
     <GridView
         android:id="@+id/gridView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:layout_below="@id/topButtonsLayout"
         android:horizontalSpacing="7dp"
         android:numColumns="2"
         android:verticalSpacing="5dp"
         android:layout_marginTop="16dp" />
 
-<!--    &lt;!&ndash; Floating Action Button (FAB) &ndash;&gt;-->
-<!--    <com.google.android.material.floatingactionbutton.FloatingActionButton-->
-<!--        android:id="@+id/fabChangeLayout"-->
-<!--        android:layout_width="wrap_content"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:layout_alignParentStart="true"-->
-<!--        android:layout_alignParentBottom="true"-->
-<!--        android:layout_marginEnd="16dp"-->
-<!--        android:layout_marginBottom="16dp"-->
-<!--        android:src="@drawable/ic_palette_color" />-->
 
 </RelativeLayout>
