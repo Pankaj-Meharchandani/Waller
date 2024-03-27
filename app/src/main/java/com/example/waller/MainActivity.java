@@ -15,7 +15,9 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.AdapterView;
@@ -276,6 +278,23 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
         if (selectedColor3 != 0) {
             editSecondaryColor.setText(ColorUtils.colorToHexString(selectedColor3).substring(1)); // Remove '#'
         }
+        // Add a TextWatcher to the first EditText
+        editPrimaryColor.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (s.length() == 6) { // Check if 6 digits have been entered
+                    editSecondaryColor.requestFocus(); // Move focus to the next EditText
+                }
+            }
+        });
 
         final View colorPreview = dialog.findViewById(R.id.colorPreview);
 
