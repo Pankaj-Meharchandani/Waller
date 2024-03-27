@@ -1,6 +1,10 @@
 package com.example.waller;
 
+import android.Manifest;
+import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.WallpaperManager;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -21,32 +25,28 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridView;
+import android.widget.ImageButton;
 import android.widget.Toast;
-import android.app.AlertDialog;
-import android.app.WallpaperManager;
-import android.content.DialogInterface;
-import com.google.android.material.color.DynamicColors;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import android.app.AlertDialog;
-import android.content.DialogInterface;
-import java.io.IOException;
-import java.util.Random;
-
-import android.app.WallpaperManager;
-import android.Manifest;
-//appcenter
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.color.DynamicColors;
 import com.microsoft.appcenter.AppCenter;
 import com.microsoft.appcenter.analytics.Analytics;
 import com.microsoft.appcenter.crashes.Crashes;
 
+import java.io.IOException;
+import java.util.Random;
 
-public class MainActivity extends AppCompatActivity {
-     private GridView gridView;
+import eltos.simpledialogfragment.SimpleDialog.OnDialogResultListener;
+import eltos.simpledialogfragment.color.SimpleColorDialog;
+
+
+public class MainActivity extends AppCompatActivity implements OnDialogResultListener {
+    private GridView gridView;
     private Bitmap selectedImage;
 
     // Initialize color variables to 0 initially
@@ -54,6 +54,11 @@ public class MainActivity extends AppCompatActivity {
     private int selectedColor2 = 0;
     private int selectedColor3 = 0;
     private int selectedColor4 = 0;
+    private final String TAG_PRIMARY_COLOR = "tagPrimary";
+    private final String TAG_SECONDARY_COLOR = "tagSecondary";
+
+    private EditText editPrimaryColor;
+    private EditText editSecondaryColor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -246,20 +251,35 @@ public class MainActivity extends AppCompatActivity {
         final Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.color_picker_dialog);
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.setOnDismissListener(dialog1 -> {
+            editPrimaryColor = null;
+            editSecondaryColor = null;
+        });
 
-        final EditText editTextColor2 = dialog.findViewById(R.id.editTextColor2);
-        final EditText editTextColor3 = dialog.findViewById(R.id.editTextColor3);
+        editPrimaryColor = dialog.findViewById(R.id.editColor2);
+        editSecondaryColor = dialog.findViewById(R.id.editColor3);
+
+        ImageButton colorPaletteButton = dialog.findViewById(R.id.colorPaletteButton);
+        colorPaletteButton.setOnClickListener(v -> {
+            // Call the method to show the color wheel dialog
+            showColorWheelDialog(TAG_PRIMARY_COLOR);
+        });
+
+        ImageButton colorPaletteButton2 = dialog.findViewById(R.id.colorPaletteButton2);
+        colorPaletteButton2.setOnClickListener(v -> {
+            // Call the method to show the color wheel dialog
+            showColorWheelDialog(TAG_SECONDARY_COLOR);
+        });
 
         // Update EditText fields with previously selected colors if available
         if (selectedColor2 != 0) {
-            editTextColor2.setText(ColorUtils.colorToHexString(selectedColor2).substring(1)); // Remove '#'
+            editPrimaryColor.setText(ColorUtils.colorToHexString(selectedColor2).substring(1)); // Remove '#'
         }
         if (selectedColor3 != 0) {
-            editTextColor3.setText(ColorUtils.colorToHexString(selectedColor3).substring(1)); // Remove '#'
+            editSecondaryColor.setText(ColorUtils.colorToHexString(selectedColor3).substring(1)); // Remove '#'
         }
-
         // Add a TextWatcher to the first EditText
-        editTextColor2.addTextChangedListener(new TextWatcher() {
+        editPrimaryColor.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
@@ -271,7 +291,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
                 if (s.length() == 6) { // Check if 6 digits have been entered
-                    editTextColor3.requestFocus(); // Move focus to the next EditText
+                    editSecondaryColor.requestFocus(); // Move focus to the next EditText
                 }
             }
         });
@@ -283,9 +303,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // Validate and save selected colors from hex codes
-                if (validateAndSaveColors(editTextColor2, editTextColor3)) {
-                    selectedColor2 = ColorUtils.hexStringToColor("#" + editTextColor2.getText().toString());
-                    selectedColor3 = ColorUtils.hexStringToColor("#" + editTextColor3.getText().toString());
+                if (validateAndSaveColors()) {
+                    selectedColor2 = ColorUtils.hexStringToColor("#" + editPrimaryColor.getText().toString());
+                    selectedColor3 = ColorUtils.hexStringToColor("#" + editSecondaryColor.getText().toString());
                     // Regenerate images with the selected colors
                     regenerateImages(selectedColor2, selectedColor3);
                     dialog.dismiss();
@@ -317,30 +337,26 @@ public class MainActivity extends AppCompatActivity {
 
         dialog.show();
     }
-//    private void clearTextFields() {
-//        EditText editTextColor2 = findViewById(R.id.editTextColor2);
-//        EditText editTextColor3 = findViewById(R.id.editTextColor3);
-//        editTextColor2.setText("");
-//        editTextColor3.setText("");
-//    }
 
-    private boolean validateAndSaveColors(EditText editText2, EditText editText3) {
-        if (    validateAndSaveColor(editText2, 1) &&
-                validateAndSaveColor(editText3, 2)) {
-            return true;
-        }
+    private void showColorWheelDialog(final String tag) {
+        SimpleColorDialog.build()
+                .title("Pick a Color")
+                .colorPreset(Color.WHITE)
+                .allowCustom(true)
+                .show(this, tag);
+    }
 
-        else {
-            //Toast.makeText(MainActivity.this, "Invalid color code(s)", Toast.LENGTH_SHORT).show();
-            return false;
-        }
+    private boolean validateAndSaveColors() {
+        //Toast.makeText(MainActivity.this, "Invalid color code(s)", Toast.LENGTH_SHORT).show();
+        return validateAndSaveColor(editPrimaryColor, 1) &&
+                validateAndSaveColor(editSecondaryColor, 2);
     }
 
     private boolean validateAndSaveColor(EditText editText, int colorNumber) {
         String hexCode = editText.getText().toString();
         if (!TextUtils.isEmpty(hexCode)) {
             try {
-                int color = ColorUtils.hexStringToColor("#" + hexCode);
+                int color = Color.parseColor("#" + hexCode);
                 switch (colorNumber) {
                     case 2:
                         selectedColor2 = color;
@@ -359,24 +375,9 @@ public class MainActivity extends AppCompatActivity {
             // Empty color code
             Toast.makeText(MainActivity.this, "Empty color code for Color " + colorNumber, Toast.LENGTH_SHORT).show();
             return false;
-//        try {
-//            int color = ColorUtils.hexStringToColor("#" + hexCode);
-//            switch (colorNumber) {
-//                case 2:
-//                    selectedColor2 = color;
-//                    break;
-//                case 3:
-//                    selectedColor3 = color;
-//                    break;
-//            }
-//            return true;
-//        } catch (IllegalArgumentException e) {
-//            // Invalid color code
-//            Toast.makeText(MainActivity.this, "Invalid color code for Color " + colorNumber+"\n Usng Default color", Toast.LENGTH_SHORT).show();
-//            editText.setText("BABABA");
-//            return true;
         }
     }
+
     private void setWallpaper(Bitmap bitmap, int flags) {
         WallpaperManager wallpaperManager = WallpaperManager.getInstance(MainActivity.this);
         try {
@@ -436,6 +437,28 @@ public class MainActivity extends AppCompatActivity {
 
         return selectedImage;
     }
+
+    @Override
+    public boolean onResult(@NonNull String dialogTag, int which, @NonNull Bundle extras) {
+        if (which == BUTTON_POSITIVE) {
+            int selectedColor = extras.getInt(SimpleColorDialog.COLOR);
+
+            // Get the hex code from the selected color
+            String hexCode = String.format("%06X", (0xFFFFFF & selectedColor));
+
+            if (dialogTag.equals(TAG_PRIMARY_COLOR) && editPrimaryColor != null) {
+                editPrimaryColor.setText(hexCode);
+            } else if (dialogTag.equals(TAG_SECONDARY_COLOR) && editSecondaryColor != null) {
+                editSecondaryColor.setText(hexCode);
+            } else {
+                return false;
+            }
+
+            return true;
+        }
+        return false;
+    }
+
 
     // Enumeration for gradient types
     private enum GradientType {
