@@ -1,5 +1,9 @@
 package com.example.waller;
 
+import static android.graphics.drawable.GradientDrawable.LINE;
+import static android.graphics.drawable.GradientDrawable.RECTANGLE;
+import static android.graphics.drawable.GradientDrawable.RING;
+
 import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -10,6 +14,9 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
+import android.graphics.Paint;
+import android.graphics.Shader;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
@@ -416,6 +423,7 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
                 break;
             case BILINEAR:
                 gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
+                break;
             case DIAGONAL:
                 // For diagonal gradient, you can use LinearGradient with a diagonal angle
                 gradientDrawable.setGradientType(GradientDrawable.LINEAR_GRADIENT);
