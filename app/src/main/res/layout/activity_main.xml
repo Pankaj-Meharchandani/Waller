@@ -3,7 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
-    tools:context=".MainActivity">
+    tools:context=".MainActivity"
+    tools:ignore="VisualLintBounds">
 
     <!-- Buttons Layout -->
     <LinearLayout
@@ -23,7 +24,7 @@
             android:text="@string/select_colors"
             android:textColor="@color/primary_color_state"
             android:background="@drawable/button_outline"
-            tools:ignore="ButtonStyle" />
+            tools:ignore="ButtonStyle,VisualLintButtonSize" />
 
         <!-- Button: Refresh -->
         <Button
@@ -34,7 +35,7 @@
             android:text="@string/refresh_images"
             android:layout_marginStart="8dp"
             android:background="@drawable/button_color"
-            tools:ignore="ButtonStyle" />
+            tools:ignore="ButtonStyle,VisualLintButtonSize" />
 
     </LinearLayout>
 

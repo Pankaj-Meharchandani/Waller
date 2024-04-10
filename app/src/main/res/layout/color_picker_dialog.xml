@@ -13,7 +13,7 @@
         android:inputType="textCapCharacters"
         android:layout_marginTop="16dp"
         android:maxLength="6"
-        android:hint="Primary Color (hex)"
+        android:hint="@string/primary_color_hex"
         android:textColorHint="#898989"
         android:textColor="@color/white"/>
 
@@ -25,7 +25,7 @@
         android:maxLength="6"
         android:inputType="textCapCharacters"
         android:layout_marginTop="16dp"
-        android:hint="Secondary Color (hex)"
+        android:hint="@string/secondary_color_hex"
         android:textColorHint="#898989"
         android:textColor="@color/white"/>
     <ImageButton
@@ -58,7 +58,7 @@
         android:id="@+id/btnSaveColors"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Save Colors"
+        android:text="@string/save_colors"
         android:layout_below="@id/colorPreview"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="16dp"
@@ -83,7 +83,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Light Themes"
+            android:text="@string/light_themes"
             android:textColor="@android:color/white"
             android:background="@drawable/button_outline"/>
 
@@ -92,7 +92,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Dark Themes"
+            android:text="@string/dark_themes"
             android:layout_marginStart="8dp"
             android:textColor="@android:color/white"
             android:background="@drawable/button_outline"/>

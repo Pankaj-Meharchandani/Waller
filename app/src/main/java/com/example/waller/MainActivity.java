@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
         final ArrayAdapter<Bitmap> adapter = new ImageAdapter(this);
         gridView.setAdapter(adapter);
 
-        // Generate 10 random images with different gradient types
+        // Generate random images with different gradient types
         for (int i = 0; i < 16; i++) {
             Bitmap randomImage;
 
@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
                 // Clear existing images
                 adapter.clear();
 
-                // Generate 10 random images with different gradient types
+                // Generate random images with different gradient types
                 for (int i = 0; i < 16; i++) {
                     Bitmap randomImage;
 
@@ -491,7 +491,7 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
         ImageAdapter adapter = (ImageAdapter) gridView.getAdapter();
         adapter.clear();
 
-        // Generate 20 random images with different gradient types
+        // Generate random images with different gradient types
         for (int i = 0; i < 16; i++) {
             Bitmap randomImage;
 
