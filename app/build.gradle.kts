@@ -23,8 +23,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 }
 
@@ -37,8 +37,6 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     implementation("io.github.eltos:simpledialogfragments:3.8.3")
     implementation("com.google.android.material:material")
-    implementation("androidx.palette:palette:1.0.0")
-    implementation("com.github.yukuku:ambilwarna:2.0.1")
     // App Center dependencies
     val appCenterSdkVersion = "5.0.4"
     implementation("com.microsoft.appcenter:appcenter-analytics:$appCenterSdkVersion")
