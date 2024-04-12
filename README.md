@@ -88,7 +88,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contribute
 Contribute us with either your knowledge or financially
-to donate contact me via my website [pankajmeharchandani.myportfolio.com](https://pankajmeharchandani.myportfolio.com/) or mail me [Pankajmeharchandani@gmail.com](mailto:Pankajmeharchandani@gmail.com)
+to donate click Sponsor💗 on my profile or [visit this link](https://github.com/sponsors/Pankaj-Meharchandani)
 
 ## Contact
 
