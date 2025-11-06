@@ -26,6 +26,16 @@
             android:background="@drawable/button_outline"
             tools:ignore="ButtonStyle,VisualLintButtonSize" />
 
+        <!-- Spinner: Select Orientation -->
+        <Spinner
+            android:id="@+id/spinnerOrientation"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/button_outline"
+            tools:ignore="VisualLintButtonSize" />
+
         <!-- Button: Refresh -->
         <Button
             android:id="@+id/btnGenerate"

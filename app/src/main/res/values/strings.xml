@@ -8,4 +8,9 @@
     <string name="save_colors">Save Colors</string>
     <string name="light_themes">Light Themes</string>
     <string name="dark_themes">Dark Themes</string>
+    <string-array name="orientation_options">
+        <item>Portrait</item>
+        <item>Landscape</item>
+        <item>Square</item>
+    </string-array>
 </resources>

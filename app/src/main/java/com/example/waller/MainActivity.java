@@ -33,6 +33,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageButton;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -55,6 +56,8 @@ import eltos.simpledialogfragment.color.SimpleColorDialog;
 public class MainActivity extends AppCompatActivity implements OnDialogResultListener {
     private GridView gridView;
     private Bitmap selectedImage;
+    private Spinner spinnerOrientation;
+    private Orientation selectedOrientation = Orientation.PORTRAIT; // Default orientation
 
     // Initialize color variables to 0 initially
     private int selectedColor1 = 0;
@@ -77,10 +80,17 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
 
         gridView = findViewById(R.id.gridView);
         Button btnGenerate = findViewById(R.id.btnGenerate);
+        spinnerOrientation = findViewById(R.id.spinnerOrientation);
 
         // Set up the adapter for the GridView
         final ArrayAdapter<Bitmap> adapter = new ImageAdapter(this);
         gridView.setAdapter(adapter);
+
+        // Set up the adapter for the Spinner
+        ArrayAdapter<CharSequence> orientationAdapter = ArrayAdapter.createFromResource(this,
+                R.array.orientation_options, android.R.layout.simple_spinner_item);
+        orientationAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerOrientation.setAdapter(orientationAdapter);
 
         // Generate random images with different gradient types
         for (int i = 0; i < 16; i++) {
@@ -89,19 +99,19 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
             // Switch between gradient types for each iteration
             switch (i % 4) {
                 case 0:
-                    randomImage = generateRandomImage(0, GradientType.LINEAR);
+                    randomImage = generateRandomImage(0, GradientType.LINEAR, selectedOrientation);
                     break;
                 case 1:
-                    randomImage = generateRandomImage(0, GradientType.ANGULAR);
+                    randomImage = generateRandomImage(0, GradientType.ANGULAR, selectedOrientation);
                     break;
                 case 2:
-                    randomImage = generateRandomImage(0, GradientType.BILINEAR);
+                    randomImage = generateRandomImage(0, GradientType.BILINEAR, selectedOrientation);
                     break;
                 case 3:
-                    randomImage = generateRandomImage(0, GradientType.DIAGONAL);
+                    randomImage = generateRandomImage(0, GradientType.DIAGONAL, selectedOrientation);
                     break;
                 default:
-                    randomImage = generateRandomImage(0, GradientType.LINEAR);
+                    randomImage = generateRandomImage(0, GradientType.LINEAR, selectedOrientation);
             }
 
             adapter.add(randomImage);
@@ -121,23 +131,47 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
                     // Switch between gradient types for each iteration
                     switch (i % 4) {
                         case 0:
-                            randomImage = generateRandomImage(0, GradientType.LINEAR);
+                            randomImage = generateRandomImage(0, GradientType.LINEAR, selectedOrientation);
                             break;
                         case 1:
-                            randomImage = generateRandomImage(0, GradientType.ANGULAR);
+                            randomImage = generateRandomImage(0, GradientType.ANGULAR, selectedOrientation);
                             break;
                         case 2:
-                            randomImage = generateRandomImage(0, GradientType.BILINEAR);
+                            randomImage = generateRandomImage(0, GradientType.BILINEAR, selectedOrientation);
                             break;
                         case 3:
-                            randomImage = generateRandomImage(0, GradientType.DIAGONAL);
+                            randomImage = generateRandomImage(0, GradientType.DIAGONAL, selectedOrientation);
                             break;
                         default:
-                            randomImage = generateRandomImage(0, GradientType.LINEAR);
+                            randomImage = generateRandomImage(0, GradientType.LINEAR, selectedOrientation);
                     }
 
                     adapter.add(randomImage);
                 }
+            }
+        });
+
+        spinnerOrientation.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String orientation = parent.getItemAtPosition(position).toString();
+                switch (orientation) {
+                    case "Landscape":
+                        selectedOrientation = Orientation.LANDSCAPE;
+                        break;
+                    case "Square":
+                        selectedOrientation = Orientation.SQUARE;
+                        break;
+                    default:
+                        selectedOrientation = Orientation.PORTRAIT;
+                        break;
+                }
+                regenerateImages(selectedColor2, selectedColor3);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Do nothing
             }
         });
 
@@ -396,16 +430,29 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
         }
     }
 
-    private Bitmap generateRandomImage(int color2, GradientType gradientType) {
+    private Bitmap generateRandomImage(int color2, GradientType gradientType, Orientation orientation) {
         // Get the dimensions of the device screen
         DisplayMetrics displayMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         int screenWidth = displayMetrics.widthPixels;
         int screenHeight = displayMetrics.heightPixels;
 
-        // Ensure the width is always smaller than the height for portrait orientation
-        int height = Math.min(screenWidth, screenHeight);
-        int width = (int) (height / 2.5); // Adjust the aspect ratio as needed
+        int width, height;
+
+        switch (orientation) {
+            case LANDSCAPE:
+                width = Math.max(screenWidth, screenHeight);
+                height = (int) (width / 2.5);
+                break;
+            case SQUARE:
+                width = Math.min(screenWidth, screenHeight);
+                height = width;
+                break;
+            default: // PORTRAIT
+                height = Math.max(screenWidth, screenHeight);
+                width = (int) (height / 2.5);
+                break;
+        }
 
         // Implement logic to generate a random gradient image
         // For simplicity, you can use GradientDrawable and convert it to a Bitmap
@@ -473,6 +520,11 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
         LINEAR, ANGULAR, BILINEAR, DIAGONAL
     }
 
+    // Enumeration for orientation types
+    private enum Orientation {
+        PORTRAIT, LANDSCAPE, SQUARE
+    }
+
     private int shuffleColor(int color) {
         Random random = new Random();
         int red = Color.red(color) + random.nextInt(201) - 100; // Adjust the range as needed
@@ -498,19 +550,19 @@ public class MainActivity extends AppCompatActivity implements OnDialogResultLis
             // Switch between gradient types for each iteration
             switch (i % 4) {
                 case 0:
-                    randomImage = generateRandomImage(0, GradientType.LINEAR);
+                    randomImage = generateRandomImage(0, GradientType.LINEAR, selectedOrientation);
                     break;
                 case 1:
-                    randomImage = generateRandomImage(0, GradientType.ANGULAR);
+                    randomImage = generateRandomImage(0, GradientType.ANGULAR, selectedOrientation);
                     break;
                 case 2:
-                    randomImage = generateRandomImage(0, GradientType.BILINEAR);
+                    randomImage = generateRandomImage(0, GradientType.BILINEAR, selectedOrientation);
                     break;
                 case 3:
-                    randomImage = generateRandomImage(0, GradientType.DIAGONAL);
+                    randomImage = generateRandomImage(0, GradientType.DIAGONAL, selectedOrientation);
                     break;
                 default:
-                    randomImage = generateRandomImage(0, GradientType.LINEAR);
+                    randomImage = generateRandomImage(0, GradientType.LINEAR, selectedOrientation);
             }
 
             adapter.add(randomImage);
