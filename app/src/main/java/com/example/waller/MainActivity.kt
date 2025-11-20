@@ -1,5 +1,6 @@
 package com.example.waller
 
+// ---------- IMPORTS (paste exactly) ----------
 import android.app.Activity
 import android.app.WallpaperManager
 import android.content.ContentValues
@@ -12,6 +13,7 @@ import android.graphics.Paint
 import android.graphics.RadialGradient
 import android.graphics.Shader
 import android.graphics.SweepGradient
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -21,8 +23,8 @@ import android.view.WindowInsets
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -49,6 +51,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -106,7 +109,8 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import android.Manifest
-import android.net.Uri
+
+// ---------- END IMPORTS ----------
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,6 +121,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+/* ------------------------------- App + Theme wrapper ------------------------------- */
 
 @Composable
 fun WallerApp() {
@@ -133,6 +139,8 @@ fun WallerApp() {
     }
 }
 
+/* ------------------------------- Data models ------------------------------- */
+
 data class Wallpaper(
     val colors: List<Color>,
     val type: GradientType
@@ -145,7 +153,7 @@ enum class GradientType {
     Diamond
 }
 
-/* ------------------------------- Color/HSV helpers ------------------------------- */
+/* ------------------------------- Color helpers ------------------------------- */
 
 fun colorToHsv(color: Color): FloatArray {
     val hsv = FloatArray(3)
@@ -167,7 +175,6 @@ fun Color.toHexString(): String {
     )
 }
 
-/* Generates a pleasing random color biased by light/dark tone */
 fun generateRandomColor(isLight: Boolean): Color {
     val minLuminance = if (isLight) 0.5f else 0.0f
     val maxLuminance = if (isLight) 1.0f else 0.5f
@@ -183,7 +190,6 @@ fun generateRandomColor(isLight: Boolean): Color {
     }
 }
 
-/* createShade: small variation close to base color; slightly larger deltas per your request */
 fun createShade(color: Color, isLight: Boolean): Color {
     val hsv = colorToHsv(color)
     var h = hsv[0]
@@ -205,7 +211,7 @@ fun createShade(color: Color, isLight: Boolean): Color {
     return Color.hsv(h, s, v)
 }
 
-/* ------------------------------- Color Picker & SV Picker (unchanged) ------------------------------- */
+/* ------------------------------- Color picker & SV picker ------------------------------- */
 
 @Composable
 fun ColorPickerDialog(
@@ -361,7 +367,7 @@ fun SaturationValuePicker(
     }
 }
 
-/* ------------------------------- Main Screen & UI ------------------------------- */
+/* ------------------------------- Main Screen & UI (beautified + fixed) ------------------------------- */
 
 @Composable
 fun WallpaperGeneratorScreen(
@@ -379,24 +385,24 @@ fun WallpaperGeneratorScreen(
     val coroutineScope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
-    val activity = context as? ComponentActivity
 
-    // Permission launcher for WRITE_EXTERNAL_STORAGE (only used for API < Q)
+    // permission launcher
     val writePermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (!granted) {
             Toast.makeText(context, "Storage permission denied. Can't save wallpaper.", Toast.LENGTH_SHORT).show()
         }
-        // If granted and we had pending wallpaper, the flow below will open the dialog because
-        // showApplyDialogFor remains set. We don't need to do anything special here.
     }
 
-    // dynamic columns/spans
+    // dialog/apply state kept inside composable
+    var pendingClickedWallpaper by remember { mutableStateOf<Wallpaper?>(null) }
+    var showApplyDialog by remember { mutableStateOf(false) }
+    var isWorking by remember { mutableStateOf(false) }
+
     val spanCount = if (isPortrait) 2 else 1
     val columns = GridCells.Fixed(spanCount)
 
-    // generate wallpapers function (uses same improved shading logic)
     fun generateWallpapers(): List<Wallpaper> {
         val wallpapers = mutableListOf<Wallpaper>()
         var previousType: GradientType? = null
@@ -432,11 +438,6 @@ fun WallpaperGeneratorScreen(
 
     var wallpapers by remember { mutableStateOf(generateWallpapers()) }
 
-    // ---------------- pending click / dialog states ----------------
-    var pendingClickedWallpaper by remember { mutableStateOf<Wallpaper?>(null) }
-    var showApplyDialog by remember { mutableStateOf(false) }
-    var isWorking by remember { mutableStateOf(false) } // show small progress if needed
-
     // show color picker if editing index set
     if (editingColorIndex != null) {
         val idx = editingColorIndex!!
@@ -445,122 +446,196 @@ fun WallpaperGeneratorScreen(
             initialColor = initial,
             onDismiss = { editingColorIndex = null },
             onColorSelected = { newColor ->
-                if (idx >= 0 && idx < selectedColors.size) selectedColors[idx] = newColor else if (selectedColors.size < 5) selectedColors.add(newColor)
+                if (idx >= 0 && idx < selectedColors.size) selectedColors[idx] = newColor
+                else if (selectedColors.size < 5) selectedColors.add(newColor)
                 editingColorIndex = null
+                wallpapers = generateWallpapers()
             }
         )
     }
 
-    // grid + UI
-    LazyVerticalGrid(
-        columns = columns,
-        state = gridState,
-        modifier = modifier
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        item(span = { GridItemSpan(spanCount) }) { Header(onThemeChange = onThemeChange, isAppDarkMode = isAppDarkMode) }
-
-        item(span = { GridItemSpan(spanCount) }) {
-            Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    OrientationSelector(isPortrait = isPortrait, onOrientationChange = { isPortrait = it })
-                }
+    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+        // Header
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Column {
+                Text(text = "Waller", style = MaterialTheme.typography.headlineSmall)
+                Text(text = "Smart wallpaper generator", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(if (isAppDarkMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(10.dp))
+                    .clickable { onThemeChange() },
+                contentAlignment = Alignment.Center
+            ) {
+                if (isAppDarkMode) Icon(Icons.Filled.DarkMode, contentDescription = "Dark", tint = MaterialTheme.colorScheme.onPrimary) else Icon(Icons.Filled.LightMode, contentDescription = "Light", tint = MaterialTheme.colorScheme.onSurface)
             }
         }
+        Spacer(modifier = Modifier.height(12.dp))
 
-        item(span = { GridItemSpan(spanCount) }) {
-            Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    WallpaperThemeSelector(isLightTones = isLightTones, onThemeChange = { isLightTones = it })
+        LazyVerticalGrid(
+            columns = columns,
+            state = gridState,
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item(span = { GridItemSpan(spanCount) }) {
+                Card(shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Orientation", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row {
+                            if (isPortrait) Button(onClick = {}) { Icon(Icons.Filled.StayCurrentPortrait, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text("Portrait") } else OutlinedButton(onClick = { isPortrait = true; wallpapers = generateWallpapers() }) { Icon(Icons.Filled.StayCurrentPortrait, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text("Portrait") }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            if (!isPortrait) Button(onClick = {}) { Icon(Icons.Filled.DesktopWindows, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text("Landscape") } else OutlinedButton(onClick = { isPortrait = false; wallpapers = generateWallpapers() }) { Icon(Icons.Filled.DesktopWindows, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text("Landscape") }
+                        }
+                    }
                 }
             }
-        }
 
-        item(span = { GridItemSpan(spanCount) }) {
-            Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    GradientStylesSelector(selectedGradientTypes = selectedGradientTypes,
-                        onStyleChange = { style ->
-                            if (style in selectedGradientTypes) {
-                                if (selectedGradientTypes.size > 1) selectedGradientTypes.remove(style)
-                            } else selectedGradientTypes.add(style)
-                        },
-                        onSelectAll = {
-                            selectedGradientTypes.clear(); selectedGradientTypes.addAll(GradientType.values())
-                        },
-                        onClear = {
-                            selectedGradientTypes.clear(); selectedGradientTypes.add(GradientType.Linear)
-                        })
+            item(span = { GridItemSpan(spanCount) }) {
+                Card(shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Wallpaper Theme", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Dark")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Switch(checked = isLightTones, onCheckedChange = { isLightTones = it; wallpapers = generateWallpapers() })
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Light")
+                        }
+                    }
                 }
             }
-        }
 
-        item(span = { GridItemSpan(spanCount) }) {
-            Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    ColorSelector(
-                        selectedColors = selectedColors,
-                        onAddColor = { editingColorIndex = -1 },
-                        onEditColor = { idx -> editingColorIndex = idx },
-                        onRemoveColor = { idx -> if (idx in selectedColors.indices) selectedColors.removeAt(idx) }
-                    )
+            item(span = { GridItemSpan(spanCount) }) {
+                Card(shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Gradient Styles (${selectedGradientTypes.size}/4)", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = GradientType.Linear in selectedGradientTypes, onCheckedChange = {
+                                if (GradientType.Linear in selectedGradientTypes) { if (selectedGradientTypes.size > 1) selectedGradientTypes.remove(GradientType.Linear) }
+                                else selectedGradientTypes.add(GradientType.Linear)
+                                wallpapers = generateWallpapers()
+                            })
+                            Spacer(modifier = Modifier.width(6.dp)); Text("Linear"); Spacer(modifier = Modifier.width(16.dp))
+                            Checkbox(checked = GradientType.Radial in selectedGradientTypes, onCheckedChange = {
+                                if (GradientType.Radial in selectedGradientTypes) { if (selectedGradientTypes.size > 1) selectedGradientTypes.remove(GradientType.Radial) }
+                                else selectedGradientTypes.add(GradientType.Radial)
+                                wallpapers = generateWallpapers()
+                            })
+                            Spacer(modifier = Modifier.width(6.dp)); Text("Radial")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = GradientType.Angular in selectedGradientTypes, onCheckedChange = {
+                                if (GradientType.Angular in selectedGradientTypes) { if (selectedGradientTypes.size > 1) selectedGradientTypes.remove(GradientType.Angular) }
+                                else selectedGradientTypes.add(GradientType.Angular)
+                                wallpapers = generateWallpapers()
+                            })
+                            Spacer(modifier = Modifier.width(6.dp)); Text("Angular"); Spacer(modifier = Modifier.width(16.dp))
+                            Checkbox(checked = GradientType.Diamond in selectedGradientTypes, onCheckedChange = {
+                                if (GradientType.Diamond in selectedGradientTypes) { if (selectedGradientTypes.size > 1) selectedGradientTypes.remove(GradientType.Diamond) }
+                                else selectedGradientTypes.add(GradientType.Diamond)
+                                wallpapers = generateWallpapers()
+                            })
+                            Spacer(modifier = Modifier.width(6.dp)); Text("Diamond")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row {
+                            TextButton(onClick = { selectedGradientTypes.clear(); selectedGradientTypes.addAll(GradientType.values()); wallpapers = generateWallpapers() }) { Text("Select All") }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TextButton(onClick = { selectedGradientTypes.clear(); selectedGradientTypes.add(GradientType.Linear); wallpapers = generateWallpapers() }) { Text("Clear (keep Linear)") }
+                        }
+                    }
                 }
             }
-        }
 
-        item(span = { GridItemSpan(spanCount) }) {
-            Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    EffectsSelector(addNoise = addNoise, onNoiseChange = { addNoise = it })
+            item(span = { GridItemSpan(spanCount) }) {
+                Card(shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Colors (${selectedColors.size}/5)", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Button(onClick = { editingColorIndex = -1 }, enabled = selectedColors.size < 5) { Text("+ Add Color") }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            if (selectedColors.isNotEmpty()) OutlinedButton(onClick = { selectedColors.removeAt(selectedColors.lastIndex); wallpapers = generateWallpapers() }) { Text("- Remove Last") }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        if (selectedColors.isEmpty()) Text("No colors selected - using random colors", style = MaterialTheme.typography.bodySmall) else Column {
+                            selectedColors.forEachIndexed { idx, color ->
+                                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Box(modifier = Modifier.size(36.dp).background(color, shape = RoundedCornerShape(8.dp)).border(1.dp, Color.Black.copy(alpha = 0.08f), shape = RoundedCornerShape(8.dp)).clickable { editingColorIndex = idx })
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(text = color.toHexString(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                                    IconButton(onClick = { editingColorIndex = idx }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.Palette, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onSurface) }
+                                    IconButton(onClick = { selectedColors.removeAt(idx); wallpapers = generateWallpapers() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.Red.copy(alpha = 0.85f)) }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        }
 
-        item(span = { GridItemSpan(spanCount) }) {
-            Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Actions(onRefreshClick = { wallpapers = generateWallpapers() })
+            item(span = { GridItemSpan(spanCount) }) {
+                Card(shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Effects", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Switch(checked = addNoise, onCheckedChange = { addNoise = it; wallpapers = generateWallpapers() })
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Noise / Grain")
+                        }
+                    }
                 }
             }
-        }
 
-        item(span = { GridItemSpan(spanCount) }) {
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                val orientation = if (isPortrait) "portrait" else "landscape"
-                val types = if (selectedGradientTypes.isEmpty()) "all" else selectedGradientTypes.joinToString(", ") { it.name.lowercase() }
-                Text(text = "${wallpapers.size} wallpapers", style = MaterialTheme.typography.bodyMedium)
-                Spacer(modifier = Modifier.weight(1f))
-                Text(text = "$orientation • $types", style = MaterialTheme.typography.bodySmall)
-            }
-        }
-
-        items(wallpapers) { wallpaper ->
-            WallpaperItemCard(
-                wallpaper = wallpaper,
-                isPortrait = isPortrait,
-                addNoise = addNoise,
-                onClick = { clicked ->
-                    // when clicked: set pending and ensure permission (only for pre-Q)
-                    pendingClickedWallpaper = clicked
-                    // On devices < Q we need WRITE_EXTERNAL_STORAGE to save; but applying wallpaper does not require it.
-                    // We will request only if user chooses Download or if SDK < Q (MediaStore fallback).
-                    // Simplest: always show dialog (no permission yet) then if user taps Download, we check permission before saving.
-                    showApplyDialog = true
+            item(span = { GridItemSpan(spanCount) }) {
+                Card(shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Actions", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = { wallpapers = generateWallpapers() }, modifier = Modifier.fillMaxWidth()) { Text("Refresh All") }
+                    }
                 }
-            )
-        }
+            }
 
-        // bottom refresh button that scrolls to Actions
-        item(span = { GridItemSpan(spanCount) }) {
-            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                OutlinedButton(onClick = {
-                    wallpapers = generateWallpapers()
-                    coroutineScope.launch { gridState.animateScrollToItem(6) } // actions index (header etc kept same)
-                }, modifier = Modifier.fillMaxWidth(0.6f).height(44.dp)) {
-                    Text("Refresh All")
+            item(span = { GridItemSpan(spanCount) }) {
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    val orientation = if (isPortrait) "portrait" else "landscape"
+                    val types = if (selectedGradientTypes.isEmpty()) "all" else selectedGradientTypes.joinToString(", ") { it.name.lowercase() }
+                    Text(text = "${wallpapers.size} wallpapers", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(text = "$orientation • $types", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            items(wallpapers) { wallpaper ->
+                WallpaperItemCard(
+                    wallpaper = wallpaper,
+                    isPortrait = isPortrait,
+                    addNoise = addNoise,
+                    onClick = { clicked ->
+                        pendingClickedWallpaper = clicked
+                        showApplyDialog = true
+                    }
+                )
+            }
+
+
+            item(span = { GridItemSpan(spanCount) }) {
+                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    OutlinedButton(onClick = {
+                        wallpapers = generateWallpapers()
+                        coroutineScope.launch { gridState.animateScrollToItem(6) }
+                    }, modifier = Modifier.fillMaxWidth(0.6f).height(44.dp)) {
+                        Text("Refresh All (Bottom)")
+                    }
                 }
             }
         }
@@ -570,7 +645,7 @@ fun WallpaperGeneratorScreen(
     if (showApplyDialog && pendingClickedWallpaper != null) {
         val wp = pendingClickedWallpaper!!
         Dialog(onDismissRequest = { showApplyDialog = false; pendingClickedWallpaper = null }) {
-            Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(0.9f)) {
+            Card(shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(0.9f)) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Apply / Download", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
@@ -578,7 +653,6 @@ fun WallpaperGeneratorScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Button(modifier = Modifier.fillMaxWidth(), onClick = {
-                        // Both home & lock
                         isWorking = true
                         coroutineScope.launch(Dispatchers.IO) {
                             val bmp = createGradientBitmap(context, wp, isPortrait, addNoise)
@@ -626,16 +700,11 @@ fun WallpaperGeneratorScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = {
-                        // Download: check permission for older devices (< Q) before saving
                         val sdkTooOld = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
                         if (sdkTooOld && ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                            // request then save in launcher callback flow
                             writePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                            // We'll save only after permission granted; to do that, set a one-shot listener:
-                            // Simpler approach: show a Toast asking user to press Download again after granting permission.
                             Toast.makeText(context, "Please grant storage permission and tap Download again", Toast.LENGTH_LONG).show()
                         } else {
-                            // proceed to save
                             isWorking = true
                             coroutineScope.launch(Dispatchers.IO) {
                                 val bmp = createGradientBitmap(context, wp, isPortrait, addNoise)
@@ -662,147 +731,18 @@ fun WallpaperGeneratorScreen(
     }
 }
 
-/* ------------------------------- Small UI components reused (Header, selectors) ------------------------------- */
-
-@Composable
-fun Header(onThemeChange: () -> Unit, isAppDarkMode: Boolean) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Filled.Palette, contentDescription = null, modifier = Modifier.size(28.dp))
-        Spacer(modifier = Modifier.width(10.dp))
-        Column {
-            Text(text = "Waller", style = MaterialTheme.typography.headlineSmall)
-            Text(text = "Generate colorful wallpapers", style = MaterialTheme.typography.bodySmall)
-        }
-        Spacer(modifier = Modifier.weight(1f))
-        Box(modifier = Modifier.size(40.dp).background(color = if (isAppDarkMode) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f), shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).border(width = 1.dp, color = if (isAppDarkMode) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.06f), shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).clickable { onThemeChange() }, contentAlignment = Alignment.Center) {
-            if (isAppDarkMode) Icon(Icons.Filled.DarkMode, contentDescription = "Dark", tint = Color.White) else Icon(Icons.Filled.LightMode, contentDescription = "Light", tint = Color.Black)
-        }
-    }
-}
-
-@Composable
-fun OrientationSelector(isPortrait: Boolean, onOrientationChange: (Boolean) -> Unit) {
-    Column {
-        Text(text = "Orientation", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Row {
-            if (isPortrait) {
-                Button(onClick = {}) { Icon(Icons.Filled.StayCurrentPortrait, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text("Portrait") }
-            } else {
-                OutlinedButton(onClick = { onOrientationChange(true) }) { Icon(Icons.Filled.StayCurrentPortrait, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text("Portrait") }
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            if (!isPortrait) {
-                Button(onClick = {}) { Icon(Icons.Filled.DesktopWindows, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text("Landscape") }
-            } else {
-                OutlinedButton(onClick = { onOrientationChange(false) }) { Icon(Icons.Filled.DesktopWindows, contentDescription = null); Spacer(modifier = Modifier.width(8.dp)); Text("Landscape") }
-            }
-        }
-    }
-}
-
-@Composable
-fun WallpaperThemeSelector(isLightTones: Boolean, onThemeChange: (Boolean) -> Unit) {
-    Column {
-        Text(text = "Wallpaper Theme", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "Dark Tones")
-            Spacer(modifier = Modifier.width(8.dp))
-            Switch(checked = isLightTones, onCheckedChange = { onThemeChange(it) })
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "Light Tones")
-        }
-    }
-}
-
-@Composable
-fun GradientStylesSelector(
-    selectedGradientTypes: List<GradientType>,
-    onStyleChange: (GradientType) -> Unit,
-    onSelectAll: () -> Unit,
-    onClear: () -> Unit
-) {
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "Gradient Styles (${selectedGradientTypes.size}/4)", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.weight(1f))
-            TextButton(onClick = onSelectAll) { Text("Select All") }
-            Spacer(modifier = Modifier.width(8.dp))
-            TextButton(onClick = onClear) { Text("Clear") }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = GradientType.Linear in selectedGradientTypes, onCheckedChange = { onStyleChange(GradientType.Linear) })
-            Spacer(modifier = Modifier.width(6.dp)); Text("Linear"); Spacer(modifier = Modifier.width(16.dp))
-            Checkbox(checked = GradientType.Radial in selectedGradientTypes, onCheckedChange = { onStyleChange(GradientType.Radial) })
-            Spacer(modifier = Modifier.width(6.dp)); Text("Radial")
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = GradientType.Angular in selectedGradientTypes, onCheckedChange = { onStyleChange(GradientType.Angular) })
-            Spacer(modifier = Modifier.width(6.dp)); Text("Angular"); Spacer(modifier = Modifier.width(16.dp))
-            Checkbox(checked = GradientType.Diamond in selectedGradientTypes, onCheckedChange = { onStyleChange(GradientType.Diamond) })
-            Spacer(modifier = Modifier.width(6.dp)); Text("Diamond")
-        }
-    }
-}
-
-@Composable
-fun ColorSelector(
-    selectedColors: List<Color>,
-    onAddColor: () -> Unit,
-    onEditColor: (Int) -> Unit,
-    onRemoveColor: (Int) -> Unit
-) {
-    Column {
-        Text(text = "Colors (${selectedColors.size}/5)", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = onAddColor, enabled = selectedColors.size < 5) { Text("+ Add Color") }
-            Spacer(modifier = Modifier.width(8.dp))
-            if (selectedColors.isNotEmpty()) OutlinedButton(onClick = { onRemoveColor(selectedColors.lastIndex) }) { Text("- Remove Last") }
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        if (selectedColors.isEmpty()) Text("No colors selected - using random colors", style = MaterialTheme.typography.bodySmall) else Column {
-            selectedColors.forEachIndexed { idx, color ->
-                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(36.dp).background(color, shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).border(1.dp, Color.Black.copy(alpha = 0.08f), shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).clickable { onEditColor(idx) })
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(text = color.toHexString(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                    IconButton(onClick = { onEditColor(idx) }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.Palette, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onSurface) }
-                    IconButton(onClick = { onRemoveColor(idx) }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.Red.copy(alpha = 0.85f)) }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun EffectsSelector(addNoise: Boolean, onNoiseChange: (Boolean) -> Unit) {
-    Column {
-        Text(text = "Effects", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = addNoise, onCheckedChange = onNoiseChange); Spacer(modifier = Modifier.width(8.dp)); Text("Noise / Grain")
-        }
-    }
-}
-
-@Composable
-fun Actions(onRefreshClick: () -> Unit) {
-    Column {
-        Text(text = "Actions", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = onRefreshClick, modifier = Modifier.fillMaxWidth()) { Text("Refresh All") }
-    }
-}
-
-/* ------------------------------- Wallpaper preview items ------------------------------- */
+/* ------------------------------- Wallpaper preview items (unchanged) ------------------------------- */
 
 @Composable
 fun WallpaperItemCard(wallpaper: Wallpaper, isPortrait: Boolean, addNoise: Boolean, onClick: (Wallpaper) -> Unit) {
-    Card(modifier = Modifier.aspectRatio(if (isPortrait) 9f / 16f else 16f / 9f).fillMaxWidth().clickable { onClick(wallpaper) }, shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)) {
+    Card(
+        modifier = Modifier
+            .aspectRatio(if (isPortrait) 9f / 16f else 16f / 9f)
+            .fillMaxWidth()
+            .clickable { onClick(wallpaper) },
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
         WallpaperItem(wallpaper, addNoise)
     }
 }
@@ -828,15 +768,16 @@ fun WallpaperItem(wallpaper: Wallpaper, addNoise: Boolean) {
                 }
             }
         }
-        Row(modifier = Modifier.align(Alignment.BottomStart).padding(10.dp).background(Color.Black.copy(alpha = 0.28f), shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.align(Alignment.BottomStart).padding(10.dp).background(Color.Black.copy(alpha = 0.28f), shape = RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(text = wallpaper.type.name.lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodySmall, color = Color.White)
             Spacer(modifier = Modifier.width(8.dp))
-            wallpaper.colors.take(2).forEach { c -> Box(modifier = Modifier.size(12.dp).background(c, shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp))); Spacer(modifier = Modifier.width(6.dp)) }
+            wallpaper.colors.take(2).forEach { c -> Box(modifier = Modifier.size(12.dp).background(c, shape = RoundedCornerShape(4.dp))); Spacer(modifier = Modifier.width(6.dp)) }
         }
     }
 }
 
-// Get a practical bitmap size based on the device/window (portrait or landscape)
+/* ------------------------------- Bitmap/IO helpers (unchanged but included) ------------------------------- */
+
 fun getScreenSizeForBitmap(context: Context, isPortrait: Boolean): Pair<Int, Int> {
     return try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -858,10 +799,6 @@ fun getScreenSizeForBitmap(context: Context, isPortrait: Boolean): Pair<Int, Int
     }
 }
 
-/**
- * Create a bitmap that matches the wallpaper preview using Android shaders.
- * Uses fully-qualified Android Canvas (AndroidCanvas) to avoid Compose/Android name clash.
- */
 fun createGradientBitmap(
     context: Context,
     wallpaper: Wallpaper,
@@ -872,7 +809,6 @@ fun createGradientBitmap(
     val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = android.graphics.Canvas(bmp)
 
-    // convert Compose Color to Android ARGB ints
     val colors = wallpaper.colors.map {
         android.graphics.Color.argb(
             (it.alpha * 255).roundToInt(),
@@ -882,7 +818,6 @@ fun createGradientBitmap(
         )
     }.toIntArray()
 
-    // draw gradient same as before
     when (wallpaper.type) {
         GradientType.Linear, GradientType.Diamond -> {
             val shader = LinearGradient(
@@ -908,37 +843,20 @@ fun createGradientBitmap(
         }
     }
 
-    // --- draw noise/grain onto the same bitmap if requested ---
     if (addNoise) {
-        val paint = Paint().apply {
-            isAntiAlias = true
-            style = Paint.Style.FILL
-        }
-
-        // choose noise size similar to Compose: ~1.dp on screen -> convert proportionally
-        // we pick a small radius in pixels
+        val paint = Paint().apply { isAntiAlias = true; style = Paint.Style.FILL }
         val baseDp = 1f
         val density = (context.resources.displayMetrics.density).coerceAtLeast(1f)
         val noiseSizePx = (baseDp * density).coerceAtLeast(1f)
-
-        // number of noise points - same heuristic as Compose overlay: 2% of pixels approx
         val numNoisePoints = ((width.toLong() * height.toLong()) / (noiseSizePx.toLong() * noiseSizePx.toLong()) * 0.02f).toInt().coerceAtLeast(200)
-
         val rnd = Random(System.currentTimeMillis())
-
         repeat(numNoisePoints) {
             val x = rnd.nextFloat() * width
             val y = rnd.nextFloat() * height
-
-            // alpha up to ~0.15 (as in Compose overlay)
             val alpha = (rnd.nextFloat() * 0.15f).coerceIn(0f, 1f)
-            // paint white with computed alpha (keeps old behavior - white specks)
             val alphaInt = (alpha * 255).roundToInt().coerceIn(0, 255)
             paint.color = android.graphics.Color.argb(alphaInt, 255, 255, 255)
-
-            // radius: noiseSizePx (or 0.5..1.5x jitter)
             val radius = noiseSizePx * (0.6f + rnd.nextFloat() * 1.2f)
-
             canvas.drawCircle(x, y, radius, paint)
         }
     }
@@ -946,11 +864,6 @@ fun createGradientBitmap(
     return bmp
 }
 
-
-/**
- * Save a bitmap to MediaStore (Pictures/Waller). Handles API differences.
- * Safely handles nullable OutputStream and returns boolean success.
- */
 fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap, displayName: String): Boolean {
     return try {
         val resolver = context.contentResolver
@@ -961,7 +874,6 @@ fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap, displayName: String
                 put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Waller")
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             } else {
-                // Ensure folder exists for legacy devices (we still insert to MediaStore)
                 val pictures = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString() + "/Waller"
                 val file = File(pictures)
                 if (!file.exists()) file.mkdirs()
@@ -971,16 +883,13 @@ fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap, displayName: String
         val collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         val uri: Uri = resolver.insert(collection, contentValues) ?: return false
 
-        // openOutputStream can return null — handle safely
         resolver.openOutputStream(uri)?.use { out ->
             val compressed = bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             if (!compressed) {
-                // remove created entry if compression failed
                 resolver.delete(uri, null, null)
                 return false
             }
         } ?: run {
-            // couldn't open stream
             resolver.delete(uri, null, null)
             return false
         }
@@ -990,7 +899,6 @@ fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap, displayName: String
             contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
             resolver.update(uri, contentValues, null, null)
         } else {
-            // For older devices: notify media scanner
             val intent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
             intent.data = uri
             context.sendBroadcast(intent)
@@ -1002,9 +910,6 @@ fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap, displayName: String
     }
 }
 
-/**
- * Apply bitmap as wallpaper. Uses setBitmap with flags when available.
- */
 fun tryApplyWallpaper(context: Context, bitmap: Bitmap, flags: Int = WallpaperManager.FLAG_SYSTEM): Boolean {
     return try {
         val manager = WallpaperManager.getInstance(context)
@@ -1020,7 +925,16 @@ fun tryApplyWallpaper(context: Context, bitmap: Bitmap, flags: Int = WallpaperMa
     }
 }
 
-/** helper to return lock flag (or 0 if not supported) */
 fun getLockFlag(): Int {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) WallpaperManager.FLAG_LOCK else 0
+}
+
+/* ------------------------------- Preview ------------------------------- */
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewWaller() {
+    WallerTheme {
+        WallerApp()
+    }
 }
