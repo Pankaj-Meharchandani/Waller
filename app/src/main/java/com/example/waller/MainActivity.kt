@@ -113,13 +113,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            WaaaaalApp()
+            WallerApp()
         }
     }
 }
 
 @Composable
-fun WaaaaalApp() {
+fun WallerApp() {
     val systemIsDark = isSystemInDarkTheme()
     var useDarkTheme by remember { mutableStateOf(systemIsDark) }
     WallerTheme(darkTheme = useDarkTheme) {
