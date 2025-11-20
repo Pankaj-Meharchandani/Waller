@@ -1,4 +1,4 @@
-package com.example.waaaaal
+package com.example.Waller
 
 import org.junit.Test
 
