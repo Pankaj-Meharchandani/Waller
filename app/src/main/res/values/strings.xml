@@ -1,11 +1,3 @@
 <resources>
     <string name="app_name">Waller</string>
-    <string name="generate_new_images">Generate New Images</string>
-    <string name="refresh_images">Refresh Images</string>
-    <string name="select_colors">Select Colors</string>
-    <string name="primary_color_hex">Primary Color (hex)</string>
-    <string name="secondary_color_hex">Secondary Color (hex)</string>
-    <string name="save_colors">Save Colors</string>
-    <string name="light_themes">Light Themes</string>
-    <string name="dark_themes">Dark Themes</string>
 </resources>
