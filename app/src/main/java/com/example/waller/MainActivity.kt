@@ -890,34 +890,39 @@ fun SectionCard(
 
 @Composable
 fun Header(onThemeChange: () -> Unit, isAppDarkMode: Boolean) {
+    val chipSize = 42.dp
+    val chipShape = RoundedCornerShape(14.dp)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // LEFT: palette chip
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(
-                    Brush.linearGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.secondary
-                        )
-                    )
+                .size(chipSize)
+                .clip(chipShape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                    chipShape
                 ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Filled.Palette,
                 contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(22.dp),
+                // theme-aware tint
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
+
         Spacer(modifier = Modifier.width(12.dp))
+
         Column {
             Text(
                 text = "Waller",
@@ -929,24 +934,19 @@ fun Header(onThemeChange: () -> Unit, isAppDarkMode: Boolean) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+
         Spacer(modifier = Modifier.weight(1f))
+
+        // RIGHT: theme toggle chip, same size & shape
         Box(
             modifier = Modifier
-                .size(42.dp)
-                .clip(RoundedCornerShape(999.dp))
-                .background(
-                    if (isAppDarkMode)
-                        Color.White.copy(alpha = 0.06f)
-                    else
-                        Color.Black.copy(alpha = 0.04f)
-                )
+                .size(chipSize)
+                .clip(chipShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(
-                    width = 1.dp,
-                    color = if (isAppDarkMode)
-                        Color.White.copy(alpha = 0.12f)
-                    else
-                        Color.Black.copy(alpha = 0.08f),
-                    shape = RoundedCornerShape(999.dp)
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                    chipShape
                 )
                 .clickable { onThemeChange() },
             contentAlignment = Alignment.Center
@@ -955,13 +955,15 @@ fun Header(onThemeChange: () -> Unit, isAppDarkMode: Boolean) {
                 Icon(
                     Icons.Filled.DarkMode,
                     contentDescription = "Dark",
-                    tint = Color.White
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
                 Icon(
                     Icons.Filled.LightMode,
                     contentDescription = "Light",
-                    tint = Color.Black
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
