@@ -1,6 +1,7 @@
 package com.example.waller
 
-// ---------- IMPORTS (paste exactly) ----------
+// ---------- IMPORTS (updated) ----------
+import android.Manifest
 import android.app.Activity
 import android.app.WallpaperManager
 import android.content.ContentValues
@@ -22,11 +23,11 @@ import android.util.DisplayMetrics
 import android.view.WindowInsets
 import android.view.WindowManager
 import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,6 +38,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -61,7 +63,6 @@ import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.StayCurrentPortrait
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -88,6 +89,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -100,6 +103,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import com.example.waller.ui.theme.WallerTheme
+import eltos.simpledialogfragment.SimpleDialog
+import eltos.simpledialogfragment.color.SimpleColorDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -108,13 +113,55 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.random.Random
-import android.Manifest
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 
 // ---------- END IMPORTS ----------
-class MainActivity : ComponentActivity() {
+
+class MainActivity : FragmentActivity(), SimpleDialog.OnDialogResultListener {
+
+    companion object {
+        private const val COLOR_DIALOG_TAG = "COLOR_DIALOG"
+    }
+
+    // callback that Compose sets when it wants a color
+    private var pendingColorCallback: ((Int?) -> Unit)? = null
+
+    /**
+     * Called from Compose when user wants to add / edit a color.
+     * Shows SimpleColorDialog and returns picked color (or null on cancel).
+     */
+    fun openColorDialog(initialColor: Int?, callback: (Int?) -> Unit) {
+        pendingColorCallback = callback
+
+        val builder = SimpleColorDialog.build()
+            .allowCustom(true)
+
+        if (initialColor != null) {
+            builder.colorPreset(initialColor)
+        }
+
+        // title is optional – you can localize later via resources if you want
+        builder.show(this, COLOR_DIALOG_TAG)
+    }
+
+    override fun onResult(dialogTag: String, which: Int, extras: Bundle): Boolean {
+        if (dialogTag == COLOR_DIALOG_TAG) {
+            val callback = pendingColorCallback
+            pendingColorCallback = null
+
+            if (callback != null) {
+                if (which == SimpleDialog.OnDialogResultListener.BUTTON_POSITIVE) {   // ✅
+                    val colorInt = extras.getInt(SimpleColorDialog.COLOR)
+                    callback(colorInt)
+                } else {
+                    // cancelled / negative
+                    callback(null)
+                }
+            }
+            return true
+        }
+        return false
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -122,6 +169,7 @@ class MainActivity : ComponentActivity() {
             WallerApp()
         }
     }
+
 }
 
 @Composable
@@ -130,7 +178,6 @@ fun WallerApp() {
     var useDarkTheme by remember { mutableStateOf(systemIsDark) }
 
     WallerTheme(darkTheme = useDarkTheme) {
-        // Beautiful gradient background for the whole app
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -193,6 +240,24 @@ fun Color.toHexString(): String {
     )
 }
 
+/** Convert Compose Color to ARGB Int (for SimpleColorDialog) */
+fun Color.toArgbInt(): Int =
+    android.graphics.Color.argb(
+        (alpha * 255).roundToInt(),
+        (red * 255).roundToInt(),
+        (green * 255).roundToInt(),
+        (blue * 255).roundToInt()
+    )
+
+/** Convert ARGB Int from SimpleColorDialog back to Compose Color */
+fun Int.toComposeColor(): Color =
+    Color(
+        red = android.graphics.Color.red(this) / 255f,
+        green = android.graphics.Color.green(this) / 255f,
+        blue = android.graphics.Color.blue(this) / 255f,
+        alpha = android.graphics.Color.alpha(this) / 255f
+    )
+
 /* Generates a pleasing random color biased by light/dark tone */
 fun generateRandomColor(isLight: Boolean): Color {
     val minLuminance = if (isLight) 0.5f else 0.0f
@@ -210,7 +275,7 @@ fun generateRandomColor(isLight: Boolean): Color {
     }
 }
 
-/* createShade: small variation close to base color; slightly larger deltas per your request */
+/* createShade: small variation close to base color */
 fun createShade(color: Color, isLight: Boolean): Color {
     val hsv = colorToHsv(color)
     var h = hsv[0]
@@ -233,180 +298,6 @@ fun createShade(color: Color, isLight: Boolean): Color {
     return Color.hsv(h, s, v)
 }
 
-/* ------------------------------- Color Picker & SV Picker ------------------------------- */
-
-@Composable
-fun ColorPickerDialog(
-    onDismiss: () -> Unit,
-    onColorSelected: (Color) -> Unit,
-    initialColor: Color? = null
-) {
-    var hue by remember { mutableFloatStateOf(initialColor?.let { colorToHsv(it)[0] } ?: 0f) }
-    var saturation by remember { mutableFloatStateOf(initialColor?.let { colorToHsv(it)[1] } ?: 1f) }
-    var value by remember { mutableFloatStateOf(initialColor?.let { colorToHsv(it)[2] } ?: 1f) }
-    var hexCode by remember { mutableStateOf(Color.hsv(hue, saturation, value).toHexString()) }
-
-    fun updateColor(newColor: Color) {
-        val hsv = colorToHsv(newColor)
-        hue = hsv[0]
-        saturation = hsv[1]
-        value = hsv[2]
-        hexCode = newColor.toHexString()
-    }
-
-    LaunchedEffect(initialColor) {
-        initialColor?.let { hexCode = it.toHexString() }
-    }
-
-    val currentColor = Color.hsv(hue, saturation, value)
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Choose a color",
-                style = MaterialTheme.typography.titleMedium
-            )
-        },
-        text = {
-            Column {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    currentColor.copy(alpha = 0.6f),
-                                    currentColor
-                                )
-                            )
-                        )
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                SaturationValuePicker(
-                    hue = hue,
-                    saturation = saturation,
-                    value = value,
-                    onSaturationValueChanged = { s, v ->
-                        saturation = s
-                        value = v
-                        hexCode = Color.hsv(hue, s, v).toHexString()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Hue", style = MaterialTheme.typography.bodyMedium)
-                Slider(
-                    value = hue,
-                    onValueChange = {
-                        hue = it
-                        hexCode = Color.hsv(it, saturation, value).toHexString()
-                    },
-                    valueRange = 0f..360f
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = hexCode,
-                    onValueChange = { newHex ->
-                        hexCode = newHex
-                        if (newHex.length == 7 && newHex.startsWith("#")) {
-                            try {
-                                val color = Color(newHex.toColorInt())
-                                updateColor(color)
-                            } catch (_: IllegalArgumentException) {
-                            }
-                        }
-                    },
-                    label = { Text("Hex Code") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Characters,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(onDone = {
-                        if (hexCode.length == 7) {
-                            val color = Color(hexCode.toColorInt())
-                            onColorSelected(color)
-                        }
-                    })
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = { onColorSelected(currentColor) }) {
-                Text("Confirm")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}
-
-@Composable
-fun SaturationValuePicker(
-    hue: Float,
-    saturation: Float,
-    value: Float,
-    onSaturationValueChanged: (Float, Float) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(modifier = modifier) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val satValSize = size
-            val valueGradient = Brush.verticalGradient(
-                colors = listOf(Color.White, Color.Black),
-                startY = 0f,
-                endY = satValSize.height
-            )
-            val saturationGradient = Brush.horizontalGradient(
-                colors = listOf(Color.Transparent, Color.hsv(hue, 1f, 1f)),
-                startX = 0f,
-                endX = satValSize.width
-            )
-            drawRect(color = Color.hsv(hue, 1f, 1f))
-            drawRect(brush = valueGradient)
-            drawRect(brush = saturationGradient)
-        }
-
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures { offset ->
-                        val newS = (offset.x / size.width).coerceIn(0f, 1f)
-                        val newV = 1f - (offset.y / size.height).coerceIn(0f, 1f)
-                        onSaturationValueChanged(newS, newV)
-                    }
-                }
-                .pointerInput(Unit) {
-                    detectDragGestures { change, _ ->
-                        val newS = (change.position.x / size.width).coerceIn(0f, 1f)
-                        val newV = 1f - (change.position.y / size.height).coerceIn(0f, 1f)
-                        onSaturationValueChanged(newS, newV)
-                    }
-                }
-        ) {
-            val selectorX = saturation * size.width
-            val selectorY = (1f - value) * size.height
-            val selectorColor = if (value < 0.5f) Color.White else Color.Black
-            drawCircle(
-                color = selectorColor,
-                radius = 8.dp.toPx(),
-                center = androidx.compose.ui.geometry.Offset(selectorX, selectorY)
-            )
-        }
-    }
-}
-
 /* ------------------------------- Main Screen & UI ------------------------------- */
 
 @Composable
@@ -425,7 +316,6 @@ fun WallpaperGeneratorScreen(
     val coroutineScope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
-    val activity = context as? ComponentActivity
 
     // Permission launcher for WRITE_EXTERNAL_STORAGE (only used for API < Q)
     val writePermissionLauncher = rememberLauncherForActivityResult(
@@ -444,7 +334,7 @@ fun WallpaperGeneratorScreen(
     val spanCount = if (isPortrait) 2 else 1
     val columns = GridCells.Fixed(spanCount)
 
-    // generate wallpapers function (uses same improved shading logic)
+    // generate wallpapers function
     fun generateWallpapers(): List<Wallpaper> {
         val wallpapers = mutableListOf<Wallpaper>()
         var previousType: GradientType? = null
@@ -485,28 +375,37 @@ fun WallpaperGeneratorScreen(
 
     var wallpapers by remember { mutableStateOf(generateWallpapers()) }
 
+    // ----- NEW: open SimpleColorDialog when editingColorIndex changes -----
+    if (editingColorIndex != null) {
+        val idx = editingColorIndex!!
+        LaunchedEffect(idx) {
+            val activity = context as? MainActivity
+            val initialColor =
+                if (idx >= 0 && idx < selectedColors.size) selectedColors[idx] else null
+
+            if (activity == null) {
+                // in preview or weird context – just clear
+                editingColorIndex = null
+            } else {
+                activity.openColorDialog(initialColor?.toArgbInt()) { pickedInt ->
+                    if (pickedInt != null) {
+                        val pickedColor = pickedInt.toComposeColor()
+                        if (idx >= 0 && idx < selectedColors.size) {
+                            selectedColors[idx] = pickedColor
+                        } else if (selectedColors.size < 5) {
+                            selectedColors.add(pickedColor)
+                        }
+                    }
+                    editingColorIndex = null
+                }
+            }
+        }
+    }
+
     // ---------------- pending click / dialog states ----------------
     var pendingClickedWallpaper by remember { mutableStateOf<Wallpaper?>(null) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isWorking by remember { mutableStateOf(false) }
-
-    // show color picker if editing index set
-    if (editingColorIndex != null) {
-        val idx = editingColorIndex!!
-        val initial = if (idx >= 0 && idx < selectedColors.size) selectedColors[idx] else null
-        ColorPickerDialog(
-            initialColor = initial,
-            onDismiss = { editingColorIndex = null },
-            onColorSelected = { newColor ->
-                if (idx >= 0 && idx < selectedColors.size) {
-                    selectedColors[idx] = newColor
-                } else if (selectedColors.size < 5) {
-                    selectedColors.add(newColor)
-                }
-                editingColorIndex = null
-            }
-        )
-    }
 
     LazyVerticalGrid(
         columns = columns,
@@ -659,7 +558,7 @@ fun WallpaperGeneratorScreen(
         }
     }
 
-    // Apply / Download dialog
+    // Apply / Download dialog (unchanged logic)
     if (showApplyDialog && pendingClickedWallpaper != null) {
         val wp = pendingClickedWallpaper!!
         Dialog(
@@ -899,7 +798,6 @@ fun Header(onThemeChange: () -> Unit, isAppDarkMode: Boolean) {
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // LEFT: palette chip
         Box(
             modifier = Modifier
                 .size(chipSize)
@@ -916,7 +814,6 @@ fun Header(onThemeChange: () -> Unit, isAppDarkMode: Boolean) {
                 Icons.Filled.Palette,
                 contentDescription = null,
                 modifier = Modifier.size(22.dp),
-                // theme-aware tint
                 tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
@@ -937,7 +834,6 @@ fun Header(onThemeChange: () -> Unit, isAppDarkMode: Boolean) {
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // RIGHT: theme toggle chip, same size & shape
         Box(
             modifier = Modifier
                 .size(chipSize)
@@ -1268,14 +1164,12 @@ fun WallpaperItemCard(
         shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.Black.copy(alpha = 0.04f) // or MaterialTheme.colorScheme.surface
+            containerColor = Color.Black.copy(alpha = 0.04f)
         )
     ) {
-        // direct content
         WallpaperItem(wallpaper, addNoise)
     }
 }
-
 
 @Composable
 fun WallpaperItem(wallpaper: Wallpaper, addNoise: Boolean) {
@@ -1362,7 +1256,6 @@ fun getScreenSizeForBitmap(context: Context, isPortrait: Boolean): Pair<Int, Int
 
 /**
  * Create a bitmap that matches the wallpaper preview using Android shaders.
- * Uses fully-qualified Android Canvas (AndroidCanvas) to avoid Compose/Android name clash.
  */
 fun createGradientBitmap(
     context: Context,
@@ -1374,7 +1267,6 @@ fun createGradientBitmap(
     val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = android.graphics.Canvas(bmp)
 
-    // convert Compose Color to Android ARGB ints
     val colors = wallpaper.colors.map {
         android.graphics.Color.argb(
             (it.alpha * 255).roundToInt(),
@@ -1384,7 +1276,6 @@ fun createGradientBitmap(
         )
     }.toIntArray()
 
-    // draw gradient same as before
     when (wallpaper.type) {
         GradientType.Linear, GradientType.Diamond -> {
             val shader = LinearGradient(
@@ -1421,7 +1312,6 @@ fun createGradientBitmap(
         }
     }
 
-    // --- draw noise/grain onto the same bitmap if requested ---
     if (addNoise) {
         val paint = Paint().apply {
             isAntiAlias = true
@@ -1456,8 +1346,7 @@ fun createGradientBitmap(
 }
 
 /**
- * Save a bitmap to MediaStore (Pictures/Waller). Handles API differences.
- * Safely handles nullable OutputStream and returns boolean success.
+ * Save a bitmap to MediaStore (Pictures/Waller).
  */
 fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap, displayName: String): Boolean {
     return try {
@@ -1511,7 +1400,7 @@ fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap, displayName: String
 }
 
 /**
- * Apply bitmap as wallpaper. Uses setBitmap with flags when available.
+ * Apply bitmap as wallpaper.
  */
 fun tryApplyWallpaper(
     context: Context,
