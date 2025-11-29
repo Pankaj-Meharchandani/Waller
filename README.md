@@ -2,7 +2,7 @@
 
 [https://github.com/Pankaj-Meharchandani/Waller](https://github.com/Pankaj-Meharchandani/Waller)
 
-> Generate beautiful gradient wallpapers (linear / radial / sweep / diamond), preview them in portrait or landscape, tweak colors, add snow / grain, stripes, and Nothing-style glass overlays — then apply or save them right from the app.
+> Generate beautiful gradient wallpapers (linear / radial / sweep / diamond), preview them in portrait or landscape, tweak colors, add snow / grain, stripes, and **Nothing Style glass pattern** for a polished aesthetic — then apply or save them right from the app.
 
 A compact, modern Jetpack Compose app that demonstrates generating Android `Bitmap`s from Compose `Brush` concepts, saving to `MediaStore`, and applying wallpapers (home/lock/both) using `WallpaperManager`.
 
@@ -44,8 +44,8 @@ A compact, modern Jetpack Compose app that demonstrates generating Android `Bitm
 - Choose available gradient styles (multi-select): Linear, Radial, Angular, Diamond.
 - **Effects toggles:**
   - **Snow effect** – soft film-like grain.
-  - **Stripes overlay** – generated translucent vertical stripes.
-  - **Nothing Style** – PNG-based glass overlay (`overlay_stripes.png`) on top of everything.
+  - **Stripes** – vertically repeated translucent lines.
+  - **Nothing Style** – adds a clean, subtle, glass-like pattern inspired by Nothing OS.
 - Preview grid of generated variations (20 by default).
 - Apply wallpaper to Home, Lock, or Both screens.
 - Download wallpaper to `Pictures/Waller` (visible in gallery).
