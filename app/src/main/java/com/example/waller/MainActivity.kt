@@ -300,6 +300,7 @@ fun WallpaperGeneratorScreen(
     val selectedGradientTypes = remember { mutableStateListOf(GradientType.Linear) }
     val selectedColors = remember { mutableStateListOf<Color>() }
     var addNoise by remember { mutableStateOf(false) }
+    var addStripes by remember { mutableStateOf(false) }
     var editingColorIndex by remember { mutableStateOf<Int?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
@@ -465,7 +466,9 @@ fun WallpaperGeneratorScreen(
             SectionCard {
                 EffectsSelector(
                     addNoise = addNoise,
-                    onNoiseChange = { addNoise = it }
+                    onNoiseChange = { addNoise = it },
+                    addStripes  = addStripes,
+                    onStripesChange  = { addStripes  = it }
                 )
             }
         }
@@ -517,6 +520,7 @@ fun WallpaperGeneratorScreen(
                 wallpaper = wallpaper,
                 isPortrait = isPortrait,
                 addNoise = addNoise,
+                addStripes  = addStripes,
                 onClick = { clicked ->
                     pendingClickedWallpaper = clicked
                     showApplyDialog = true
@@ -585,7 +589,7 @@ fun WallpaperGeneratorScreen(
                             isWorking = true
                             coroutineScope.launch(Dispatchers.IO) {
                                 val bmp =
-                                    createGradientBitmap(context, wp, isPortrait, addNoise)
+                                    createGradientBitmap(context, wp, isPortrait, addNoise, addStripes)
                                 val flags =
                                     WallpaperManager.FLAG_SYSTEM or getLockFlag()
                                 val success = tryApplyWallpaper(context, bmp, flags)
@@ -615,7 +619,7 @@ fun WallpaperGeneratorScreen(
                             isWorking = true
                             coroutineScope.launch(Dispatchers.IO) {
                                 val bmp =
-                                    createGradientBitmap(context, wp, isPortrait, addNoise)
+                                    createGradientBitmap(context, wp, isPortrait, addNoise, addStripes)
                                 val success =
                                     tryApplyWallpaper(context, bmp, WallpaperManager.FLAG_SYSTEM)
                                 withContext(Dispatchers.Main) {
@@ -644,7 +648,7 @@ fun WallpaperGeneratorScreen(
                             isWorking = true
                             coroutineScope.launch(Dispatchers.IO) {
                                 val bmp =
-                                    createGradientBitmap(context, wp, isPortrait, addNoise)
+                                    createGradientBitmap(context, wp, isPortrait, addNoise, addStripes)
                                 val flagLock = getLockFlag()
                                 val success =
                                     if (flagLock != 0) tryApplyWallpaper(
@@ -697,7 +701,7 @@ fun WallpaperGeneratorScreen(
                                 isWorking = true
                                 coroutineScope.launch(Dispatchers.IO) {
                                     val bmp =
-                                        createGradientBitmap(context, wp, isPortrait, addNoise)
+                                        createGradientBitmap(context, wp, isPortrait, addNoise, addStripes)
                                     val filename =
                                         "waller_${System.currentTimeMillis()}.png"
                                     val saved =
@@ -1095,7 +1099,12 @@ fun ColorSelector(
 }
 
 @Composable
-fun EffectsSelector(addNoise: Boolean, onNoiseChange: (Boolean) -> Unit) {
+fun EffectsSelector(
+    addNoise: Boolean,
+    onNoiseChange: (Boolean) -> Unit,
+    addStripes: Boolean,
+    onStripesChange: (Boolean) -> Unit
+) {
     Column {
         Text(
             text = "Effects",
@@ -1103,15 +1112,44 @@ fun EffectsSelector(addNoise: Boolean, onNoiseChange: (Boolean) -> Unit) {
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "Add subtle grain for a film-like texture.",
+            text = "Add film grain and optional vertical stripes.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
+
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = addNoise, onCheckedChange = onNoiseChange)
+            Switch(
+                checked = addNoise,
+                onCheckedChange = onNoiseChange
+            )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Noise / Grain")
+            Column {
+                Text("Snow effect")
+                Text(
+                    "Soft snow texture over the gradient.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(
+                checked = addStripes,
+                onCheckedChange = onStripesChange
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text("Stripes overlay")
+                Text(
+                    "Vertical translucent panels on top.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -1143,6 +1181,7 @@ fun WallpaperItemCard(
     wallpaper: Wallpaper,
     isPortrait: Boolean,
     addNoise: Boolean,
+    addStripes: Boolean,
     onClick: (Wallpaper) -> Unit
 ) {
     Card(
@@ -1156,18 +1195,59 @@ fun WallpaperItemCard(
             containerColor = Color.Black.copy(alpha = 0.04f)
         )
     ) {
-        WallpaperItem(wallpaper, addNoise)
+        WallpaperItem(wallpaper, addNoise, addStripes)
     }
 }
 
 @Composable
-fun WallpaperItem(wallpaper: Wallpaper, addNoise: Boolean) {
+fun WallpaperItem(wallpaper: Wallpaper, addNoise: Boolean, addNothingStripes: Boolean) {
     val brush = when (wallpaper.type) {
         GradientType.Linear -> Brush.linearGradient(wallpaper.colors)
         GradientType.Radial -> Brush.radialGradient(wallpaper.colors)
         GradientType.Angular -> Brush.sweepGradient(wallpaper.colors)
         GradientType.Diamond -> Brush.linearGradient(wallpaper.colors)
     }
+    Box(
+        modifier = Modifier
+            .background(brush)
+            .fillMaxSize()
+    ) {
+        if (addNoise) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val noiseSize = 1.dp.toPx()
+                val numNoisePoints =
+                    (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                repeat(numNoisePoints) {
+                    val x = Random.nextFloat() * size.width
+                    val y = Random.nextFloat() * size.height
+                    val alpha = Random.nextFloat() * 0.15f
+                    drawCircle(
+                        color = Color.White.copy(alpha = alpha),
+                        radius = noiseSize,
+                        center = androidx.compose.ui.geometry.Offset(x, y)
+                    )
+                }
+            }
+        }
+
+        // 👇 Nothing-style vertical stripes
+        if (addNothingStripes) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val stripeCount = 18
+                val stripeWidth = size.width / (stripeCount * 2f)
+
+                for (i in 0 until stripeCount) {
+                    val left = i * stripeWidth * 2f
+                    drawRect(
+                        color = Color.White.copy(alpha = 0.10f),
+                        topLeft = androidx.compose.ui.geometry.Offset(left, 0f),
+                        size = androidx.compose.ui.geometry.Size(stripeWidth, size.height)
+                    )
+                }
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .background(brush)
@@ -1250,7 +1330,8 @@ fun createGradientBitmap(
     context: Context,
     wallpaper: Wallpaper,
     isPortrait: Boolean,
-    addNoise: Boolean = false
+    addNoise: Boolean = false,
+    addNothingStripes: Boolean = false
 ): Bitmap {
     val (width, height) = getScreenSizeForBitmap(context, isPortrait)
     val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -1328,6 +1409,21 @@ fun createGradientBitmap(
             val radius = noiseSizePx * (0.6f + rnd.nextFloat() * 1.2f)
 
             canvas.drawCircle(x, y, radius, paint)
+        }
+    }
+    // Nothing-style stripes on the saved bitmap
+    if (addNothingStripes) {
+        val paintStripe = Paint().apply { isAntiAlias = true }
+        val stripeCount = 18
+        val stripeWidth = width.toFloat() / (stripeCount * 2f)
+
+        repeat(stripeCount) { i ->
+            val left = i * stripeWidth * 2f
+            val right = left + stripeWidth
+            val alphaStripe = 0.09f
+            val alphaInt = (alphaStripe * 255).roundToInt().coerceIn(0, 255)
+            paintStripe.color = android.graphics.Color.argb(alphaInt, 255, 255, 255)
+            canvas.drawRect(left, 0f, right, height.toFloat(), paintStripe)
         }
     }
 
