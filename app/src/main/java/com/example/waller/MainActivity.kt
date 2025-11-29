@@ -86,8 +86,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -1132,9 +1135,9 @@ fun EffectsSelector(
             Switch(checked = addNoise, onCheckedChange = onNoiseChange)
             Spacer(modifier = Modifier.width(8.dp))
             Column {
-                Text("Noise / Grain")
+                Text("Snow effect")
                 Text(
-                    "Soft film grain texture.",
+                    "Soft snow texture.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1160,18 +1163,18 @@ fun EffectsSelector(
         Spacer(modifier = Modifier.height(12.dp))
 
         // Nothing style
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = addOverlay, onCheckedChange = onOverlayChange)
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text("Nothing Style")
-                    Text(
-                        "Add Nothing like glass effect",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = addOverlay, onCheckedChange = onOverlayChange)
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text("Nothing Style")
+                Text(
+                    "Add Nothing like glass effect",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+        }
     }
 }
 
@@ -1232,11 +1235,19 @@ fun WallpaperItem(wallpaper: Wallpaper, addNoise: Boolean, addNothingStripes: Bo
     val overlayPainter = painterResource(id = R.drawable.overlay_stripes)
     val overlayAspectRatio =
         overlayPainter.intrinsicSize.width / overlayPainter.intrinsicSize.height
+
     Box(
         modifier = Modifier
-            .background(brush)
             .fillMaxSize()
     ) {
+        // 1. Draw gradient
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(brush)
+        )
+
+        // 2. Noise
         if (addNoise) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val noiseSize = 1.dp.toPx()
@@ -1249,64 +1260,39 @@ fun WallpaperItem(wallpaper: Wallpaper, addNoise: Boolean, addNothingStripes: Bo
                     drawCircle(
                         color = Color.White.copy(alpha = alpha),
                         radius = noiseSize,
-                        center = androidx.compose.ui.geometry.Offset(x, y)
+                        center = Offset(x, y)
                     )
                 }
             }
         }
 
-        // Nothing-style vertical stripes
+        // 3. Generated stripes
         if (addNothingStripes) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val stripeCount = 18
                 val stripeWidth = size.width / (stripeCount * 2f)
-
                 for (i in 0 until stripeCount) {
                     val left = i * stripeWidth * 2f
                     drawRect(
                         color = Color.White.copy(alpha = 0.10f),
-                        topLeft = androidx.compose.ui.geometry.Offset(left, 0f),
-                        size = androidx.compose.ui.geometry.Size(stripeWidth, size.height)
+                        topLeft = Offset(left, 0f),
+                        size = Size(stripeWidth, size.height)
                     )
                 }
             }
         }
-        // Nothing style
+
+        // 4. PNG Overlay — ALWAYS LAST
         if (addOverlay) {
             Image(
                 painter = painterResource(id = R.drawable.overlay_stripes),
                 contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.Center)
-                    .aspectRatio( overlayAspectRatio )
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.FillBounds
             )
         }
 
-    }
-
-    Box(
-        modifier = Modifier
-            .background(brush)
-            .fillMaxSize()
-    ) {
-        if (addNoise) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val noiseSize = 1.dp.toPx()
-                val numNoisePoints =
-                    (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
-                repeat(numNoisePoints) {
-                    val x = Random.nextFloat() * size.width
-                    val y = Random.nextFloat() * size.height
-                    val alpha = Random.nextFloat() * 0.15f
-                    drawCircle(
-                        color = Color.White.copy(alpha = alpha),
-                        radius = noiseSize,
-                        center = androidx.compose.ui.geometry.Offset(x, y)
-                    )
-                }
-            }
-        }
+        // 5. Tag at the bottom
         Row(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -1315,23 +1301,26 @@ fun WallpaperItem(wallpaper: Wallpaper, addNoise: Boolean, addNothingStripes: Bo
                     Color.Black.copy(alpha = 0.36f),
                     shape = RoundedCornerShape(999.dp)
                 )
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 10.dp, vertical = 4.dp), // a bit tighter
+            verticalAlignment = Alignment.CenterVertically      // 👈 important
         ) {
             Text(
-                text = wallpaper.type.name.lowercase().replaceFirstChar { it.uppercase() },
-                style = MaterialTheme.typography.bodySmall,
+                text = wallpaper.type.name
+                    .lowercase()
+                    .replaceFirstChar { it.uppercase() },
                 color = Color.White
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            wallpaper.colors.take(2).forEach { c ->
+
+            Spacer(Modifier.width(8.dp))
+
+            wallpaper.colors.take(2).forEach {
                 Box(
                     modifier = Modifier
                         .size(12.dp)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(c)
+                        .background(it)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(Modifier.width(6.dp))
             }
         }
     }
@@ -1360,9 +1349,7 @@ fun getScreenSizeForBitmap(context: Context, isPortrait: Boolean): Pair<Int, Int
     }
 }
 
-/**
- * Create a bitmap that matches the wallpaper preview using Android shaders.
- */
+
 fun createGradientBitmap(
     context: Context,
     wallpaper: Wallpaper,
