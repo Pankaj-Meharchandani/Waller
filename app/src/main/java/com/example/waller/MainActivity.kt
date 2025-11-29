@@ -473,11 +473,8 @@ fun WallpaperGeneratorScreen(
                     onNoiseChange = { addNoise = it },
                     addStripes = addStripes,
                     onStripesChange = { addStripes = it },
-                    addOverlay = addOverlay && isPortrait,   // disable if landscape
-                    onOverlayChange = {
-                        if (isPortrait) addOverlay = it     // allow only in portrait
-                    },
-                    isPortrait = isPortrait
+                    addOverlay = addOverlay,
+                    onOverlayChange = { addOverlay = it }
                 )
             }
         }
@@ -1115,8 +1112,7 @@ fun EffectsSelector(
     addStripes: Boolean,
     onStripesChange: (Boolean) -> Unit,
     addOverlay: Boolean,
-    onOverlayChange: (Boolean) -> Unit,
-    isPortrait: Boolean
+    onOverlayChange: (Boolean) -> Unit
 ) {
     Column {
         Text(
@@ -1164,28 +1160,18 @@ fun EffectsSelector(
         Spacer(modifier = Modifier.height(12.dp))
 
         // Nothing style
-        if (isPortrait) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(checked = addOverlay, onCheckedChange = onOverlayChange)
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
-                    Text("PNG Overlay (Nothing-style)")
+                    Text("Nothing Style")
                     Text(
-                        "Applies overlay_stripes.png.",
+                        "Add Nothing like glass effect",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-        } else {
-            Text(
-                text = "Nothing-style overlay is available only in portrait mode",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 6.dp)
-            )
-        }
-
     }
 }
 
