@@ -1349,9 +1349,7 @@ fun getScreenSizeForBitmap(context: Context, isPortrait: Boolean): Pair<Int, Int
     }
 }
 
-/**
- * Create a bitmap that matches the wallpaper preview using Android shaders.
- */
+
 fun createGradientBitmap(
     context: Context,
     wallpaper: Wallpaper,
