@@ -473,8 +473,11 @@ fun WallpaperGeneratorScreen(
                     onNoiseChange = { addNoise = it },
                     addStripes = addStripes,
                     onStripesChange = { addStripes = it },
-                    addOverlay = addOverlay,
-                    onOverlayChange = { addOverlay = it }
+                    addOverlay = addOverlay && isPortrait,   // disable if landscape
+                    onOverlayChange = {
+                        if (isPortrait) addOverlay = it     // allow only in portrait
+                    },
+                    isPortrait = isPortrait
                 )
             }
         }
@@ -1112,7 +1115,8 @@ fun EffectsSelector(
     addStripes: Boolean,
     onStripesChange: (Boolean) -> Unit,
     addOverlay: Boolean,
-    onOverlayChange: (Boolean) -> Unit
+    onOverlayChange: (Boolean) -> Unit,
+    isPortrait: Boolean
 ) {
     Column {
         Text(
@@ -1160,18 +1164,28 @@ fun EffectsSelector(
         Spacer(modifier = Modifier.height(12.dp))
 
         // Nothing style
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = addOverlay, onCheckedChange = onOverlayChange)
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text("Nothing style")
-                Text(
-                    "Applies glass effect.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        if (isPortrait) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = addOverlay, onCheckedChange = onOverlayChange)
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text("PNG Overlay (Nothing-style)")
+                    Text(
+                        "Applies overlay_stripes.png.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
+        } else {
+            Text(
+                text = "Nothing-style overlay is available only in portrait mode",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp)
+            )
         }
+
     }
 }
 
@@ -1229,6 +1243,9 @@ fun WallpaperItem(wallpaper: Wallpaper, addNoise: Boolean, addNothingStripes: Bo
         GradientType.Angular -> Brush.sweepGradient(wallpaper.colors)
         GradientType.Diamond -> Brush.linearGradient(wallpaper.colors)
     }
+    val overlayPainter = painterResource(id = R.drawable.overlay_stripes)
+    val overlayAspectRatio =
+        overlayPainter.intrinsicSize.width / overlayPainter.intrinsicSize.height
     Box(
         modifier = Modifier
             .background(brush)
@@ -1273,7 +1290,10 @@ fun WallpaperItem(wallpaper: Wallpaper, addNoise: Boolean, addNothingStripes: Bo
             Image(
                 painter = painterResource(id = R.drawable.overlay_stripes),
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center)
+                    .aspectRatio( overlayAspectRatio )
             )
         }
 
