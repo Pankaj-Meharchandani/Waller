@@ -30,7 +30,7 @@ A compact, modern Jetpack Compose app that demonstrates generating Android `Bitm
 - Jetpack Compose UI with responsive grid previews.
 - Multiple gradient styles: **Linear**, **Radial**, **Angular (sweep)**, and **Diamond**.
 - Random color generation with pleasing light/dark bias and on-demand user color picking (HSV + hex).
-- Optional **Snow** (grain) effect, **Stripes overlay**, and **Nothing-style PNG glass overlay**.
+- Optional Snow effect, Stripes, and **Nothing Style glass pattern** for a polished aesthetic.
 - Create high-resolution bitmaps based on the device/window size to apply as wallpaper.
 - Save generated images to `Pictures/Waller` via `MediaStore` (handles API differences).
 - Apply wallpaper to Home, Lock, or Both (where supported).
