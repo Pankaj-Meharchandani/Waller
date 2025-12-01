@@ -2,7 +2,7 @@
 
 [https://github.com/Pankaj-Meharchandani/Waller](https://github.com/Pankaj-Meharchandani/Waller)
 
-> Generate beautiful gradient wallpapers (linear / radial / sweep / diamond), preview them in portrait or landscape, tweak colors, add noise, and apply or save them right from the app.
+> Generate beautiful gradient wallpapers (linear / radial / sweep / diamond), preview them in portrait or landscape, tweak colors, add snow / grain, stripes, and **Nothing Style glass pattern** for a polished aesthetic — then apply or save them right from the app.
 
 A compact, modern Jetpack Compose app that demonstrates generating Android `Bitmap`s from Compose `Brush` concepts, saving to `MediaStore`, and applying wallpapers (home/lock/both) using `WallpaperManager`.
 
@@ -28,39 +28,53 @@ A compact, modern Jetpack Compose app that demonstrates generating Android `Bitm
 ## Highlights
 
 - Jetpack Compose UI with responsive grid previews.
-- Multiple gradient styles: **Linear**, **Radial**, **Angular (sweep)**, and **Diamond (linear fallback)**.
+- Multiple gradient styles: **Linear**, **Radial**, **Angular (sweep)**, and **Diamond**.
 - Random color generation with pleasing light/dark bias and on-demand user color picking (HSV + hex).
+- Optional Snow effect, Stripes, and **Nothing Style glass pattern** for a polished aesthetic.
 - Create high-resolution bitmaps based on the device/window size to apply as wallpaper.
 - Save generated images to `Pictures/Waller` via `MediaStore` (handles API differences).
 - Apply wallpaper to Home, Lock, or Both (where supported).
-- Optional noise/grain effect for filmic texture.
 
 ---
 
 ## Features
 
 - Portrait / Landscape preview and bitmap generation.
-- Select up to 5 custom colors or let the app pick random colors.
-- Choose available gradient styles (multi-select).
-- Add noise/grain overlay.
+- Select up to **5 custom colors** or let the app pick random palettes.
+- Choose available gradient styles (multi-select): Linear, Radial, Angular, Diamond.
+- **Effects toggles:**
+  - **Snow effect** – soft film-like grain.
+  - **Stripes** – vertically repeated translucent lines.
+  - **Nothing Style** – adds a clean, subtle, glass-like pattern inspired by Nothing OS.
 - Preview grid of generated variations (20 by default).
 - Apply wallpaper to Home, Lock, or Both screens.
 - Download wallpaper to `Pictures/Waller` (visible in gallery).
-- Simple, focused UI implemented in Compose.
+- Simple, focused UI implemented fully in Compose.
 
 ---
 
 ## Preview
 
 <p align="center">
+  <img src="https://github.com/user-attachments/assets/bcf204df-6e09-4703-83cd-5894077f2150" width="20%" /> 
   <img src="https://github.com/user-attachments/assets/26c4ced6-31f0-4d41-a1c1-fcd55c3c684c" width="20%" /> 
-  <img src="https://github.com/user-attachments/assets/bcf204df-6e09-4703-83cd-5894077f2150" width="20%" /> <br>
   <img src="https://github.com/user-attachments/assets/0630110d-3081-4a6d-8566-128f1125c3c5" width="20%" /> 
   <img src="https://github.com/user-attachments/assets/f315c1db-a85f-400e-adeb-fdb896173da3" width="20%" /> 
   <img src="https://github.com/user-attachments/assets/4a07d64e-e58e-42e8-a45f-804b87535fc7" width="20%" /> 
   <img src="https://github.com/user-attachments/assets/f92c5adb-550c-491f-937d-a6b7653a2778" width="20%" /> 
   <img src="https://github.com/user-attachments/assets/28b2f110-d9db-4393-bd3e-ba33eac62aae" width="20%" /> 
   <img src="https://github.com/user-attachments/assets/03485adc-132e-41b6-9a57-955e9a65d6a7" width="20%" /> 
+  <img src="https://github.com/user-attachments/assets/b4601702-bfe1-4f7c-a468-4aaa8bded374" width="20%" />
+<img src="https://github.com/user-attachments/assets/57bd69e0-9fbb-4459-b10c-7a62733ae6c2" width="20%" />
+<img src="https://github.com/user-attachments/assets/6adddb5e-b22a-434b-8719-85ecaaac65bb" width="20%" />
+<img src="https://github.com/user-attachments/assets/036e2768-570f-4e70-b687-c2dcf57050b3" width="20%" />
+<img src="https://github.com/user-attachments/assets/c0ee593c-ebaa-41c4-9930-dbbaff56165e" width="20%" />
+<img src="https://github.com/user-attachments/assets/c67a80f6-0e5b-4c3f-8cdb-06e110c803b3" width="20%" />
+<img src="https://github.com/user-attachments/assets/1d6401a7-dbf3-4280-a57a-e9f1c4a4573a" width="20%" />
+<img src="https://github.com/user-attachments/assets/7ae73b5f-8529-4db7-bd08-36e90fa2680c" width="20%" />
+
+  
+
 </p>
 
 ---
