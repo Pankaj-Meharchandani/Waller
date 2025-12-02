@@ -1,3 +1,9 @@
+/**
+ * Handles selection, editing, and removal of up to 5 custom colors.
+ * Displays color swatches, hex values, and palette/delete icons.
+ * Integrates with the SimpleColorDialog through callbacks in the main screen.
+ */
+
 package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.background

@@ -1,3 +1,13 @@
+/**
+ * Top header section of the screen.
+ * Displays:
+ * - App icon area
+ * - App title + tagline
+ * - Light/Dark theme toggle
+ *
+ * Pure presentation component with no business logic.
+ */
+
 package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.background

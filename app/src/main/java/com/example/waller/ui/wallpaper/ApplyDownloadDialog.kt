@@ -1,3 +1,15 @@
+/**
+ * Dialog shown when the user taps a wallpaper.
+ * Provides actions:
+ * - Apply to home screen
+ * - Apply to lock screen
+ * - Apply to both
+ * - Download as PNG
+ *
+ * Includes a loading indicator for heavy bitmap operations.
+ * Uses BitmapUtils for actual generation and storage tasks.
+ */
+
 package com.example.waller.ui.wallpaper
 
 import android.Manifest

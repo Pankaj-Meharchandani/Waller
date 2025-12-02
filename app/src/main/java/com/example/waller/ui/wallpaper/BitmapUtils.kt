@@ -1,3 +1,16 @@
+/**
+ * Core bitmap generation engine for Waller.
+ *
+ * Responsibilities:
+ * - Detect device screen size (portrait/landscape)
+ * - Convert Compose gradients to Android shaders (Linear/Radial/Sweep)
+ * - Draw final gradient, noise, stripes, and overlay PNG into a single bitmap
+ * - Save PNGs through MediaStore
+ * - Apply wallpapers using WallpaperManager
+ *
+ * Completely UI-independent; safe to use from background threads.
+ */
+
 package com.example.waller.ui.wallpaper
 
 import android.app.Activity

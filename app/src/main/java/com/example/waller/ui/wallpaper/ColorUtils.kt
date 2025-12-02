@@ -1,3 +1,14 @@
+/**
+ * Utility functions for color handling:
+ * - Convert Color <-> HSV
+ * - Generate random colors (light/dark biased)
+ * - Generate shaded variations of existing colors
+ * - Convert Compose Color ↔ ARGB integer
+ * - Format hex strings for UI display
+ *
+ * Shared by UI components and bitmap generation logic.
+ */
+
 package com.example.waller.ui.wallpaper
 
 import androidx.compose.ui.graphics.Color

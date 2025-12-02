@@ -1,3 +1,9 @@
+/**
+ * Switch selector for Light vs Dark wallpaper tone modes.
+ * Influences random color generation and shade creation.
+ * This affects both preview thumbnails and final exported bitmaps.
+ */
+
 package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.layout.Column

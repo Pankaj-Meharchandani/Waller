@@ -1,3 +1,9 @@
+/**
+ * UI section containing the "Refresh All" button.
+ * Triggers regeneration of the entire wallpaper list.
+ * A simple, reusable composable used inside the main generator screen.
+ */
+
 package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.layout.Column

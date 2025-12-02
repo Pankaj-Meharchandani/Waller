@@ -1,3 +1,14 @@
+/**
+ * Individual wallpaper preview card used inside the lazy grid.
+ * Renders:
+ * - Gradient background (Compose Brush)
+ * - Optional noise and stripe effects
+ * - Optional Nothing-style PNG overlay
+ * - Bottom-left tag: gradient type + 2 color swatches
+ *
+ * Opens the Apply/Download dialog when tapped.
+ */
+
 package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.Canvas

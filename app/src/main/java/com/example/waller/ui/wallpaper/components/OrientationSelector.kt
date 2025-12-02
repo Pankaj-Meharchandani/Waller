@@ -1,3 +1,12 @@
+/**
+ * UI controls to switch between Portrait and Landscape modes.
+ * Determines:
+ * - Preview card aspect ratios
+ * - Final bitmap dimensions
+ *
+ * Updates a boolean state in the main screen.
+ */
+
 package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.layout.Column

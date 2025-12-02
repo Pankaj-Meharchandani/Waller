@@ -1,3 +1,16 @@
+/**
+ * Main screen of the app.
+ *
+ * Responsibilities:
+ * - Holds all UI state (colors, gradient types, toggles, orientation)
+ * - Generates wallpaper preview list
+ * - Displays the full UI layout using multiple reusable components
+ * - Coordinates color picking dialog calls in MainActivity
+ * - Opens the Apply/Download dialog when a wallpaper is clicked
+ *
+ * This file orchestrates the entire wallpaper creation experience.
+ */
+
 @file:Suppress("EnumValuesSoftDeprecate", "UNUSED_VALUE")
 
 package com.example.waller.ui.wallpaper

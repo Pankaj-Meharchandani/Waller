@@ -1,3 +1,11 @@
+/**
+ * Checkbox selector for choosing which gradient types to generate:
+ * Linear, Radial, Angular, Diamond.
+ *
+ * Includes "Select All" and "Clear" quick actions.
+ * The selected types control variation in the preview grid and output wallpapers.
+ */
+
 package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.layout.Column

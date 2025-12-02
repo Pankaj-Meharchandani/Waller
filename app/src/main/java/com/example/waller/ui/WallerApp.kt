@@ -1,3 +1,9 @@
+/**
+ * Root-level Compose setup for the app.
+ * Applies MaterialTheme, scaffolds the background, and hosts the main screen.
+ * This file represents the entry point for the UI layer.
+ */
+
 package com.example.waller.ui
 
 import androidx.compose.foundation.background

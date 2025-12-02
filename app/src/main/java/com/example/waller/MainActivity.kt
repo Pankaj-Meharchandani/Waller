@@ -1,3 +1,14 @@
+/**
+ * Host Activity for the Compose UI.
+ *
+ * Responsibilities:
+ * - Sets the Compose content tree (WallerApp)
+ * - Bridges SimpleColorDialog (Android View system) with Compose
+ * - Provides callbacks to set selected colors
+ *
+ * No UI logic here — only platform integration.
+ */
+
 package com.example.waller
 
 import android.os.Bundle

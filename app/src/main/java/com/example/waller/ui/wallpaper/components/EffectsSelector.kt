@@ -1,3 +1,12 @@
+/**
+ * UI toggles for enabling or disabling additional visual effects:
+ * - Snow noise effect
+ * - Generated vertical stripes
+ * - Nothing-style PNG glass overlay
+ *
+ * These states directly affect both preview rendering and final bitmap output.
+ */
+
 package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.layout.*
