@@ -1,6 +1,5 @@
 package com.example.waller
 
-import android.R.string.cancel
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,7 +21,7 @@ class MainActivity : FragmentActivity(), SimpleDialog.OnDialogResultListener {
 
         val builder = SimpleColorDialog.build()
             .allowCustom(true)
-            .neg(cancel)
+            .neg(R.string.cancel)
 
         if (initialColor != null) {
             builder.colorPreset(initialColor)

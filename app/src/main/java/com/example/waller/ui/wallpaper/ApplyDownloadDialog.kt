@@ -20,9 +20,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
+import com.example.waller.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -59,12 +61,12 @@ fun ApplyDownloadDialog(
                 .padding(18.dp)) {
 
                 Text(
-                    "Apply / Download",
+                    stringResource(id = R.string.apply_download_title),
                     style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "Choose where to apply or save this wallpaper.",
+                    stringResource(id = R.string.apply_download_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -93,7 +95,7 @@ fun ApplyDownloadDialog(
                                 onWorkingChange(false)
                                 Toast.makeText(
                                     context,
-                                    if (success) "Applied to home & lock screen" else "Failed to apply",
+                                    if (success) context.getString(R.string.apply_success_both) else context.getString(R.string.apply_failed),
                                     Toast.LENGTH_SHORT
                                 ).show()
                                 onDismiss()
@@ -101,7 +103,7 @@ fun ApplyDownloadDialog(
                         }
                     }
                 ) {
-                    Text("Both home & lock screen")
+                    Text(stringResource(id = R.string.apply_both_screens))
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -132,7 +134,7 @@ fun ApplyDownloadDialog(
                                 onWorkingChange(false)
                                 Toast.makeText(
                                     context,
-                                    if (success) "Applied to home screen" else "Failed to apply",
+                                    if (success) context.getString(R.string.apply_success_home) else context.getString(R.string.apply_failed),
                                     Toast.LENGTH_SHORT
                                 ).show()
                                 onDismiss()
@@ -140,7 +142,7 @@ fun ApplyDownloadDialog(
                         }
                     }
                 ) {
-                    Text("Home screen")
+                    Text(stringResource(id = R.string.apply_home_screen))
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -176,7 +178,7 @@ fun ApplyDownloadDialog(
                                 onWorkingChange(false)
                                 Toast.makeText(
                                     context,
-                                    if (success) "Applied to lock screen" else "Failed to apply",
+                                    if (success) context.getString(R.string.apply_success_lock) else context.getString(R.string.apply_failed),
                                     Toast.LENGTH_SHORT
                                 ).show()
                                 onDismiss()
@@ -184,7 +186,7 @@ fun ApplyDownloadDialog(
                         }
                     }
                 ) {
-                    Text("Lock screen")
+                    Text(stringResource(id = R.string.apply_lock_screen))
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -206,7 +208,7 @@ fun ApplyDownloadDialog(
                             writePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                             Toast.makeText(
                                 context,
-                                "Please grant storage permission and tap Download again",
+                                context.getString(R.string.grant_storage_permission),
                                 Toast.LENGTH_LONG
                             ).show()
                         } else {
@@ -228,7 +230,7 @@ fun ApplyDownloadDialog(
                                     onWorkingChange(false)
                                     Toast.makeText(
                                         context,
-                                        if (saved) "Saved to Pictures" else "Save failed",
+                                        if (saved) context.getString(R.string.save_success) else context.getString(R.string.save_failed),
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     onDismiss()
@@ -237,7 +239,7 @@ fun ApplyDownloadDialog(
                         }
                     }
                 ) {
-                    Text("Download")
+                    Text(stringResource(id = R.string.download))
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -245,7 +247,7 @@ fun ApplyDownloadDialog(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { onDismiss() }
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(id = R.string.cancel))
                 }
 
                 if (isWorking) {

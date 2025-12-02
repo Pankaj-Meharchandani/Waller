@@ -9,25 +9,27 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.waller.R
 
 @Composable
 fun WallpaperThemeSelector(isLightTones: Boolean, onThemeChange: (Boolean) -> Unit) {
     Column {
         Text(
-            text = "Wallpaper Theme",
+            text = stringResource(id = R.string.wallpaper_theme_title),
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(modifier = Modifier.width(8.dp))
         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            Text(text = "Dark Tones")
+            Text(text = stringResource(id = R.string.wallpaper_theme_dark_tones))
             Spacer(modifier = Modifier.width(8.dp))
             Switch(
                 checked = isLightTones,
                 onCheckedChange = { onThemeChange(it) }
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "Light Tones")
+            Text(text = stringResource(id = R.string.wallpaper_theme_light_tones))
         }
     }
 }

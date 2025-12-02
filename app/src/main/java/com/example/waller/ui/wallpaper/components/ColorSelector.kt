@@ -14,7 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.waller.R
 import com.example.waller.ui.wallpaper.toHexString
 
 @Composable
@@ -26,15 +28,15 @@ fun ColorSelector(
 ) {
     Column {
         Text(
-            text = "Colors (${selectedColors.size}/5)",
+            text = stringResource(id = R.string.colors_title, selectedColors.size),
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = if (selectedColors.isEmpty())
-                "No colors selected - random palettes will be used."
+                stringResource(id = R.string.color_selector_no_colors)
             else
-                "Tap a swatch or palette icon to tweak a color.",
+                stringResource(id = R.string.color_selector_tweak_color_tip),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -46,7 +48,7 @@ fun ColorSelector(
                 shape = RoundedCornerShape(999.dp),
                 modifier = Modifier.height(40.dp)
             ) {
-                Text("+ Add Color")
+                Text(stringResource(id = R.string.color_selector_add_color))
             }
             Spacer(modifier = Modifier.width(8.dp))
             if (selectedColors.isNotEmpty()) {
@@ -55,14 +57,14 @@ fun ColorSelector(
                     shape = RoundedCornerShape(999.dp),
                     modifier = Modifier.height(40.dp)
                 ) {
-                    Text("- Remove Last")
+                    Text(stringResource(id = R.string.color_selector_remove_last))
                 }
             }
         }
         Spacer(modifier = Modifier.height(10.dp))
         if (selectedColors.isEmpty()) {
             Text(
-                "Tip: Lock 1–5 base colors and let Waller generate shades around them.",
+                stringResource(id = R.string.color_selector_tip),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -99,7 +101,7 @@ fun ColorSelector(
                         ) {
                             Icon(
                                 Icons.Filled.Palette,
-                                contentDescription = "Edit",
+                                contentDescription = stringResource(id = R.string.edit),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -109,7 +111,7 @@ fun ColorSelector(
                         ) {
                             Icon(
                                 Icons.Filled.Delete,
-                                contentDescription = "Delete",
+                                contentDescription = stringResource(id = R.string.delete),
                                 tint = Color.Red.copy(alpha = 0.85f)
                             )
                         }

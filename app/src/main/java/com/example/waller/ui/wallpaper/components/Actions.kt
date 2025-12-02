@@ -9,14 +9,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.waller.R
 
 @Composable
 fun Actions(onRefreshClick: () -> Unit) {
     Column {
         Text(
-            text = "Actions",
+            text = stringResource(id = R.string.actions_title),
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -27,7 +29,7 @@ fun Actions(onRefreshClick: () -> Unit) {
                 .height(44.dp),
             shape = RoundedCornerShape(999.dp)
         ) {
-            Text("Refresh All")
+            Text(stringResource(id = R.string.actions_refresh_all))
         }
     }
 }

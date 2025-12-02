@@ -23,7 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.waller.R
 
 @Composable
 fun Header(onThemeChange: () -> Unit, isAppDarkMode: Boolean) {
@@ -60,11 +62,11 @@ fun Header(onThemeChange: () -> Unit, isAppDarkMode: Boolean) {
 
         Column {
             Text(
-                text = "Waller",
+                text = stringResource(id = R.string.app_name),
                 style = MaterialTheme.typography.headlineSmall
             )
             Text(
-                text = "Generate colorful, grainy gradients",
+                text = stringResource(id = R.string.header_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -88,14 +90,14 @@ fun Header(onThemeChange: () -> Unit, isAppDarkMode: Boolean) {
             if (isAppDarkMode) {
                 Icon(
                     Icons.Filled.DarkMode,
-                    contentDescription = "Dark",
+                    contentDescription = stringResource(id = R.string.theme_dark),
                     modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
                 Icon(
                     Icons.Filled.LightMode,
-                    contentDescription = "Light",
+                    contentDescription = stringResource(id = R.string.theme_light),
                     modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -16,13 +16,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.waller.R
 
 @Composable
 fun OrientationSelector(isPortrait: Boolean, onOrientationChange: (Boolean) -> Unit) {
     Column {
         Text(
-            text = "Orientation",
+            text = stringResource(id = R.string.orientation_title),
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -35,7 +37,7 @@ fun OrientationSelector(isPortrait: Boolean, onOrientationChange: (Boolean) -> U
                 ) {
                     Icon(Icons.Filled.StayCurrentPortrait, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Portrait")
+                    Text(stringResource(id = R.string.orientation_portrait))
                 }
             } else {
                 OutlinedButton(
@@ -45,7 +47,7 @@ fun OrientationSelector(isPortrait: Boolean, onOrientationChange: (Boolean) -> U
                 ) {
                     Icon(Icons.Filled.StayCurrentPortrait, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Portrait")
+                    Text(stringResource(id = R.string.orientation_portrait))
                 }
             }
             Spacer(modifier = Modifier.width(8.dp))
@@ -57,7 +59,7 @@ fun OrientationSelector(isPortrait: Boolean, onOrientationChange: (Boolean) -> U
                 ) {
                     Icon(Icons.Filled.DesktopWindows, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Landscape")
+                    Text(stringResource(id = R.string.orientation_landscape))
                 }
             } else {
                 OutlinedButton(
@@ -67,7 +69,7 @@ fun OrientationSelector(isPortrait: Boolean, onOrientationChange: (Boolean) -> U
                 ) {
                     Icon(Icons.Filled.DesktopWindows, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Landscape")
+                    Text(stringResource(id = R.string.orientation_landscape))
                 }
             }
         }

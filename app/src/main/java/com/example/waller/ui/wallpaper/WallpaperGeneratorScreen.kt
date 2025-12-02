@@ -20,8 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.MainActivity
+import com.example.waller.R
 import com.example.waller.ui.wallpaper.components.Actions
 import com.example.waller.ui.wallpaper.components.ColorSelector
 import com.example.waller.ui.wallpaper.components.EffectsSelector
@@ -60,7 +62,7 @@ fun WallpaperGeneratorScreen(
             if (!granted) {
                 android.widget.Toast.makeText(
                     context,
-                    "Storage permission denied. Can't save wallpaper.",
+                    context.getString(R.string.storage_permission_denied),
                     android.widget.Toast.LENGTH_SHORT
                 ).show()
             }
@@ -234,13 +236,13 @@ fun WallpaperGeneratorScreen(
                     .padding(vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val orientation = if (isPortrait) "portrait" else "landscape"
+                val orientation = if (isPortrait) stringResource(id = R.string.orientation_portrait) else stringResource(id = R.string.orientation_landscape)
                 val types =
-                    if (selectedGradientTypes.isEmpty()) "all" else selectedGradientTypes.joinToString(
+                    if (selectedGradientTypes.isEmpty()) stringResource(id = R.string.all) else selectedGradientTypes.joinToString(
                         ", "
                     ) { it.name.lowercase() }
                 Text(
-                    text = "${wallpapers.size} wallpapers",
+                    text = stringResource(id = R.string.wallpaper_count, wallpapers.size),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.weight(1f))
@@ -256,7 +258,7 @@ fun WallpaperGeneratorScreen(
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "$orientation • $types",
+                        text = stringResource(id = R.string.wallpaper_info, orientation, types),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -294,7 +296,7 @@ fun WallpaperGeneratorScreen(
                         .height(44.dp)
                         .clip(RoundedCornerShape(999.dp))
                 ) {
-                    Text("Refresh All")
+                    Text(stringResource(id = R.string.actions_refresh_all))
                 }
             }
         }

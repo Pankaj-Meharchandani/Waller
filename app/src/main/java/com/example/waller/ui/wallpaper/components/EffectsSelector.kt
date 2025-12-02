@@ -5,7 +5,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.waller.R
 
 @Composable
 fun EffectsSelector(
@@ -18,12 +20,12 @@ fun EffectsSelector(
 ) {
     Column {
         Text(
-            text = "Effects",
+            text = stringResource(id = R.string.effects_title),
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "Noise, stripes, and optional Nothing-style overlay.",
+            text = stringResource(id = R.string.effects_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -34,9 +36,9 @@ fun EffectsSelector(
             Switch(checked = addNoise, onCheckedChange = onNoiseChange)
             Spacer(modifier = Modifier.width(8.dp))
             Column {
-                Text("Snow effect")
+                Text(stringResource(id = R.string.effects_snow_effect))
                 Text(
-                    "Soft snow texture.",
+                    stringResource(id = R.string.effects_snow_effect_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -50,9 +52,9 @@ fun EffectsSelector(
             Switch(checked = addStripes, onCheckedChange = onStripesChange)
             Spacer(modifier = Modifier.width(8.dp))
             Column {
-                Text("Stripes overlay")
+                Text(stringResource(id = R.string.effects_stripes_overlay))
                 Text(
-                    "Vertical translucent stripes.",
+                    stringResource(id = R.string.effects_stripes_overlay_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -66,9 +68,9 @@ fun EffectsSelector(
             Switch(checked = addOverlay, onCheckedChange = onOverlayChange)
             Spacer(modifier = Modifier.width(8.dp))
             Column {
-                Text("Nothing Style")
+                Text(stringResource(id = R.string.effects_nothing_style))
                 Text(
-                    "Add Nothing like glass effect",
+                    stringResource(id = R.string.effects_nothing_style_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
