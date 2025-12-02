@@ -18,6 +18,7 @@
     <string name="effects_snow_effect">Snow effect</string>
     <string name="effects_snow_effect_subtitle">Soft snow texture.</string>
     <string name="effects_stripes_overlay">Stripes overlay</string>
+    <string name="effects_stripes">Add Stripes</string>
     <string name="effects_stripes_overlay_subtitle">Vertical translucent stripes.</string>
     <string name="effects_nothing_style">Nothing Style</string>
     <string name="effects_nothing_style_subtitle">Add Nothing like glass effect</string>

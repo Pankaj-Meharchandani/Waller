@@ -2,13 +2,14 @@
  * Main screen of the app.
  *
  * Responsibilities:
- * - Holds all UI state (colors, gradient types, toggles, orientation, tone)
+ * - Holds UI state (colors, gradient types, toggles, orientation, tone)
  * - Generates wallpaper preview list
- * - Displays the full UI layout using multiple reusable components
+ * - Shows:
+ *   - Header
+ *   - Compact options panel (separate component)
+ *   - Info row + wallpaper grid + Refresh button
  * - Coordinates color picking dialog calls in MainActivity
  * - Opens the Apply/Download dialog when a wallpaper is clicked
- *
- * This file orchestrates the entire wallpaper creation experience.
  */
 
 @file:Suppress("EnumValuesSoftDeprecate", "UNUSED_VALUE")
@@ -20,15 +21,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -40,32 +33,21 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.MainActivity
 import com.example.waller.R
 import com.example.waller.ui.settings.DefaultOrientation
-import com.example.waller.ui.wallpaper.components.Actions
-import com.example.waller.ui.wallpaper.components.ColorSelector
-import com.example.waller.ui.wallpaper.components.EffectsSelector
-import com.example.waller.ui.wallpaper.components.GradientStylesSelector
+import com.example.waller.ui.wallpaper.components.CompactOptionsPanel
 import com.example.waller.ui.wallpaper.components.Header
-import com.example.waller.ui.wallpaper.components.OrientationSelector
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
-import com.example.waller.ui.wallpaper.components.WallpaperThemeSelector
 import kotlinx.coroutines.launch
 
 @Composable
@@ -80,7 +62,8 @@ fun WallpaperGeneratorScreen(
     defaultEnableStripes: Boolean,
     defaultIsLightTones: Boolean
 ) {
-    // Initial orientation based on settings (AUTO treated as portrait by default here)
+    // ----------- STATE -----------
+
     var isPortrait by remember {
         mutableStateOf(
             when (defaultOrientation) {
@@ -90,13 +73,11 @@ fun WallpaperGeneratorScreen(
         )
     }
 
-    // Initial tone based on settings
     var isLightTones by remember { mutableStateOf(defaultIsLightTones) }
 
     val selectedGradientTypes = remember { mutableStateListOf(GradientType.Linear) }
-    val selectedColors = remember { mutableStateListOf<androidx.compose.ui.graphics.Color>() }
+    val selectedColors = remember { mutableStateListOf<Color>() }
 
-    // Initial effects from settings
     var addNoise by remember { mutableStateOf(defaultEnableSnow) }
     var addStripes by remember { mutableStateOf(defaultEnableStripes) }
     var addOverlay by remember { mutableStateOf(defaultEnableNothing) }
@@ -125,10 +106,12 @@ fun WallpaperGeneratorScreen(
     val spanCount = if (isPortrait) 2 else 1
     val columns = GridCells.Fixed(spanCount)
 
-    // generate wallpapers function (respects defaultGradientCount)
+    // ----------- WALLPAPER GENERATION -----------
+
     fun generateWallpapers(): List<Wallpaper> {
         val wallpapers = mutableListOf<Wallpaper>()
         var previousType: GradientType? = null
+
         repeat(defaultGradientCount) {
             val colors = when (selectedColors.size) {
                 0 -> listOf(
@@ -140,8 +123,7 @@ fun WallpaperGeneratorScreen(
                     val base = selectedColors.first()
                     val shadedBase = createShade(base, isLightTones)
                     val secondBase =
-                        if (isLightTones) androidx.compose.ui.graphics.Color.White
-                        else androidx.compose.ui.graphics.Color.Black
+                        if (isLightTones) Color.White else Color.Black
                     val shadedSecond = createShade(secondBase, isLightTones)
                     listOf(shadedBase, shadedSecond)
                 }
@@ -168,7 +150,8 @@ fun WallpaperGeneratorScreen(
 
     var wallpapers by remember { mutableStateOf(generateWallpapers()) }
 
-    // ----- open SimpleColorDialog when editingColorIndex changes -----
+    // ----------- COLOR PICKER BRIDGE -----------
+
     if (editingColorIndex != null) {
         val idx = editingColorIndex!!
         LaunchedEffect(idx) {
@@ -187,6 +170,7 @@ fun WallpaperGeneratorScreen(
                         } else if (selectedColors.size < 5) {
                             selectedColors.add(pickedColor)
                         }
+                        wallpapers = generateWallpapers()
                     }
                     editingColorIndex = null
                 }
@@ -194,10 +178,13 @@ fun WallpaperGeneratorScreen(
         }
     }
 
-    // ---------------- pending click / dialog states ----------------
+    // ----------- DIALOG STATE -----------
+
     var pendingClickedWallpaper by remember { mutableStateOf<Wallpaper?>(null) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isWorking by remember { mutableStateOf(false) }
+
+    // ----------- LAYOUT -----------
 
     LazyVerticalGrid(
         columns = columns,
@@ -205,96 +192,75 @@ fun WallpaperGeneratorScreen(
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .fillMaxSize(),
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Header
         item(span = { GridItemSpan(spanCount) }) {
             Header(onThemeChange = onThemeChange, isAppDarkMode = isAppDarkMode)
         }
 
+        // Compact options panel inside a card
         item(span = { GridItemSpan(spanCount) }) {
             SectionCard {
-                OrientationSelector(
+                CompactOptionsPanel(
                     isPortrait = isPortrait,
-                    onOrientationChange = { isPortrait = it }
-                )
-            }
-        }
-
-        item(span = { GridItemSpan(spanCount) }) {
-            SectionCard {
-                WallpaperThemeSelector(
-                    isLightTones = isLightTones,
-                    onThemeChange = {
-                        isLightTones = it
+                    onOrientationChange = { newValue ->
+                        isPortrait = newValue
                         wallpapers = generateWallpapers()
-                    }
-                )
-            }
-        }
-
-        item(span = { GridItemSpan(spanCount) }) {
-            SectionCard {
-                GradientStylesSelector(
-                    selectedGradientTypes = selectedGradientTypes,
-                    onStyleChange = { style ->
-                        if (style in selectedGradientTypes) {
-                            if (selectedGradientTypes.size > 1) selectedGradientTypes.remove(style)
-                        } else selectedGradientTypes.add(style)
                     },
-                    onSelectAll = {
-                        selectedGradientTypes.clear()
-                        selectedGradientTypes.addAll(GradientType.entries)
+                    isLightTones = isLightTones,
+                    onToneChange = { light ->
+                        isLightTones = light
+                        wallpapers = generateWallpapers()
                     },
-                    onClear = {
-                        selectedGradientTypes.clear()
-                        selectedGradientTypes.add(GradientType.Linear)
-                    }
-                )
-            }
-        }
-
-        item(span = { GridItemSpan(spanCount) }) {
-            SectionCard {
-                ColorSelector(
                     selectedColors = selectedColors,
                     onAddColor = { editingColorIndex = -1 },
-                    onEditColor = { idx -> editingColorIndex = idx },
                     onRemoveColor = { idx ->
-                        if (idx in selectedColors.indices) selectedColors.removeAt(idx)
-                    }
-                )
-            }
-        }
-
-        item(span = { GridItemSpan(spanCount) }) {
-            SectionCard {
-                EffectsSelector(
+                        if (idx in selectedColors.indices) {
+                            selectedColors.removeAt(idx)
+                            wallpapers = generateWallpapers()
+                        }
+                    },
+                    selectedGradientTypes = selectedGradientTypes,
+                    onGradientToggle = { type ->
+                        if (type in selectedGradientTypes) {
+                            if (selectedGradientTypes.size == 1) {
+                                // Don't allow empty selection
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "Select at least one gradient style",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                selectedGradientTypes.remove(type)
+                                wallpapers = generateWallpapers()
+                            }
+                        } else {
+                            selectedGradientTypes.add(type)
+                            wallpapers = generateWallpapers()
+                        }
+                    },
                     addNoise = addNoise,
-                    onNoiseChange = {
-                        addNoise = it
+                    onNoiseToggle = {
+                        addNoise = !addNoise
                         wallpapers = generateWallpapers()
                     },
                     addStripes = addStripes,
-                    onStripesChange = {
-                        addStripes = it
+                    onStripesToggle = {
+                        addStripes = !addStripes
                         wallpapers = generateWallpapers()
                     },
                     addOverlay = addOverlay,
-                    onOverlayChange = {
-                        addOverlay = it
+                    onOverlayToggle = {
+                        addOverlay = !addOverlay
                         wallpapers = generateWallpapers()
                     }
                 )
             }
         }
 
-        item(span = { GridItemSpan(spanCount) }) {
-            SectionCard {
-                Actions(onRefreshClick = { wallpapers = generateWallpapers() })
-            }
-        }
-
+        // Info row
         item(span = { GridItemSpan(spanCount) }) {
             Row(
                 modifier = Modifier
@@ -342,6 +308,7 @@ fun WallpaperGeneratorScreen(
             }
         }
 
+        // Wallpapers grid
         items(wallpapers) { wallpaper ->
             WallpaperItemCard(
                 wallpaper = wallpaper,
@@ -356,6 +323,7 @@ fun WallpaperGeneratorScreen(
             )
         }
 
+        // Bottom "Refresh All" button
         item(span = { GridItemSpan(spanCount) }) {
             Column(
                 modifier = Modifier
@@ -366,7 +334,7 @@ fun WallpaperGeneratorScreen(
                 OutlinedButton(
                     onClick = {
                         wallpapers = generateWallpapers()
-                        coroutineScope.launch { gridState.animateScrollToItem(6) }
+                        coroutineScope.launch { gridState.animateScrollToItem(2) }
                     },
                     modifier = Modifier
                         .fillMaxWidth(0.6f)
