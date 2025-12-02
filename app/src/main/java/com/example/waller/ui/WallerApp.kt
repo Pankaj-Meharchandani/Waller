@@ -3,7 +3,7 @@
  * Handles:
  * - App-wide theme (light / dark / system), persisted with SharedPreferences
  * - Gradient background toggle, persisted
- * - Wallpaper defaults (orientation, gradient count, effects), persisted
+ * - Wallpaper defaults (orientation, gradient count, effects, tone), persisted
  * - Bottom navigation between Home (wallpapers), Settings and About screens
  * - Back button behavior: About -> Settings -> Home -> Exit
  */
@@ -136,6 +136,16 @@ fun WallerApp() {
         prefs.edit().putBoolean("default_enable_stripes", value).apply()
     }
 
+    // Default wallpaper tone (true = light tones, false = dark tones)
+    val initialLightTones = remember {
+        prefs.getBoolean("default_light_tones", true)
+    }
+    var defaultLightTones by remember { mutableStateOf(initialLightTones) }
+    fun updateDefaultLightTones(value: Boolean) {
+        defaultLightTones = value
+        prefs.edit().putBoolean("default_light_tones", value).apply()
+    }
+
     // --- NAVIGATION STATE ---
     var currentScreen by remember { mutableStateOf(RootScreen.HOME) }
 
@@ -217,7 +227,8 @@ fun WallerApp() {
                             defaultGradientCount = defaultGradientCount,
                             defaultEnableNothing = enableNothingByDefault,
                             defaultEnableSnow = enableSnowByDefault,
-                            defaultEnableStripes = enableStripesByDefault
+                            defaultEnableStripes = enableStripesByDefault,
+                            defaultIsLightTones = defaultLightTones
                         )
                     }
 
@@ -239,6 +250,8 @@ fun WallerApp() {
                             onEnableSnowByDefaultChange = { updateEnableSnow(it) },
                             enableStripesByDefault = enableStripesByDefault,
                             onEnableStripesByDefaultChange = { updateEnableStripes(it) },
+                            defaultLightTones = defaultLightTones,
+                            onDefaultLightTonesChange = { updateDefaultLightTones(it) },
                             onAboutClick = { currentScreen = RootScreen.ABOUT }
                         )
                     }

@@ -2,7 +2,7 @@
  * Settings screen for Waller.
  * Contains:
  * - Theme settings (app theme, gradient background)
- * - Wallpaper defaults (orientation, gradient count, default effects)
+ * - Wallpaper defaults (orientation, gradient count, default effects, default tone)
  * - A final "About" section that opens the About screen.
  */
 
@@ -58,6 +58,8 @@ fun SettingsScreen(
     onEnableSnowByDefaultChange: (Boolean) -> Unit,
     enableStripesByDefault: Boolean,
     onEnableStripesByDefaultChange: (Boolean) -> Unit,
+    defaultLightTones: Boolean,
+    onDefaultLightTonesChange: (Boolean) -> Unit,
     onAboutClick: () -> Unit
 ) {
     val scroll = rememberScrollState()
@@ -155,6 +157,26 @@ fun SettingsScreen(
             GradientCountRow(
                 current = defaultGradientCount,
                 onChange = onDefaultGradientCountChange
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Default wallpaper tone (radio: Dark vs Light)
+            Text(
+                text = stringResource(id = R.string.settings_default_wallpaper_tone),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(Modifier.height(6.dp))
+
+            ThemeOptionRow(
+                label = stringResource(id = R.string.wallpaper_theme_dark_tones),
+                selected = !defaultLightTones,
+                onClick = { onDefaultLightTonesChange(false) }
+            )
+            ThemeOptionRow(
+                label = stringResource(id = R.string.wallpaper_theme_light_tones),
+                selected = defaultLightTones,
+                onClick = { onDefaultLightTonesChange(true) }
             )
 
             Spacer(Modifier.height(12.dp))

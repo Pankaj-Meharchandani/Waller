@@ -122,6 +122,7 @@
     <string name="about_app_source_title">App source code</string>
     <string name="about_telegram_channel_title">Telegram channel</string>
     <string name="about_telegram_support_title">Support group</string>
+    <string name="settings_default_wallpaper_tone">Default wallpaper tone</string>
 
 
 </resources>

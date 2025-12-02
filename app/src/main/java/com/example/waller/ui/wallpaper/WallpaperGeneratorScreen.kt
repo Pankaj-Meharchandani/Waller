@@ -2,7 +2,7 @@
  * Main screen of the app.
  *
  * Responsibilities:
- * - Holds all UI state (colors, gradient types, toggles, orientation)
+ * - Holds all UI state (colors, gradient types, toggles, orientation, tone)
  * - Generates wallpaper preview list
  * - Displays the full UI layout using multiple reusable components
  * - Coordinates color picking dialog calls in MainActivity
@@ -20,15 +20,34 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,7 +77,8 @@ fun WallpaperGeneratorScreen(
     defaultGradientCount: Int,
     defaultEnableNothing: Boolean,
     defaultEnableSnow: Boolean,
-    defaultEnableStripes: Boolean
+    defaultEnableStripes: Boolean,
+    defaultIsLightTones: Boolean
 ) {
     // Initial orientation based on settings (AUTO treated as portrait by default here)
     var isPortrait by remember {
@@ -70,7 +90,9 @@ fun WallpaperGeneratorScreen(
         )
     }
 
-    var isLightTones by remember { mutableStateOf(true) }
+    // Initial tone based on settings
+    var isLightTones by remember { mutableStateOf(defaultIsLightTones) }
+
     val selectedGradientTypes = remember { mutableStateListOf(GradientType.Linear) }
     val selectedColors = remember { mutableStateListOf<androidx.compose.ui.graphics.Color>() }
 
@@ -183,8 +205,8 @@ fun WallpaperGeneratorScreen(
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
     ) {
         item(span = { GridItemSpan(spanCount) }) {
             Header(onThemeChange = onThemeChange, isAppDarkMode = isAppDarkMode)
@@ -203,7 +225,10 @@ fun WallpaperGeneratorScreen(
             SectionCard {
                 WallpaperThemeSelector(
                     isLightTones = isLightTones,
-                    onThemeChange = { isLightTones = it }
+                    onThemeChange = {
+                        isLightTones = it
+                        wallpapers = generateWallpapers()
+                    }
                 )
             }
         }
@@ -246,11 +271,20 @@ fun WallpaperGeneratorScreen(
             SectionCard {
                 EffectsSelector(
                     addNoise = addNoise,
-                    onNoiseChange = { addNoise = it },
+                    onNoiseChange = {
+                        addNoise = it
+                        wallpapers = generateWallpapers()
+                    },
                     addStripes = addStripes,
-                    onStripesChange = { addStripes = it },
+                    onStripesChange = {
+                        addStripes = it
+                        wallpapers = generateWallpapers()
+                    },
                     addOverlay = addOverlay,
-                    onOverlayChange = { addOverlay = it }
+                    onOverlayChange = {
+                        addOverlay = it
+                        wallpapers = generateWallpapers()
+                    }
                 )
             }
         }
