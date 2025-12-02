@@ -1,6 +1,7 @@
+@file:Suppress("EnumValuesSoftDeprecate", "UNUSED_VALUE")
+
 package com.example.waller.ui.wallpaper
 
-import android.content.Context
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,7 +33,6 @@ import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.OrientationSelector
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
 import com.example.waller.ui.wallpaper.components.WallpaperThemeSelector
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
@@ -87,7 +87,8 @@ fun WallpaperGeneratorScreen(
                     val base = selectedColors.first()
                     val shadedBase = createShade(base, isLightTones)
                     val secondBase =
-                        if (isLightTones) androidx.compose.ui.graphics.Color.White else androidx.compose.ui.graphics.Color.Black
+                        if (isLightTones) androidx.compose.ui.graphics.Color.White
+                        else androidx.compose.ui.graphics.Color.Black
                     val shadedSecond = createShade(secondBase, isLightTones)
                     listOf(shadedBase, shadedSecond)
                 }
@@ -97,11 +98,11 @@ fun WallpaperGeneratorScreen(
 
             val gradientType = run {
                 val available = when {
-                    selectedGradientTypes.isEmpty() -> GradientType.values().toList()
+                    selectedGradientTypes.isEmpty() -> GradientType.entries.toList()
                     selectedGradientTypes.size == 1 -> selectedGradientTypes.toList()
                     else -> {
                         val filtered = selectedGradientTypes.filter { it != previousType }
-                        if (filtered.isEmpty()) selectedGradientTypes.toList() else filtered
+                        filtered.ifEmpty { selectedGradientTypes.toList() }
                     }
                 }
                 available.random()
@@ -187,7 +188,7 @@ fun WallpaperGeneratorScreen(
                     },
                     onSelectAll = {
                         selectedGradientTypes.clear()
-                        selectedGradientTypes.addAll(GradientType.values())
+                        selectedGradientTypes.addAll(GradientType.entries)
                     },
                     onClear = {
                         selectedGradientTypes.clear()
@@ -236,11 +237,18 @@ fun WallpaperGeneratorScreen(
                     .padding(vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val orientation = if (isPortrait) stringResource(id = R.string.orientation_portrait) else stringResource(id = R.string.orientation_landscape)
+                val orientation =
+                    if (isPortrait)
+                        stringResource(id = R.string.orientation_portrait)
+                    else
+                        stringResource(id = R.string.orientation_landscape)
+
                 val types =
-                    if (selectedGradientTypes.isEmpty()) stringResource(id = R.string.all) else selectedGradientTypes.joinToString(
-                        ", "
-                    ) { it.name.lowercase() }
+                    if (selectedGradientTypes.isEmpty())
+                        stringResource(id = R.string.all)
+                    else
+                        selectedGradientTypes.joinToString(", ") { it.name.lowercase() }
+
                 Text(
                     text = stringResource(id = R.string.wallpaper_count, wallpapers.size),
                     style = MaterialTheme.typography.bodyMedium
@@ -258,7 +266,11 @@ fun WallpaperGeneratorScreen(
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = stringResource(id = R.string.wallpaper_info, orientation, types),
+                        text = stringResource(
+                            id = R.string.wallpaper_info,
+                            orientation,
+                            types
+                        ),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
