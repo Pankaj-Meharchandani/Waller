@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.MainActivity
 import com.example.waller.R
+import com.example.waller.ui.settings.DefaultOrientation
 import com.example.waller.ui.wallpaper.components.Actions
 import com.example.waller.ui.wallpaper.components.ColorSelector
 import com.example.waller.ui.wallpaper.components.EffectsSelector
@@ -52,15 +53,32 @@ import kotlinx.coroutines.launch
 fun WallpaperGeneratorScreen(
     modifier: Modifier = Modifier,
     isAppDarkMode: Boolean,
-    onThemeChange: () -> Unit
+    onThemeChange: () -> Unit,
+    defaultOrientation: DefaultOrientation,
+    defaultGradientCount: Int,
+    defaultEnableNothing: Boolean,
+    defaultEnableSnow: Boolean,
+    defaultEnableStripes: Boolean
 ) {
-    var isPortrait by remember { mutableStateOf(true) }
+    // Initial orientation based on settings (AUTO treated as portrait by default here)
+    var isPortrait by remember {
+        mutableStateOf(
+            when (defaultOrientation) {
+                DefaultOrientation.LANDSCAPE -> false
+                DefaultOrientation.AUTO, DefaultOrientation.PORTRAIT -> true
+            }
+        )
+    }
+
     var isLightTones by remember { mutableStateOf(true) }
     val selectedGradientTypes = remember { mutableStateListOf(GradientType.Linear) }
     val selectedColors = remember { mutableStateListOf<androidx.compose.ui.graphics.Color>() }
-    var addNoise by remember { mutableStateOf(false) }
-    var addStripes by remember { mutableStateOf(false) }
-    var addOverlay by remember { mutableStateOf(false) }
+
+    // Initial effects from settings
+    var addNoise by remember { mutableStateOf(defaultEnableSnow) }
+    var addStripes by remember { mutableStateOf(defaultEnableStripes) }
+    var addOverlay by remember { mutableStateOf(defaultEnableNothing) }
+
     var editingColorIndex by remember { mutableStateOf<Int?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
@@ -85,11 +103,11 @@ fun WallpaperGeneratorScreen(
     val spanCount = if (isPortrait) 2 else 1
     val columns = GridCells.Fixed(spanCount)
 
-    // generate wallpapers function
+    // generate wallpapers function (respects defaultGradientCount)
     fun generateWallpapers(): List<Wallpaper> {
         val wallpapers = mutableListOf<Wallpaper>()
         var previousType: GradientType? = null
-        repeat(20) {
+        repeat(defaultGradientCount) {
             val colors = when (selectedColors.size) {
                 0 -> listOf(
                     generateRandomColor(isLightTones),
@@ -327,7 +345,7 @@ fun WallpaperGeneratorScreen(
         }
     }
 
-    // New extracted dialog
+    // Apply / Download dialog
     ApplyDownloadDialog(
         show = showApplyDialog,
         wallpaper = pendingClickedWallpaper,
