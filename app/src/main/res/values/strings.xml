@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Waller</string>
     <string name="header_subtitle">Generate colorful, grainy gradients</string>
     <string name="theme_dark">Dark</string>
@@ -53,4 +53,75 @@
     <string name="wallpaper_count">%1$d wallpapers</string>
     <string name="all">all</string>
     <string name="wallpaper_info">%1$s • %2$s</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Settings -->
+    <string name="settings_section_theme">Theme Settings</string>
+    <string name="settings_theme_app_theme">App theme</string>
+    <string name="settings_theme_system">System default</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_use_gradient_bg">Use gradient background in app</string>
+
+    <string name="settings_section_wallpaper">Wallpaper Settings</string>
+    <string name="settings_wallpaper_orientation">Default wallpaper orientation</string>
+    <string name="settings_orientation_auto">Auto</string>
+    <string name="settings_orientation_portrait">Portrait</string>
+    <string name="settings_orientation_landscape">Landscape</string>
+
+    <string name="settings_wallpaper_count">Default gradient count</string>
+    <string name="settings_enable_nothing">Enable Nothing Glass effect by default</string>
+    <string name="settings_enable_snow">Enable Snow effect by default</string>
+    <string name="settings_enable_stripes">Enable Stripes by default</string>
+
+    <string name="settings_section_about">About</string>
+    <string name="settings_about_summary">Learn more about Waller and the developer.</string>
+    <string name="settings_about_open">Open About</string>
+
+    <!-- ABOUT -->
+
+    <string name="about_back_to_settings">Back to Settings</string>
+
+    <!-- App info -->
+    <string name="about_app_title">App Info</string>
+    <string name="about_app_name">Waller</string>
+    <string name="about_app_version">Version %1$s</string>
+    <string name="about_app_description">
+        A high-quality gradient wallpaper generator.
+    </string>
+
+    <!-- Developer & community -->
+    <string name="about_developer_title">Developer &amp; Community</string>
+    <string name="about_developer_name">
+        Developer: Pankaj Meharchandani
+    </string>
+    <string name="about_developer_github">
+        GitHub: https://github.com/Pankaj-Meharchandani
+    </string>
+    <string name="about_app_source">
+        Source: https://github.com/Pankaj-Meharchandani/Waller
+    </string>
+    <string name="about_telegram_channel">
+        Telegram channel: https://t.me/Waller_app
+    </string>
+    <string name="about_telegram_support">
+        Support group: https://t.me/walllller
+    </string>
+
+    <!-- Legal -->
+    <string name="about_legal_title">Legal</string>
+    <string name="about_rate_app">Star on Github</string>
+    <string name="about_privacy_policy">Privacy policy</string>
+    <string name="about_terms">Terms &amp; conditions</string>
+
+    <!-- About: link titles -->
+    <string name="about_developer_github_title">Developer GitHub</string>
+    <string name="about_app_source_title">App source code</string>
+    <string name="about_telegram_channel_title">Telegram channel</string>
+    <string name="about_telegram_support_title">Support group</string>
+
+
 </resources>
