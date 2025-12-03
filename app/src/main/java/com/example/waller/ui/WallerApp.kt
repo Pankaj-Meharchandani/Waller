@@ -1,10 +1,10 @@
 /**
  * Root-level Compose setup for Waller.
  * Handles:
- * - App-wide theme (light / dark / system), persisted with SharedPreferences
+ * - App-wide theme (light / dark / system), persisted
  * - Gradient background toggle, persisted
  * - Wallpaper defaults (orientation, gradient count, effects, tone), persisted
- * - Bottom navigation between Home (wallpapers), Settings and About screens
+ * - Bottom navigation between Home (wallpapers), Settings and About
  * - Back button behavior: About -> Settings -> Home -> Exit
  */
 
@@ -42,6 +42,7 @@ import com.example.waller.ui.settings.AppThemeMode
 import com.example.waller.ui.settings.DefaultOrientation
 import com.example.waller.ui.settings.SettingsScreen
 import com.example.waller.ui.theme.WallerTheme
+import com.example.waller.ui.wallpaper.ToneMode
 import com.example.waller.ui.wallpaper.WallpaperGeneratorScreen
 
 // Which top-level screen is shown.
@@ -136,14 +137,18 @@ fun WallerApp() {
         prefs.edit().putBoolean("default_enable_stripes", value).apply()
     }
 
-    // Default wallpaper tone (true = light tones, false = dark tones)
-    val initialLightTones = remember {
-        prefs.getBoolean("default_light_tones", true)
+    // Default tone: DARK / NEUTRAL / LIGHT
+    val initialToneMode = remember {
+        when (prefs.getString("default_tone_mode", ToneMode.LIGHT.name)) {
+            ToneMode.DARK.name -> ToneMode.DARK
+            ToneMode.NEUTRAL.name -> ToneMode.NEUTRAL
+            else -> ToneMode.LIGHT
+        }
     }
-    var defaultLightTones by remember { mutableStateOf(initialLightTones) }
-    fun updateDefaultLightTones(value: Boolean) {
-        defaultLightTones = value
-        prefs.edit().putBoolean("default_light_tones", value).apply()
+    var defaultToneMode by remember { mutableStateOf(initialToneMode) }
+    fun updateDefaultToneMode(value: ToneMode) {
+        defaultToneMode = value
+        prefs.edit().putString("default_tone_mode", value.name).apply()
     }
 
     // --- NAVIGATION STATE ---
@@ -162,7 +167,6 @@ fun WallerApp() {
     }
 
     // --- BACK BUTTON HANDLING ---
-    // About -> Settings -> Home -> exit
     BackHandler(enabled = currentScreen != RootScreen.HOME) {
         currentScreen = when (currentScreen) {
             RootScreen.ABOUT -> RootScreen.SETTINGS
@@ -228,7 +232,7 @@ fun WallerApp() {
                             defaultEnableNothing = enableNothingByDefault,
                             defaultEnableSnow = enableSnowByDefault,
                             defaultEnableStripes = enableStripesByDefault,
-                            defaultIsLightTones = defaultLightTones
+                            defaultToneMode = defaultToneMode
                         )
                     }
 
@@ -250,8 +254,8 @@ fun WallerApp() {
                             onEnableSnowByDefaultChange = { updateEnableSnow(it) },
                             enableStripesByDefault = enableStripesByDefault,
                             onEnableStripesByDefaultChange = { updateEnableStripes(it) },
-                            defaultLightTones = defaultLightTones,
-                            onDefaultLightTonesChange = { updateDefaultLightTones(it) },
+                            defaultToneMode = defaultToneMode,
+                            onDefaultToneModeChange = { updateDefaultToneMode(it) },
                             onAboutClick = { currentScreen = RootScreen.ABOUT }
                         )
                     }

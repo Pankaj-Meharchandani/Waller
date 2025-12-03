@@ -10,6 +10,8 @@
  *   - Info row + wallpaper grid + Refresh button
  * - Coordinates color picking dialog calls in MainActivity
  * - Opens the Apply/Download dialog when a wallpaper is clicked
+ *
+ * This file orchestrates the entire wallpaper creation experience.
  */
 
 @file:Suppress("EnumValuesSoftDeprecate", "UNUSED_VALUE")
@@ -60,7 +62,7 @@ fun WallpaperGeneratorScreen(
     defaultEnableNothing: Boolean,
     defaultEnableSnow: Boolean,
     defaultEnableStripes: Boolean,
-    defaultIsLightTones: Boolean
+    defaultToneMode: ToneMode
 ) {
     // ----------- STATE -----------
 
@@ -73,7 +75,7 @@ fun WallpaperGeneratorScreen(
         )
     }
 
-    var isLightTones by remember { mutableStateOf(defaultIsLightTones) }
+    var toneMode by remember { mutableStateOf(defaultToneMode) }
 
     val selectedGradientTypes = remember { mutableStateListOf(GradientType.Linear) }
     val selectedColors = remember { mutableStateListOf<Color>() }
@@ -114,21 +116,32 @@ fun WallpaperGeneratorScreen(
 
         repeat(defaultGradientCount) {
             val colors = when (selectedColors.size) {
+                // No user colors: pure random by tone
                 0 -> listOf(
-                    generateRandomColor(isLightTones),
-                    generateRandomColor(isLightTones)
+                    generateRandomColor(toneMode),
+                    generateRandomColor(toneMode)
                 )
 
+                // One user color: shade close to that color + a tone-based complement
                 1 -> {
                     val base = selectedColors.first()
-                    val shadedBase = createShade(base, isLightTones)
-                    val secondBase =
-                        if (isLightTones) Color.White else Color.Black
-                    val shadedSecond = createShade(secondBase, isLightTones)
+                    val shadedBase = createShade(base, toneMode, subtle = true)
+
+                    val secondBase = when (toneMode) {
+                        ToneMode.LIGHT -> Color.White
+                        ToneMode.DARK -> Color.Black
+                        ToneMode.NEUTRAL -> Color.Gray
+                    }
+                    val shadedSecond = createShade(secondBase, toneMode, subtle = false)
+
                     listOf(shadedBase, shadedSecond)
                 }
 
-                else -> selectedColors.shuffled().take(2).map { createShade(it, isLightTones) }
+                // Two+ user colors: take two and create subtle shades close to them
+                else -> selectedColors
+                    .shuffled()
+                    .take(2)
+                    .map { createShade(it, toneMode, subtle = true) }
             }
 
             val gradientType = run {
@@ -209,9 +222,9 @@ fun WallpaperGeneratorScreen(
                         isPortrait = newValue
                         wallpapers = generateWallpapers()
                     },
-                    isLightTones = isLightTones,
-                    onToneChange = { light ->
-                        isLightTones = light
+                    toneMode = toneMode,
+                    onToneChange = { newMode ->
+                        toneMode = newMode
                         wallpapers = generateWallpapers()
                     },
                     selectedColors = selectedColors,
@@ -226,7 +239,6 @@ fun WallpaperGeneratorScreen(
                     onGradientToggle = { type ->
                         if (type in selectedGradientTypes) {
                             if (selectedGradientTypes.size == 1) {
-                                // Don't allow empty selection
                                 android.widget.Toast.makeText(
                                     context,
                                     "Select at least one gradient style",

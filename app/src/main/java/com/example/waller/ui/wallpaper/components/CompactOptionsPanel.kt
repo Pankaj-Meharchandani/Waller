@@ -5,17 +5,15 @@
  * 1) Colors (+ Add Color) on the left, Orientation chip on the right
  * 2) Gradient type chips (Linear / Radial / Angular / Diamond)
  * 3) Effect chips (Nothing / Snow / Stripes)
- * 4) Tone slider: Dark • Neutral • Light (neutral is UI-only for now)
+ * 4) Tone slider: Dark • Neutral • Light
  */
 
 package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DesktopWindows
@@ -38,13 +36,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.GradientType
+import com.example.waller.ui.wallpaper.ToneMode
 
 @Composable
 fun CompactOptionsPanel(
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit,
-    isLightTones: Boolean,
-    onToneChange: (Boolean) -> Unit,
+    toneMode: ToneMode,
+    onToneChange: (ToneMode) -> Unit,
     selectedColors: List<Color>,
     onAddColor: () -> Unit,
     onRemoveColor: (Int) -> Unit,
@@ -178,7 +177,7 @@ fun CompactOptionsPanel(
         /* ---------------- Row 4: Tone slider (Dark • Neutral • Light) ---------------- */
 
         ToneSliderRow(
-            isLightTones = isLightTones,
+            toneMode = toneMode,
             onToneChange = onToneChange
         )
     }
@@ -188,12 +187,18 @@ fun CompactOptionsPanel(
 
 @Composable
 private fun ToneSliderRow(
-    isLightTones: Boolean,
-    onToneChange: (Boolean) -> Unit
+    toneMode: ToneMode,
+    onToneChange: (ToneMode) -> Unit
 ) {
     // 0 = Dark, 1 = Neutral, 2 = Light
-    var position by remember(isLightTones) {
-        mutableStateOf(if (isLightTones) 2 else 0)
+    var position by remember(toneMode) {
+        mutableStateOf(
+            when (toneMode) {
+                ToneMode.DARK -> 0
+                ToneMode.NEUTRAL -> 1
+                ToneMode.LIGHT -> 2
+            }
+        )
     }
 
     Column(
@@ -229,13 +234,12 @@ private fun ToneSliderRow(
                             .fillMaxHeight()
                             .clickable {
                                 position = index
-                                when (index) {
-                                    0 -> onToneChange(false) // dark
-                                    2 -> onToneChange(true)  // light
-                                    1 -> {
-                                        // Neutral: UI only for now, no logic change
-                                    }
+                                val newMode = when (index) {
+                                    0 -> ToneMode.DARK
+                                    1 -> ToneMode.NEUTRAL
+                                    else -> ToneMode.LIGHT
                                 }
+                                onToneChange(newMode)
                             }
                             .background(
                                 color = if (selected)
@@ -269,7 +273,7 @@ private fun ColorSquareChip(
 ) {
     Surface(
         color = color,
-        shape = RoundedCornerShape(12.dp),   // squircle
+        shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .size(32.dp)
             .clip(RoundedCornerShape(12.dp))
@@ -292,7 +296,7 @@ private fun CompactAddColorChip(
     onClick: () -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),    // rectangular, not oval
+        shape = RoundedCornerShape(12.dp),
         color = Color.Transparent,
         border = BorderStroke(
             1.dp,

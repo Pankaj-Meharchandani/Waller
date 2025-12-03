@@ -7,6 +7,9 @@
  * enum class GradientType:
  *   - Linear, Radial, Angular, Diamond
  *
+ * enum class ToneMode:
+ *   - DARK, NEUTRAL, LIGHT (used for color generation and shading)
+ *
  * These models are shared by previews and bitmap generation.
  */
 
@@ -24,4 +27,10 @@ enum class GradientType {
     Radial,
     Angular,
     Diamond
+}
+
+enum class ToneMode {
+    DARK,
+    NEUTRAL,
+    LIGHT
 }
