@@ -2,16 +2,15 @@
  * Main screen of the app.
  *
  * Responsibilities:
- * - Holds UI state (colors, gradient types, toggles, orientation, tone)
+ * - Holds UI state (colors, gradient types, orientation, tone)
+ * - Uses shared effect toggles (snow / stripes / glass) from WallerApp
  * - Generates wallpaper preview list
  * - Shows:
  *   - Header
- *   - Compact options panel (separate component)
+ *   - Compact options panel
  *   - Info row + wallpaper grid + Refresh button
  * - Coordinates color picking dialog calls in MainActivity
  * - Opens the Apply/Download dialog when a wallpaper is clicked
- *
- * This file orchestrates the entire wallpaper creation experience.
  */
 
 @file:Suppress("EnumValuesSoftDeprecate", "UNUSED_VALUE")
@@ -62,7 +61,15 @@ fun WallpaperGeneratorScreen(
     defaultEnableNothing: Boolean,
     defaultEnableSnow: Boolean,
     defaultEnableStripes: Boolean,
-    defaultToneMode: ToneMode
+    defaultToneMode: ToneMode,
+    addNoise: Boolean,
+    onAddNoiseChange: (Boolean) -> Unit,
+    addStripes: Boolean,
+    onAddStripesChange: (Boolean) -> Unit,
+    addOverlay: Boolean,
+    onAddOverlayChange: (Boolean) -> Unit,
+    favouriteWallpapers: List<FavoriteWallpaper>,
+    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean) -> Unit
 ) {
     // ----------- STATE -----------
 
@@ -79,10 +86,6 @@ fun WallpaperGeneratorScreen(
 
     val selectedGradientTypes = remember { mutableStateListOf(GradientType.Linear) }
     val selectedColors = remember { mutableStateListOf<Color>() }
-
-    var addNoise by remember { mutableStateOf(defaultEnableSnow) }
-    var addStripes by remember { mutableStateOf(defaultEnableStripes) }
-    var addOverlay by remember { mutableStateOf(defaultEnableNothing) }
 
     var editingColorIndex by remember { mutableStateOf<Int?>(null) }
 
@@ -104,7 +107,6 @@ fun WallpaperGeneratorScreen(
             }
         }
 
-    // dynamic columns/spans
     val spanCount = if (isPortrait) 2 else 1
     val columns = GridCells.Fixed(spanCount)
 
@@ -116,28 +118,23 @@ fun WallpaperGeneratorScreen(
 
         repeat(defaultGradientCount) {
             val colors = when (selectedColors.size) {
-                // No user colors: pure random by tone
                 0 -> listOf(
                     generateRandomColor(toneMode),
                     generateRandomColor(toneMode)
                 )
 
-                // One user color: shade close to that color + a tone-based complement
                 1 -> {
                     val base = selectedColors.first()
                     val shadedBase = createShade(base, toneMode, subtle = true)
-
                     val secondBase = when (toneMode) {
                         ToneMode.LIGHT -> Color.White
                         ToneMode.DARK -> Color.Black
                         ToneMode.NEUTRAL -> Color.Gray
                     }
                     val shadedSecond = createShade(secondBase, toneMode, subtle = false)
-
                     listOf(shadedBase, shadedSecond)
                 }
 
-                // Two+ user colors: take two and create subtle shades close to them
                 else -> selectedColors
                     .shuffled()
                     .take(2)
@@ -255,17 +252,17 @@ fun WallpaperGeneratorScreen(
                     },
                     addNoise = addNoise,
                     onNoiseToggle = {
-                        addNoise = !addNoise
+                        onAddNoiseChange(!addNoise)
                         wallpapers = generateWallpapers()
                     },
                     addStripes = addStripes,
                     onStripesToggle = {
-                        addStripes = !addStripes
+                        onAddStripesChange(!addStripes)
                         wallpapers = generateWallpapers()
                     },
                     addOverlay = addOverlay,
                     onOverlayToggle = {
-                        addOverlay = !addOverlay
+                        onAddOverlayChange(!addOverlay)
                         wallpapers = generateWallpapers()
                     }
                 )
@@ -322,14 +319,19 @@ fun WallpaperGeneratorScreen(
 
         // Wallpapers grid
         items(wallpapers) { wallpaper ->
+            val isFavourite = favouriteWallpapers.any { it.wallpaper == wallpaper }
             WallpaperItemCard(
                 wallpaper = wallpaper,
                 isPortrait = isPortrait,
                 addNoise = addNoise,
                 addStripes = addStripes,
                 addOverlay = addOverlay,
-                onClick = { clicked ->
-                    pendingClickedWallpaper = clicked
+                isFavorite = isFavourite,
+                onFavoriteToggle = {
+                    onToggleFavourite(wallpaper, addNoise, addStripes, addOverlay)
+                },
+                onClick = {
+                    pendingClickedWallpaper = wallpaper
                     showApplyDialog = true
                 }
             )

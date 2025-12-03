@@ -162,7 +162,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Default wallpaper tone (Dark / Neutral / Light)
+            // Default wallpaper tone (3 radio options: Dark / Neutral / Light)
             Text(
                 text = stringResource(id = R.string.settings_default_wallpaper_tone),
                 style = MaterialTheme.typography.bodyMedium

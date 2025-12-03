@@ -2,15 +2,17 @@
  * Contains lightweight data models used across the app:
  *
  * data class Wallpaper:
- *   - Holds 2 colors + chosen gradient type
+ *   - Holds colors + chosen gradient type
  *
  * enum class GradientType:
  *   - Linear, Radial, Angular, Diamond
  *
  * enum class ToneMode:
- *   - DARK, NEUTRAL, LIGHT (used for color generation and shading)
+ *   - DARK, NEUTRAL, LIGHT
  *
- * These models are shared by previews and bitmap generation.
+ * data class FavoriteWallpaper:
+ *   - Wraps a Wallpaper + the effect flags used when it was favourited
+ *   - Allows favourites screen to recreate the exact look (noise/stripes/glass)
  */
 
 package com.example.waller.ui.wallpaper
@@ -29,8 +31,23 @@ enum class GradientType {
     Diamond
 }
 
+//Tone mode used for random color generation and shading.
+
 enum class ToneMode {
     DARK,
     NEUTRAL,
     LIGHT
 }
+
+/**
+ * Snapshot of a favourite wallpaper at the time user tapped the heart.
+ * We keep:
+ * - underlying gradient `wallpaper`
+ * - which effects were active: snow, stripes, overlay
+ */
+data class FavoriteWallpaper(
+    val wallpaper: Wallpaper,
+    val addNoise: Boolean,
+    val addStripes: Boolean,
+    val addOverlay: Boolean
+)

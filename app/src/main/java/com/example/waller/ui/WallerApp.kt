@@ -4,8 +4,10 @@
  * - App-wide theme (light / dark / system), persisted
  * - Gradient background toggle, persisted
  * - Wallpaper defaults (orientation, gradient count, effects, tone), persisted
- * - Bottom navigation between Home (wallpapers), Settings and About
- * - Back button behavior: About -> Settings -> Home -> Exit
+ * - Shared favourite wallpapers (snapshot of wallpaper + effects), persisted
+ * - Shared effect toggles (snow / stripes / glass) used by Home + Favourites
+ * - Bottom navigation between Home, Favourites, Settings, About
+ * - Back button behavior: About -> Settings -> Home/Favourites -> Exit
  */
 
 package com.example.waller.ui
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -42,11 +45,19 @@ import com.example.waller.ui.settings.AppThemeMode
 import com.example.waller.ui.settings.DefaultOrientation
 import com.example.waller.ui.settings.SettingsScreen
 import com.example.waller.ui.theme.WallerTheme
+import com.example.waller.ui.wallpaper.FavoriteWallpaper
+import com.example.waller.ui.wallpaper.FavoritesScreen
+import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.ToneMode
+import com.example.waller.ui.wallpaper.Wallpaper
 import com.example.waller.ui.wallpaper.WallpaperGeneratorScreen
+import com.example.waller.ui.wallpaper.colorFromHexOrNull
+import com.example.waller.ui.wallpaper.toHexString
 
 // Which top-level screen is shown.
-private enum class RootScreen { HOME, SETTINGS, ABOUT }
+private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
+
+private const val FAVOURITES_KEY = "favourites_v1"
 
 @Composable
 fun WallerApp() {
@@ -109,7 +120,7 @@ fun WallerApp() {
         prefs.edit().putInt("default_gradient_count", value).apply()
     }
 
-    // Default effects
+    // Default effects (for Settings)
     val initialNothing = remember {
         prefs.getBoolean("default_enable_nothing", false)
     }
@@ -151,6 +162,54 @@ fun WallerApp() {
         prefs.edit().putString("default_tone_mode", value.name).apply()
     }
 
+    // --- SHARED EFFECT STATE (used by Home + as defaults when app starts) ---
+    var snowEffectEnabled by remember { mutableStateOf(enableSnowByDefault) }
+    var stripesEffectEnabled by remember { mutableStateOf(enableStripesByDefault) }
+    var overlayEffectEnabled by remember { mutableStateOf(enableNothingByDefault) }
+
+    // --- SHARED FAVOURITES (snapshot of wallpaper + effects), PERSISTED ---
+    var favouriteWallpapers by remember {
+        mutableStateOf(
+            prefs.getString(FAVOURITES_KEY, null)
+                ?.let { decodeFavourites(it) }
+                ?: emptyList()
+        )
+    }
+
+    fun persistFavourites() {
+        prefs.edit()
+            .putString(FAVOURITES_KEY, encodeFavourites(favouriteWallpapers))
+            .apply()
+    }
+
+    // From Home screen: toggle by wallpaper; snapshot current effects when adding.
+    fun toggleFavouriteFromHome(
+        wallpaper: Wallpaper,
+        addNoise: Boolean,
+        addStripes: Boolean,
+        addOverlay: Boolean
+    ) {
+        val existing = favouriteWallpapers.find { it.wallpaper == wallpaper }
+        favouriteWallpapers =
+            if (existing != null) {
+                favouriteWallpapers - existing
+            } else {
+                favouriteWallpapers + FavoriteWallpaper(
+                    wallpaper = wallpaper,
+                    addNoise = addNoise,
+                    addStripes = addStripes,
+                    addOverlay = addOverlay
+                )
+            }
+        persistFavourites()
+    }
+
+    // From Favourites screen: remove that exact favourite entry.
+    fun removeFavourite(fav: FavoriteWallpaper) {
+        favouriteWallpapers = favouriteWallpapers - fav
+        persistFavourites()
+    }
+
     // --- NAVIGATION STATE ---
     var currentScreen by remember { mutableStateOf(RootScreen.HOME) }
 
@@ -163,6 +222,7 @@ fun WallerApp() {
     // For bottom bar highlighting: About is grouped under Settings.
     val selectedForNav = when (currentScreen) {
         RootScreen.HOME -> RootScreen.HOME
+        RootScreen.FAVOURITES -> RootScreen.FAVOURITES
         RootScreen.SETTINGS, RootScreen.ABOUT -> RootScreen.SETTINGS
     }
 
@@ -171,6 +231,7 @@ fun WallerApp() {
         currentScreen = when (currentScreen) {
             RootScreen.ABOUT -> RootScreen.SETTINGS
             RootScreen.SETTINGS -> RootScreen.HOME
+            RootScreen.FAVOURITES -> RootScreen.HOME
             RootScreen.HOME -> RootScreen.HOME
         }
     }
@@ -217,7 +278,6 @@ fun WallerApp() {
                             modifier = Modifier.padding(innerPadding),
                             isAppDarkMode = isDarkTheme,
                             onThemeChange = {
-                                // Header icon toggles between LIGHT and DARK explicitly.
                                 val next = when (appThemeMode) {
                                     AppThemeMode.LIGHT -> AppThemeMode.DARK
                                     AppThemeMode.DARK -> AppThemeMode.LIGHT
@@ -232,7 +292,37 @@ fun WallerApp() {
                             defaultEnableNothing = enableNothingByDefault,
                             defaultEnableSnow = enableSnowByDefault,
                             defaultEnableStripes = enableStripesByDefault,
-                            defaultToneMode = defaultToneMode
+                            defaultToneMode = defaultToneMode,
+                            addNoise = snowEffectEnabled,
+                            onAddNoiseChange = { snowEffectEnabled = it },
+                            addStripes = stripesEffectEnabled,
+                            onAddStripesChange = { stripesEffectEnabled = it },
+                            addOverlay = overlayEffectEnabled,
+                            onAddOverlayChange = { overlayEffectEnabled = it },
+                            favouriteWallpapers = favouriteWallpapers,
+                            onToggleFavourite = { w, n, s, o ->
+                                toggleFavouriteFromHome(w, n, s, o)
+                            }
+                        )
+                    }
+
+                    RootScreen.FAVOURITES -> {
+                        FavoritesScreen(
+                            modifier = Modifier.padding(innerPadding),
+                            isAppDarkMode = isDarkTheme,
+                            onThemeChange = {
+                                val next = when (appThemeMode) {
+                                    AppThemeMode.LIGHT -> AppThemeMode.DARK
+                                    AppThemeMode.DARK -> AppThemeMode.LIGHT
+                                    AppThemeMode.SYSTEM ->
+                                        if (systemIsDark) AppThemeMode.LIGHT
+                                        else AppThemeMode.DARK
+                                }
+                                updateThemeMode(next)
+                            },
+                            favourites = favouriteWallpapers,
+                            defaultOrientation = defaultOrientation,
+                            onRemoveFavourite = { removeFavourite(it) }
                         )
                     }
 
@@ -284,6 +374,14 @@ private fun WallerBottomBar(
             icon = { Icon(Icons.Default.Home, contentDescription = null) },
             label = { Text(text = stringResource(id = R.string.nav_home)) }
         )
+
+        NavigationBarItem(
+            selected = selectedScreen == RootScreen.FAVOURITES,
+            onClick = { onScreenSelected(RootScreen.FAVOURITES) },
+            icon = { Icon(Icons.Default.Favorite, contentDescription = null) },
+            label = { Text(text = stringResource(id = R.string.nav_favourites)) }
+        )
+
         NavigationBarItem(
             selected = selectedScreen == RootScreen.SETTINGS,
             onClick = { onScreenSelected(RootScreen.SETTINGS) },
@@ -292,3 +390,44 @@ private fun WallerBottomBar(
         )
     }
 }
+
+/* --------------------------- Favourites encode/decode --------------------------- */
+
+private fun encodeFavourites(list: List<FavoriteWallpaper>): String =
+    list.joinToString(";") { fav ->
+        val typeName = fav.wallpaper.type.name
+        val colorsStr = fav.wallpaper.colors.joinToString(",") { it.toHexString() }
+        val flagsStr = listOf(fav.addNoise, fav.addStripes, fav.addOverlay)
+            .joinToString(",") { if (it) "1" else "0" }
+
+        listOf(typeName, colorsStr, flagsStr).joinToString("|")
+    }
+
+private fun decodeFavourites(raw: String): List<FavoriteWallpaper> =
+    raw.split(";")
+        .mapNotNull { item ->
+            if (item.isBlank()) return@mapNotNull null
+            val parts = item.split("|")
+            if (parts.size != 3) return@mapNotNull null
+
+            val type = runCatching { GradientType.valueOf(parts[0]) }.getOrNull()
+                ?: return@mapNotNull null
+
+            val colors = parts[1]
+                .split(",")
+                .mapNotNull { token -> colorFromHexOrNull(token) }
+                .takeIf { it.isNotEmpty() }
+                ?: return@mapNotNull null
+
+            val flagTokens = parts[2].split(",")
+            val addNoise = flagTokens.getOrNull(0) == "1"
+            val addStripes = flagTokens.getOrNull(1) == "1"
+            val addOverlay = flagTokens.getOrNull(2) == "1"
+
+            FavoriteWallpaper(
+                wallpaper = Wallpaper(colors = colors, type = type),
+                addNoise = addNoise,
+                addStripes = addStripes,
+                addOverlay = addOverlay
+            )
+        }
