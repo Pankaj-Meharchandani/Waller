@@ -81,23 +81,24 @@ fun WallpaperItemCard(
                 addOverlay = addOverlay
             )
 
-            // Favourite heart in top-right
-            IconButton(
-                onClick = onFavoriteToggle,
+            // Favourite heart in top-right with "squarcle" background
+            Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(6.dp)
-                    .size(26.dp)
-                    .background(
-                        color = Color.Black.copy(alpha = 0.35f),
-                        shape = RoundedCornerShape(999.dp)
-                    )
+                    .padding(top = 8.dp, end = 8.dp)
+                    .clip(RoundedCornerShape(30.dp))
+                    .background(Color.Black.copy(alpha = 0.35f))
             ) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = null,
-                    tint = if (isFavorite) Color(0xFFFF4D6A) else Color.White
-                )
+                IconButton(
+                    onClick = onFavoriteToggle,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = null,
+                        tint = if (isFavorite) Color(0xFFFF4D6A) else Color.White
+                    )
+                }
             }
         }
     }
