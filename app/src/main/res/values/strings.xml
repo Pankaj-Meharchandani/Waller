@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Waller</string>
-    <string name="header_subtitle">Generate colorful, grainy gradients</string>
+    <string name="header_subtitle">Generate colorful, personalized gradients</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_light">Light</string>
     <string name="actions_title">Actions</string>
@@ -18,6 +18,7 @@
     <string name="effects_snow_effect">Snow effect</string>
     <string name="effects_snow_effect_subtitle">Soft snow texture.</string>
     <string name="effects_stripes_overlay">Stripes overlay</string>
+    <string name="effects_stripes">Add Stripes</string>
     <string name="effects_stripes_overlay_subtitle">Vertical translucent stripes.</string>
     <string name="effects_nothing_style">Nothing Style</string>
     <string name="effects_nothing_style_subtitle">Add Nothing like glass effect</string>
@@ -123,6 +124,11 @@
     <string name="about_telegram_channel_title">Telegram channel</string>
     <string name="about_telegram_support_title">Support group</string>
     <string name="settings_default_wallpaper_tone">Default wallpaper tone</string>
+    <string name="wallpaper_theme_neutral_tones">Neutral</string>
+    <string name="nav_favourites">Favourites</string>
+    <string name="favourites_empty">No favourites yet. Tap the heart on a wallpaper to save it.</string>
+    <string name="favourites_count">%1$d favourites</string>
+    <string name="scroll_to_top">Scroll to top</string>
 
 
 </resources>

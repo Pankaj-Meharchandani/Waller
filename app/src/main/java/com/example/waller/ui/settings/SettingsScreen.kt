@@ -34,6 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.SectionCard
+import com.example.waller.ui.wallpaper.ToneMode
 
 // App-wide theme modes used by WallerApp and Settings.
 enum class AppThemeMode { LIGHT, DARK, SYSTEM }
@@ -58,8 +59,8 @@ fun SettingsScreen(
     onEnableSnowByDefaultChange: (Boolean) -> Unit,
     enableStripesByDefault: Boolean,
     onEnableStripesByDefaultChange: (Boolean) -> Unit,
-    defaultLightTones: Boolean,
-    onDefaultLightTonesChange: (Boolean) -> Unit,
+    defaultToneMode: ToneMode,
+    onDefaultToneModeChange: (ToneMode) -> Unit,
     onAboutClick: () -> Unit
 ) {
     val scroll = rememberScrollState()
@@ -161,7 +162,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Default wallpaper tone (radio: Dark vs Light)
+            // Default wallpaper tone (3 radio options: Dark / Neutral / Light)
             Text(
                 text = stringResource(id = R.string.settings_default_wallpaper_tone),
                 style = MaterialTheme.typography.bodyMedium
@@ -170,13 +171,18 @@ fun SettingsScreen(
 
             ThemeOptionRow(
                 label = stringResource(id = R.string.wallpaper_theme_dark_tones),
-                selected = !defaultLightTones,
-                onClick = { onDefaultLightTonesChange(false) }
+                selected = defaultToneMode == ToneMode.DARK,
+                onClick = { onDefaultToneModeChange(ToneMode.DARK) }
+            )
+            ThemeOptionRow(
+                label = stringResource(id = R.string.wallpaper_theme_neutral_tones),
+                selected = defaultToneMode == ToneMode.NEUTRAL,
+                onClick = { onDefaultToneModeChange(ToneMode.NEUTRAL) }
             )
             ThemeOptionRow(
                 label = stringResource(id = R.string.wallpaper_theme_light_tones),
-                selected = defaultLightTones,
-                onClick = { onDefaultLightTonesChange(true) }
+                selected = defaultToneMode == ToneMode.LIGHT,
+                onClick = { onDefaultToneModeChange(ToneMode.LIGHT) }
             )
 
             Spacer(Modifier.height(12.dp))
