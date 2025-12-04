@@ -72,9 +72,6 @@ fun WallpaperGeneratorScreen(
     isAppDarkMode: Boolean,
     onThemeChange: () -> Unit,
     defaultGradientCount: Int,
-    defaultEnableNothing: Boolean,
-    defaultEnableSnow: Boolean,
-    defaultEnableStripes: Boolean,
     defaultToneMode: ToneMode,
     defaultEnableMulticolor: Boolean,
     addNoise: Boolean,
@@ -398,9 +395,8 @@ fun WallpaperGeneratorScreen(
         addStripes = addStripes,
         addOverlay = addOverlay,
         isWorking = isWorking,
-        onWorkingChange = { isWorking = it },
-        onDismiss = {
-            showApplyDialog = false
+        onWorkingChange = { },
+        onDismiss = {showApplyDialog = false
             pendingClickedWallpaper = null
         },
         writePermissionLauncher = writePermissionLauncher,

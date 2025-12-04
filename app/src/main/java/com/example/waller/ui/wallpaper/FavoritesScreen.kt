@@ -160,7 +160,8 @@ fun FavoritesScreen(
         addOverlay = pendingClickedWallpaper?.addOverlay ?: false,
         isWorking = isWorking,
         onWorkingChange = { },
-        onDismiss = {
+        onDismiss = {showApplyDialog = false
+            pendingClickedWallpaper = null
         },
         writePermissionLauncher = writePermissionLauncher,
         context = context,

@@ -239,7 +239,7 @@ private fun ToneSliderRow(
     }
 }
 
-/* ------------------------ Squircle color chip (UI-only) ------------------------ */
+/* ------------------------ Squircle color chip  ------------------------ */
 
 @Composable
 private fun ColorSquareChip(

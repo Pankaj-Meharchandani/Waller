@@ -310,9 +310,6 @@ fun WallerApp() {
                                 updateThemeMode(next)
                             },
                             defaultGradientCount = defaultGradientCount,
-                            defaultEnableNothing = enableNothingByDefault,
-                            defaultEnableSnow = enableSnowByDefault,
-                            defaultEnableStripes = enableStripesByDefault,
                             defaultToneMode = defaultToneMode,
                             defaultEnableMulticolor = enableMulticolorByDefault,
                             addNoise = snowEffectEnabled,
