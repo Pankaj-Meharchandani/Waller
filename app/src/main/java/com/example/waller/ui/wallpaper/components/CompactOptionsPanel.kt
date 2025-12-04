@@ -16,17 +16,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DesktopWindows
-import androidx.compose.material.icons.filled.StayCurrentPortrait
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,8 +37,6 @@ import com.example.waller.ui.wallpaper.ToneMode
 
 @Composable
 fun CompactOptionsPanel(
-    isPortrait: Boolean,
-    onOrientationChange: (Boolean) -> Unit,
     toneMode: ToneMode,
     onToneChange: (ToneMode) -> Unit,
     selectedColors: List<Color>,
@@ -112,7 +106,7 @@ fun CompactOptionsPanel(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            GradientType.values().forEach { type ->
+            GradientType.entries.forEach { type ->
                 val label = when (type) {
                     GradientType.Linear -> R.string.gradient_style_linear
                     GradientType.Radial -> R.string.gradient_style_radial
@@ -173,7 +167,7 @@ private fun ToneSliderRow(
 ) {
     // 0 = Dark, 1 = Neutral, 2 = Light
     var position by remember(toneMode) {
-        mutableStateOf(
+        mutableIntStateOf(
             when (toneMode) {
                 ToneMode.DARK -> 0
                 ToneMode.NEUTRAL -> 1

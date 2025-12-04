@@ -32,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,6 +55,7 @@ import com.example.waller.ui.wallpaper.Wallpaper
 import com.example.waller.ui.wallpaper.WallpaperGeneratorScreen
 import com.example.waller.ui.wallpaper.colorFromHexOrNull
 import com.example.waller.ui.wallpaper.toHexString
+import androidx.core.content.edit
 
 // Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
@@ -81,7 +83,7 @@ fun WallerApp() {
     var appThemeMode by remember { mutableStateOf(initialThemeMode) }
     fun updateThemeMode(mode: AppThemeMode) {
         appThemeMode = mode
-        prefs.edit().putString("theme_mode", mode.name).apply()
+        prefs.edit { putString("theme_mode", mode.name) }
     }
 
     // --- PERSISTED GRADIENT BACKGROUND ---
@@ -91,7 +93,7 @@ fun WallerApp() {
     var useGradientBackground by remember { mutableStateOf(initialGradientBg) }
     fun updateUseGradientBackground(value: Boolean) {
         useGradientBackground = value
-        prefs.edit().putBoolean("use_gradient_bg", value).apply()
+        prefs.edit { putBoolean("use_gradient_bg", value)}
     }
 
     // --- PERSISTED WALLPAPER DEFAULTS ---
@@ -107,7 +109,7 @@ fun WallerApp() {
     var defaultOrientation by remember { mutableStateOf(initialOrientation) }
     fun updateDefaultOrientation(value: DefaultOrientation) {
         defaultOrientation = value
-        prefs.edit().putString("default_orientation", value.name).apply()
+        prefs.edit { putString("default_orientation", value.name) }
     }
 
     // Session orientation shared between Home + Favourites
@@ -124,10 +126,10 @@ fun WallerApp() {
         val stored = prefs.getInt("default_gradient_count", 20)
         if (stored in listOf(12, 16, 20)) stored else 20
     }
-    var defaultGradientCount by remember { mutableStateOf(initialGradientCount) }
+    var defaultGradientCount by remember { mutableIntStateOf(initialGradientCount) }
     fun updateDefaultGradientCount(value: Int) {
         defaultGradientCount = value
-        prefs.edit().putInt("default_gradient_count", value).apply()
+        prefs.edit { putInt("default_gradient_count", value) }
     }
 
     // Default effects (for Settings)
@@ -137,7 +139,7 @@ fun WallerApp() {
     var enableNothingByDefault by remember { mutableStateOf(initialNothing) }
     fun updateEnableNothing(value: Boolean) {
         enableNothingByDefault = value
-        prefs.edit().putBoolean("default_enable_nothing", value).apply()
+        prefs.edit { putBoolean("default_enable_nothing", value) }
     }
 
     val initialSnow = remember {
@@ -146,7 +148,7 @@ fun WallerApp() {
     var enableSnowByDefault by remember { mutableStateOf(initialSnow) }
     fun updateEnableSnow(value: Boolean) {
         enableSnowByDefault = value
-        prefs.edit().putBoolean("default_enable_snow", value).apply()
+        prefs.edit { putBoolean("default_enable_snow", value) }
     }
 
     val initialStripes = remember {
@@ -155,7 +157,7 @@ fun WallerApp() {
     var enableStripesByDefault by remember { mutableStateOf(initialStripes) }
     fun updateEnableStripes(value: Boolean) {
         enableStripesByDefault = value
-        prefs.edit().putBoolean("default_enable_stripes", value).apply()
+        prefs.edit { putBoolean("default_enable_stripes", value) }
     }
 
     // Default tone: DARK / NEUTRAL / LIGHT
@@ -169,7 +171,7 @@ fun WallerApp() {
     var defaultToneMode by remember { mutableStateOf(initialToneMode) }
     fun updateDefaultToneMode(value: ToneMode) {
         defaultToneMode = value
-        prefs.edit().putString("default_tone_mode", value.name).apply()
+        prefs.edit { putString("default_tone_mode", value.name) }
     }
 
     // Default multicolor: ON / OFF (off by default)
@@ -179,7 +181,7 @@ fun WallerApp() {
     var enableMulticolorByDefault by remember { mutableStateOf(initialMulticolor) }
     fun updateEnableMulticolor(value: Boolean) {
         enableMulticolorByDefault = value
-        prefs.edit().putBoolean("default_enable_multicolor", value).apply()
+        prefs.edit { putBoolean("default_enable_multicolor", value) }
     }
 
     // --- SHARED EFFECT STATE (used by Home + as defaults when app starts) ---
@@ -197,9 +199,9 @@ fun WallerApp() {
     }
 
     fun persistFavourites() {
-        prefs.edit()
-            .putString(FAVOURITES_KEY, encodeFavourites(favouriteWallpapers))
-            .apply()
+        prefs.edit {
+            putString(FAVOURITES_KEY, encodeFavourites(favouriteWallpapers))
+        }
     }
 
     // From Home screen: toggle by wallpaper; snapshot current effects when adding.

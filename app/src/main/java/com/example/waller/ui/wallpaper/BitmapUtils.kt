@@ -11,10 +11,13 @@
  * Completely UI-independent; safe to use from background threads.
  */
 
+@file:Suppress("DEPRECATION")
+
 package com.example.waller.ui.wallpaper
 
 import android.app.Activity
 import android.app.WallpaperManager
+import android.app.WallpaperManager.FLAG_LOCK
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -37,28 +40,18 @@ import java.io.File
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.random.Random
+import androidx.core.graphics.createBitmap
 
 // Get a practical bitmap size based on the device/window (portrait or landscape)
 fun getScreenSizeForBitmap(context: Context, isPortrait: Boolean): Pair<Int, Int> {
     return try {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            val metrics = wm.currentWindowMetrics
-            val insets =
-                metrics.windowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars())
-            val w = metrics.bounds.width() - insets.left - insets.right
-            val h = metrics.bounds.height() - insets.top - insets.bottom
-            if (isPortrait) Pair(minOf(w, h), maxOf(w, h)) else Pair(maxOf(w, h), minOf(w, h))
-        } else {
-            val dm = DisplayMetrics()
-            val activity = context as Activity
-            @Suppress("DEPRECATION")
-            activity.windowManager.defaultDisplay.getMetrics(dm)
-
-            val w = dm.widthPixels
-            val h = dm.heightPixels
-            if (isPortrait) Pair(minOf(w, h), maxOf(w, h)) else Pair(maxOf(w, h), minOf(w, h))
-        }
+        val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val metrics = wm.currentWindowMetrics
+        val insets =
+            metrics.windowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars())
+        val w = metrics.bounds.width() - insets.left - insets.right
+        val h = metrics.bounds.height() - insets.top - insets.bottom
+        if (isPortrait) Pair(minOf(w, h), maxOf(w, h)) else Pair(maxOf(w, h), minOf(w, h))
     } catch (e: Exception) {
         e.printStackTrace()
         if (isPortrait) Pair(1080, 1920) else Pair(1920, 1080)
@@ -74,7 +67,7 @@ fun createGradientBitmap(
     addOverlay: Boolean = false
 ): Bitmap {
     val (width, height) = getScreenSizeForBitmap(context, isPortrait)
-    val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val bmp = createBitmap(width, height)
     val canvas = android.graphics.Canvas(bmp)
 
     val colors = wallpaper.colors.map {
@@ -193,19 +186,11 @@ fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap, displayName: String
         val contentValues = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, displayName)
             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(
-                    MediaStore.Images.Media.RELATIVE_PATH,
-                    Environment.DIRECTORY_PICTURES + "/Waller"
-                )
-                put(MediaStore.Images.Media.IS_PENDING, 1)
-            } else {
-                val pictures =
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                        .toString() + "/Waller"
-                val file = File(pictures)
-                if (!file.exists()) file.mkdirs()
-            }
+            put(
+                MediaStore.Images.Media.RELATIVE_PATH,
+                Environment.DIRECTORY_PICTURES + "/Waller"
+            )
+            put(MediaStore.Images.Media.IS_PENDING, 1)
         }
 
         val collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
@@ -222,15 +207,9 @@ fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap, displayName: String
             return false
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            contentValues.clear()
-            contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
-            resolver.update(uri, contentValues, null, null)
-        } else {
-            val intent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
-            intent.data = uri
-            context.sendBroadcast(intent)
-        }
+        contentValues.clear()
+        contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+        resolver.update(uri, contentValues, null, null)
         true
     } catch (e: Exception) {
         e.printStackTrace()
@@ -248,11 +227,7 @@ fun tryApplyWallpaper(
 ): Boolean {
     return try {
         val manager = WallpaperManager.getInstance(context)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            manager.setBitmap(bitmap, null, true, flags)
-        } else {
-            manager.setBitmap(bitmap)
-        }
+        manager.setBitmap(bitmap, null, true, flags)
         true
     } catch (e: Exception) {
         e.printStackTrace()
@@ -262,5 +237,5 @@ fun tryApplyWallpaper(
 
 /** helper to return lock flag (or 0 if not supported) */
 fun getLockFlag(): Int {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) WallpaperManager.FLAG_LOCK else 0
+    return FLAG_LOCK
 }

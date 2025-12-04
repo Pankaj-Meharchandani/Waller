@@ -33,7 +33,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -46,7 +45,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -97,14 +95,13 @@ fun WallpaperGeneratorScreen(
     val selectedGradientTypes = remember { mutableStateListOf(GradientType.Linear) }
     val selectedColors = remember { mutableStateListOf<Color>() }
 
-    var editingColorIndex by remember { mutableStateOf<Int?>(null) }
-
     // multicolor state, initial from settings
     var isMultiColor by remember { mutableStateOf(defaultEnableMulticolor) }
 
     val coroutineScope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
+    val storagePermissionDeniedMessage = stringResource(id = R.string.storage_permission_denied)
 
     // Permission launcher for WRITE_EXTERNAL_STORAGE (only used for API < Q)
     val writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean> =
@@ -114,7 +111,7 @@ fun WallpaperGeneratorScreen(
             if (!granted) {
                 android.widget.Toast.makeText(
                     context,
-                    context.getString(R.string.storage_permission_denied),
+                    storagePermissionDeniedMessage,
                     android.widget.Toast.LENGTH_SHORT
                 ).show()
             }
@@ -205,34 +202,6 @@ fun WallpaperGeneratorScreen(
 
     var wallpapers by remember { mutableStateOf(generateWallpapers()) }
 
-    // ----------- COLOR PICKER BRIDGE -----------
-
-    if (editingColorIndex != null) {
-        val idx = editingColorIndex!!
-        LaunchedEffect(idx) {
-            val activity = context as? MainActivity
-            val initialColor =
-                if (idx >= 0 && idx < selectedColors.size) selectedColors[idx] else null
-
-            if (activity == null) {
-                editingColorIndex = null
-            } else {
-                activity.openColorDialog(initialColor?.toArgbInt()) { pickedInt ->
-                    if (pickedInt != null) {
-                        val pickedColor = pickedInt.toComposeColor()
-                        if (idx >= 0 && idx < selectedColors.size) {
-                            selectedColors[idx] = pickedColor
-                        } else if (selectedColors.size < 5) {
-                            selectedColors.add(pickedColor)
-                        }
-                        wallpapers = generateWallpapers()
-                    }
-                    editingColorIndex = null
-                }
-            }
-        }
-    }
-
     // ----------- DIALOG STATE -----------
 
     var pendingClickedWallpaper by remember { mutableStateOf<Wallpaper?>(null) }
@@ -265,17 +234,23 @@ fun WallpaperGeneratorScreen(
         item(span = { GridItemSpan(spanCount) }) {
             SectionCard {
                 CompactOptionsPanel(
-                    isPortrait = isPortrait,
-                    onOrientationChange = { newValue ->
-                        onOrientationChange(newValue)
-                    },
                     toneMode = toneMode,
                     onToneChange = { newMode ->
                         toneMode = newMode
                         wallpapers = generateWallpapers()
                     },
                     selectedColors = selectedColors,
-                    onAddColor = { editingColorIndex = -1 },
+                    onAddColor = {
+                        val activity = context as? MainActivity
+                        if (activity != null && selectedColors.size < 5) {
+                            activity.openColorDialog(null) { pickedInt ->
+                                if (pickedInt != null && selectedColors.size < 5) {
+                                    selectedColors.add(pickedInt.toComposeColor())
+                                    wallpapers = generateWallpapers()
+                                }
+                            }
+                        }
+                    },
                     onRemoveColor = { idx ->
                         if (idx in selectedColors.indices) {
                             selectedColors.removeAt(idx)

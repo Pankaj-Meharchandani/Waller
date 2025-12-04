@@ -7,6 +7,7 @@
 
 package com.example.waller.ui.wallpaper
 
+import android.annotation.SuppressLint
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,6 +31,7 @@ import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
 import kotlinx.coroutines.launch
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun FavoritesScreen(
     modifier: Modifier = Modifier,
@@ -157,10 +159,8 @@ fun FavoritesScreen(
         addStripes = pendingClickedWallpaper?.addStripes ?: false,
         addOverlay = pendingClickedWallpaper?.addOverlay ?: false,
         isWorking = isWorking,
-        onWorkingChange = { isWorking = it },
+        onWorkingChange = { },
         onDismiss = {
-            showApplyDialog = false
-            pendingClickedWallpaper = null
         },
         writePermissionLauncher = writePermissionLauncher,
         context = context,
