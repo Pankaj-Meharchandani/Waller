@@ -2,8 +2,9 @@
  * Main screen of the app.
  *
  * Responsibilities:
- * - Holds UI state (colors, gradient types, orientation, tone)
+ * - Holds UI state (colors, gradient types, tone)
  * - Uses shared effect toggles (snow / stripes / glass) from WallerApp
+ * - Uses shared orientation state from WallerApp (portrait / landscape)
  * - Generates wallpaper preview list
  * - Shows:
  *   - Header
@@ -45,7 +46,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.MainActivity
 import com.example.waller.R
-import com.example.waller.ui.settings.DefaultOrientation
 import com.example.waller.ui.wallpaper.components.CompactOptionsPanel
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
@@ -56,7 +56,6 @@ fun WallpaperGeneratorScreen(
     modifier: Modifier = Modifier,
     isAppDarkMode: Boolean,
     onThemeChange: () -> Unit,
-    defaultOrientation: DefaultOrientation,
     defaultGradientCount: Int,
     defaultEnableNothing: Boolean,
     defaultEnableSnow: Boolean,
@@ -69,18 +68,11 @@ fun WallpaperGeneratorScreen(
     addOverlay: Boolean,
     onAddOverlayChange: (Boolean) -> Unit,
     favouriteWallpapers: List<FavoriteWallpaper>,
-    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean) -> Unit
+    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean) -> Unit,
+    isPortrait: Boolean,
+    onOrientationChange: (Boolean) -> Unit
 ) {
     // ----------- STATE -----------
-
-    var isPortrait by remember {
-        mutableStateOf(
-            when (defaultOrientation) {
-                DefaultOrientation.LANDSCAPE -> false
-                DefaultOrientation.AUTO, DefaultOrientation.PORTRAIT -> true
-            }
-        )
-    }
 
     var toneMode by remember { mutableStateOf(defaultToneMode) }
 
@@ -205,9 +197,15 @@ fun WallpaperGeneratorScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header
+        // Header with orientation chip on top-right
         item(span = { GridItemSpan(spanCount) }) {
-            Header(onThemeChange = onThemeChange, isAppDarkMode = isAppDarkMode)
+            Header(
+                onThemeChange = onThemeChange,
+                isAppDarkMode = isAppDarkMode,
+                showOrientationToggle = true,
+                isPortrait = isPortrait,
+                onOrientationChange = { newValue -> onOrientationChange(newValue) }
+            )
         }
 
         // Compact options panel inside a card
@@ -216,8 +214,7 @@ fun WallpaperGeneratorScreen(
                 CompactOptionsPanel(
                     isPortrait = isPortrait,
                     onOrientationChange = { newValue ->
-                        isPortrait = newValue
-                        wallpapers = generateWallpapers()
+                        onOrientationChange(newValue)
                     },
                     toneMode = toneMode,
                     onToneChange = { newMode ->

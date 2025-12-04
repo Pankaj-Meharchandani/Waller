@@ -6,6 +6,7 @@
  * - Wallpaper defaults (orientation, gradient count, effects, tone), persisted
  * - Shared favourite wallpapers (snapshot of wallpaper + effects), persisted
  * - Shared effect toggles (snow / stripes / glass) used by Home + Favourites
+ * - Shared orientation state (portrait / landscape) for Home + Favourites
  * - Bottom navigation between Home, Favourites, Settings, About
  * - Back button behavior: About -> Settings -> Home/Favourites -> Exit
  */
@@ -108,6 +109,15 @@ fun WallerApp() {
         defaultOrientation = value
         prefs.edit().putString("default_orientation", value.name).apply()
     }
+
+    // Session orientation shared between Home + Favourites
+    val initialSessionPortrait = remember {
+        when (defaultOrientation) {
+            DefaultOrientation.LANDSCAPE -> false
+            DefaultOrientation.AUTO, DefaultOrientation.PORTRAIT -> true
+        }
+    }
+    var sessionIsPortrait by remember { mutableStateOf(initialSessionPortrait) }
 
     // Gradient count: 12, 16, 20
     val initialGradientCount = remember {
@@ -287,7 +297,6 @@ fun WallerApp() {
                                 }
                                 updateThemeMode(next)
                             },
-                            defaultOrientation = defaultOrientation,
                             defaultGradientCount = defaultGradientCount,
                             defaultEnableNothing = enableNothingByDefault,
                             defaultEnableSnow = enableSnowByDefault,
@@ -302,7 +311,9 @@ fun WallerApp() {
                             favouriteWallpapers = favouriteWallpapers,
                             onToggleFavourite = { w, n, s, o ->
                                 toggleFavouriteFromHome(w, n, s, o)
-                            }
+                            },
+                            isPortrait = sessionIsPortrait,
+                            onOrientationChange = { sessionIsPortrait = it }
                         )
                     }
 
@@ -321,7 +332,8 @@ fun WallerApp() {
                                 updateThemeMode(next)
                             },
                             favourites = favouriteWallpapers,
-                            defaultOrientation = defaultOrientation,
+                            isPortrait = sessionIsPortrait,
+                            onOrientationChange = { sessionIsPortrait = it },
                             onRemoveFavourite = { removeFavourite(it) }
                         )
                     }

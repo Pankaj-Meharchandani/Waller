@@ -96,32 +96,6 @@ fun CompactOptionsPanel(
 
             Spacer(Modifier.width(12.dp))
 
-            // Orientation chip pinned to the right
-            FilterChip(
-                selected = true,
-                onClick = { onOrientationChange(!isPortrait) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = if (isPortrait)
-                            Icons.Filled.StayCurrentPortrait
-                        else
-                            Icons.Filled.DesktopWindows,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                },
-                label = {
-                    Text(
-                        text = stringResource(
-                            id = if (isPortrait)
-                                R.string.orientation_portrait
-                            else
-                                R.string.orientation_landscape
-                        )
-                    )
-                },
-                shape = RoundedCornerShape(999.dp)
-            )
         }
 
         /* ---------------- Row 2: Gradient type chips ---------------- */
