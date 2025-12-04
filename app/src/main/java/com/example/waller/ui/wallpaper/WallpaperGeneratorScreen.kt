@@ -152,8 +152,8 @@ fun WallpaperGeneratorScreen(
             } else {
                 // ---------- MULTI-COLOR MODE ----------
                 val targetStops = when (selectedColors.size) {
-                    0 -> 2
-                    1 -> 2
+                    0 -> 3
+                    1 -> 3
                     2 -> 3
                     else -> selectedColors.size.coerceIn(3, 5)
                 }
