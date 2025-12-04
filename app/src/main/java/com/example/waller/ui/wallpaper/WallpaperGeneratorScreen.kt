@@ -80,7 +80,7 @@ fun WallpaperGeneratorScreen(
     val selectedColors = remember { mutableStateListOf<Color>() }
 
     var editingColorIndex by remember { mutableStateOf<Int?>(null) }
-
+    var isMultiColor by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
@@ -228,6 +228,10 @@ fun WallpaperGeneratorScreen(
                             selectedColors.removeAt(idx)
                             wallpapers = generateWallpapers()
                         }
+                    },isMultiColor = isMultiColor,
+                    onMultiColorChange = { newValue ->
+                        isMultiColor = newValue
+                        wallpapers = generateWallpapers()
                     },
                     selectedGradientTypes = selectedGradientTypes,
                     onGradientToggle = { type ->

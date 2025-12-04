@@ -12,6 +12,7 @@ package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,6 +49,8 @@ fun CompactOptionsPanel(
     onAddColor: () -> Unit,
     onRemoveColor: (Int) -> Unit,
     selectedGradientTypes: List<GradientType>,
+    isMultiColor: Boolean,
+    onMultiColorChange: (Boolean) -> Unit,
     onGradientToggle: (GradientType) -> Unit,
     addNoise: Boolean,
     onNoiseToggle: () -> Unit,
@@ -61,7 +64,7 @@ fun CompactOptionsPanel(
         modifier = Modifier.fillMaxWidth()
     ) {
 
-        /* ---------------- Row 1: Colors (left) + Orientation (right) ---------------- */
+        /* ---------------- Row 1: Colors (left) + Multi-color toggle (right) ---------------- */
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -96,6 +99,10 @@ fun CompactOptionsPanel(
 
             Spacer(Modifier.width(12.dp))
 
+            MultiColorToggleChip(
+                isMultiColor = isMultiColor,
+                onToggle = { onMultiColorChange(!isMultiColor) }
+            )
         }
 
         /* ---------------- Row 2: Gradient type chips ---------------- */
@@ -290,5 +297,42 @@ private fun CompactAddColorChip(
                 style = MaterialTheme.typography.labelMedium
             )
         }
+    }
+}
+
+@Composable
+private fun MultiColorToggleChip(
+    isMultiColor: Boolean,
+    onToggle: () -> Unit
+) {
+    val shape = RoundedCornerShape(999.dp)
+
+    Box(
+        modifier = Modifier
+            .height(36.dp)
+            .clip(shape)
+            .background(
+                if (isMultiColor)
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                else
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f)
+            )
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                shape
+            )
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(id = R.string.multicolor_label),
+            style = MaterialTheme.typography.labelMedium,
+            color = if (isMultiColor)
+                MaterialTheme.colorScheme.primary
+            else
+                MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
