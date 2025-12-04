@@ -13,7 +13,6 @@
 package com.example.waller.ui.wallpaper
 
 import android.Manifest
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.foundation.layout.Column
@@ -210,7 +209,7 @@ fun ApplyDownloadDialog(
                         .height(46.dp),
                     onClick = {
                         val sdkTooOld =
-                            Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+                            false
                         if (sdkTooOld &&
                             ContextCompat.checkSelfPermission(
                                 context,

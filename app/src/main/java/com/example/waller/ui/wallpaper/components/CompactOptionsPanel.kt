@@ -12,20 +12,17 @@ package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DesktopWindows
-import androidx.compose.material.icons.filled.StayCurrentPortrait
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,14 +37,14 @@ import com.example.waller.ui.wallpaper.ToneMode
 
 @Composable
 fun CompactOptionsPanel(
-    isPortrait: Boolean,
-    onOrientationChange: (Boolean) -> Unit,
     toneMode: ToneMode,
     onToneChange: (ToneMode) -> Unit,
     selectedColors: List<Color>,
     onAddColor: () -> Unit,
     onRemoveColor: (Int) -> Unit,
     selectedGradientTypes: List<GradientType>,
+    isMultiColor: Boolean,
+    onMultiColorChange: (Boolean) -> Unit,
     onGradientToggle: (GradientType) -> Unit,
     addNoise: Boolean,
     onNoiseToggle: () -> Unit,
@@ -61,7 +58,7 @@ fun CompactOptionsPanel(
         modifier = Modifier.fillMaxWidth()
     ) {
 
-        /* ---------------- Row 1: Colors (left) + Orientation (right) ---------------- */
+        /* ---------------- Row 1: Colors (left) + Multi-color toggle (right) ---------------- */
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -96,31 +93,9 @@ fun CompactOptionsPanel(
 
             Spacer(Modifier.width(12.dp))
 
-            // Orientation chip pinned to the right
-            FilterChip(
-                selected = true,
-                onClick = { onOrientationChange(!isPortrait) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = if (isPortrait)
-                            Icons.Filled.StayCurrentPortrait
-                        else
-                            Icons.Filled.DesktopWindows,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                },
-                label = {
-                    Text(
-                        text = stringResource(
-                            id = if (isPortrait)
-                                R.string.orientation_portrait
-                            else
-                                R.string.orientation_landscape
-                        )
-                    )
-                },
-                shape = RoundedCornerShape(999.dp)
+            MultiColorToggleChip(
+                isMultiColor = isMultiColor,
+                onToggle = { onMultiColorChange(!isMultiColor) }
             )
         }
 
@@ -131,7 +106,7 @@ fun CompactOptionsPanel(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            GradientType.values().forEach { type ->
+            GradientType.entries.forEach { type ->
                 val label = when (type) {
                     GradientType.Linear -> R.string.gradient_style_linear
                     GradientType.Radial -> R.string.gradient_style_radial
@@ -192,7 +167,7 @@ private fun ToneSliderRow(
 ) {
     // 0 = Dark, 1 = Neutral, 2 = Light
     var position by remember(toneMode) {
-        mutableStateOf(
+        mutableIntStateOf(
             when (toneMode) {
                 ToneMode.DARK -> 0
                 ToneMode.NEUTRAL -> 1
@@ -264,7 +239,7 @@ private fun ToneSliderRow(
     }
 }
 
-/* ------------------------ Squircle color chip (UI-only) ------------------------ */
+/* ------------------------ Squircle color chip  ------------------------ */
 
 @Composable
 private fun ColorSquareChip(
@@ -316,5 +291,44 @@ private fun CompactAddColorChip(
                 style = MaterialTheme.typography.labelMedium
             )
         }
+    }
+}
+
+
+@Composable
+private fun MultiColorToggleChip(
+    isMultiColor: Boolean,
+    onToggle: () -> Unit
+) {
+    val chipShape = RoundedCornerShape(12.dp)
+
+    Box(
+        modifier = Modifier
+            // match Add Color chip height / radius “family”
+            .height(32.dp)
+            .clip(chipShape)
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                chipShape
+            )
+            .background(
+                if (isMultiColor)
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f)
+                else
+                    Color.Transparent
+            )
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(id = R.string.multicolor_label),
+            style = MaterialTheme.typography.labelMedium,
+            color = if (isMultiColor)
+                MaterialTheme.colorScheme.onPrimaryContainer
+            else
+                MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

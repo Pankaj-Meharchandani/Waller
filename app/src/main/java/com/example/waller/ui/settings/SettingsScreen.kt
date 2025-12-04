@@ -3,6 +3,7 @@
  * Contains:
  * - Theme settings (app theme, gradient background)
  * - Wallpaper defaults (orientation, gradient count, default effects, default tone)
+ * - Default multicolor gradient toggle
  * - A final "About" section that opens the About screen.
  */
 
@@ -53,6 +54,8 @@ fun SettingsScreen(
     onDefaultOrientationChange: (DefaultOrientation) -> Unit,
     defaultGradientCount: Int,
     onDefaultGradientCountChange: (Int) -> Unit,
+    defaultEnableMulticolor: Boolean,                      // ← NEW
+    onDefaultEnableMulticolorChange: (Boolean) -> Unit,    // ← NEW
     enableNothingByDefault: Boolean,
     onEnableNothingByDefaultChange: (Boolean) -> Unit,
     enableSnowByDefault: Boolean,
@@ -72,7 +75,8 @@ fun SettingsScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Theme Settings
+
+        // Theme Settings --------------------------------------------------
         SectionCard {
             Text(
                 text = stringResource(id = R.string.settings_section_theme),
@@ -118,7 +122,7 @@ fun SettingsScreen(
             }
         }
 
-        // Wallpaper settings
+        // Wallpaper Settings ----------------------------------------------
         SectionCard {
             Text(
                 text = stringResource(id = R.string.settings_section_wallpaper),
@@ -162,7 +166,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Default wallpaper tone (3 radio options: Dark / Neutral / Light)
+            // Default wallpaper tone (Dark / Neutral / Light)
             Text(
                 text = stringResource(id = R.string.settings_default_wallpaper_tone),
                 style = MaterialTheme.typography.bodyMedium
@@ -187,6 +191,12 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(12.dp))
 
+            // Multicolor Gradient Default Toggle
+            ToggleRow(
+                label = stringResource(id = R.string.settings_enable_multicolor),
+                checked = defaultEnableMulticolor,
+                onCheckedChange = onDefaultEnableMulticolorChange
+            )
             ToggleRow(
                 label = stringResource(id = R.string.settings_enable_nothing),
                 checked = enableNothingByDefault,
@@ -204,16 +214,14 @@ fun SettingsScreen(
             )
         }
 
-        // About section entry – now using SectionCard + full-card clickable
+        // About -----------------------------------------------------------
         SectionCard {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onAboutClick)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Outlined.Info,
                         contentDescription = null,
@@ -247,10 +255,7 @@ private fun ThemeOptionRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        RadioButton(
-            selected = selected,
-            onClick = onClick
-        )
+        RadioButton(selected = selected, onClick = onClick)
         Text(text = label)
     }
 }
@@ -265,10 +270,7 @@ private fun OrientationOptionRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        RadioButton(
-            selected = selected,
-            onClick = onClick
-        )
+        RadioButton(selected = selected, onClick = onClick)
         Text(text = label)
     }
 }
@@ -284,9 +286,7 @@ private fun GradientCountRow(
         modifier = Modifier.fillMaxWidth()
     ) {
         listOf(12, 16, 20).forEach { value ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
                     selected = current == value,
                     onClick = { onChange(value) }
@@ -307,13 +307,7 @@ private fun ToggleRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(
-            text = label,
-            modifier = Modifier.weight(1f)
-        )
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange
-        )
+        Text(text = label, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }

@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -174,7 +175,7 @@ fun WallpaperItem(
             )
         }
 
-        // 5. Tag at the bottom
+        // 5. Tag at the bottom (supports multi-color)
         Row(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -193,16 +194,19 @@ fun WallpaperItem(
                 color = Color.White
             )
 
-            Spacer(Modifier.size(8.dp))
+            Spacer(Modifier.width(8.dp))
 
-            wallpaper.colors.take(2).forEach {
+            // Show all color stops (3–6 if multicolor)
+            wallpaper.colors.forEachIndexed { index, color ->
                 Box(
                     modifier = Modifier
                         .size(12.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(it)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(color)
                 )
-                Spacer(Modifier.size(6.dp))
+                if (index != wallpaper.colors.lastIndex) {
+                    Spacer(Modifier.width(6.dp))
+                }
             }
         }
     }

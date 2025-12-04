@@ -2,8 +2,9 @@
  * Main screen of the app.
  *
  * Responsibilities:
- * - Holds UI state (colors, gradient types, orientation, tone)
+ * - Holds UI state (colors, gradient types, tone, multicolor)
  * - Uses shared effect toggles (snow / stripes / glass) from WallerApp
+ * - Uses shared orientation state from WallerApp (portrait / landscape)
  * - Generates wallpaper preview list
  * - Shows:
  *   - Header
@@ -22,7 +23,16 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -34,7 +44,13 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,7 +61,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.MainActivity
 import com.example.waller.R
-import com.example.waller.ui.settings.DefaultOrientation
 import com.example.waller.ui.wallpaper.components.CompactOptionsPanel
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
@@ -56,12 +71,9 @@ fun WallpaperGeneratorScreen(
     modifier: Modifier = Modifier,
     isAppDarkMode: Boolean,
     onThemeChange: () -> Unit,
-    defaultOrientation: DefaultOrientation,
     defaultGradientCount: Int,
-    defaultEnableNothing: Boolean,
-    defaultEnableSnow: Boolean,
-    defaultEnableStripes: Boolean,
     defaultToneMode: ToneMode,
+    defaultEnableMulticolor: Boolean,
     addNoise: Boolean,
     onAddNoiseChange: (Boolean) -> Unit,
     addStripes: Boolean,
@@ -69,29 +81,24 @@ fun WallpaperGeneratorScreen(
     addOverlay: Boolean,
     onAddOverlayChange: (Boolean) -> Unit,
     favouriteWallpapers: List<FavoriteWallpaper>,
-    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean) -> Unit
+    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean) -> Unit,
+    isPortrait: Boolean,
+    onOrientationChange: (Boolean) -> Unit
 ) {
     // ----------- STATE -----------
-
-    var isPortrait by remember {
-        mutableStateOf(
-            when (defaultOrientation) {
-                DefaultOrientation.LANDSCAPE -> false
-                DefaultOrientation.AUTO, DefaultOrientation.PORTRAIT -> true
-            }
-        )
-    }
 
     var toneMode by remember { mutableStateOf(defaultToneMode) }
 
     val selectedGradientTypes = remember { mutableStateListOf(GradientType.Linear) }
     val selectedColors = remember { mutableStateListOf<Color>() }
 
-    var editingColorIndex by remember { mutableStateOf<Int?>(null) }
+    // multicolor state, initial from settings
+    var isMultiColor by remember { mutableStateOf(defaultEnableMulticolor) }
 
     val coroutineScope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
+    val storagePermissionDeniedMessage = stringResource(id = R.string.storage_permission_denied)
 
     // Permission launcher for WRITE_EXTERNAL_STORAGE (only used for API < Q)
     val writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean> =
@@ -101,7 +108,7 @@ fun WallpaperGeneratorScreen(
             if (!granted) {
                 android.widget.Toast.makeText(
                     context,
-                    context.getString(R.string.storage_permission_denied),
+                    storagePermissionDeniedMessage,
                     android.widget.Toast.LENGTH_SHORT
                 ).show()
             }
@@ -117,28 +124,59 @@ fun WallpaperGeneratorScreen(
         var previousType: GradientType? = null
 
         repeat(defaultGradientCount) {
-            val colors = when (selectedColors.size) {
-                0 -> listOf(
-                    generateRandomColor(toneMode),
-                    generateRandomColor(toneMode)
-                )
+            val colors: List<Color> = if (!isMultiColor) {
+                // ---------- 2-COLOR MODE ----------
+                when (selectedColors.size) {
+                    0 -> listOf(
+                        generateRandomColor(toneMode),
+                        generateRandomColor(toneMode)
+                    )
 
-                1 -> {
-                    val base = selectedColors.first()
-                    val shadedBase = createShade(base, toneMode, subtle = true)
-                    val secondBase = when (toneMode) {
-                        ToneMode.LIGHT -> Color.White
-                        ToneMode.DARK -> Color.Black
-                        ToneMode.NEUTRAL -> Color.Gray
+                    1 -> {
+                        val base = selectedColors.first()
+                        val shadedBase = createShade(base, toneMode, subtle = true)
+                        val secondBase = when (toneMode) {
+                            ToneMode.LIGHT -> Color.White
+                            ToneMode.DARK -> Color.Black
+                            ToneMode.NEUTRAL -> Color.Gray
+                        }
+                        val shadedSecond = createShade(secondBase, toneMode, subtle = false)
+                        listOf(shadedBase, shadedSecond)
                     }
-                    val shadedSecond = createShade(secondBase, toneMode, subtle = false)
-                    listOf(shadedBase, shadedSecond)
+
+                    else -> selectedColors
+                        .shuffled()
+                        .take(2)
+                        .map { createShade(it, toneMode, subtle = true) }
+                }
+            } else {
+                // ---------- MULTI-COLOR MODE ----------
+                val targetStops = when (selectedColors.size) {
+                    0 -> 2
+                    1 -> 2
+                    2 -> 3
+                    else -> selectedColors.size.coerceIn(3, 5)
                 }
 
-                else -> selectedColors
-                    .shuffled()
-                    .take(2)
-                    .map { createShade(it, toneMode, subtle = true) }
+                val baseList = mutableListOf<Color>()
+
+                if (selectedColors.isEmpty()) {
+                    repeat(targetStops) {
+                        baseList += generateRandomColor(toneMode)
+                    }
+                } else {
+                    val source = selectedColors.shuffled()
+                    var i = 0
+                    while (baseList.size < targetStops) {
+                        val src = source[i % source.size]
+                        // first may be slightly stronger, rest more subtle
+                        val subtle = i != 0
+                        baseList += createShade(src, toneMode, subtle = subtle)
+                        i++
+                    }
+                }
+
+                baseList.shuffled()
             }
 
             val gradientType = run {
@@ -152,6 +190,7 @@ fun WallpaperGeneratorScreen(
                 }
                 available.random()
             }
+
             previousType = gradientType
             wallpapers.add(Wallpaper(colors = colors, type = gradientType))
         }
@@ -159,34 +198,6 @@ fun WallpaperGeneratorScreen(
     }
 
     var wallpapers by remember { mutableStateOf(generateWallpapers()) }
-
-    // ----------- COLOR PICKER BRIDGE -----------
-
-    if (editingColorIndex != null) {
-        val idx = editingColorIndex!!
-        LaunchedEffect(idx) {
-            val activity = context as? MainActivity
-            val initialColor =
-                if (idx >= 0 && idx < selectedColors.size) selectedColors[idx] else null
-
-            if (activity == null) {
-                editingColorIndex = null
-            } else {
-                activity.openColorDialog(initialColor?.toArgbInt()) { pickedInt ->
-                    if (pickedInt != null) {
-                        val pickedColor = pickedInt.toComposeColor()
-                        if (idx >= 0 && idx < selectedColors.size) {
-                            selectedColors[idx] = pickedColor
-                        } else if (selectedColors.size < 5) {
-                            selectedColors.add(pickedColor)
-                        }
-                        wallpapers = generateWallpapers()
-                    }
-                    editingColorIndex = null
-                }
-            }
-        }
-    }
 
     // ----------- DIALOG STATE -----------
 
@@ -205,32 +216,48 @@ fun WallpaperGeneratorScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header
+        // Header with orientation chip on top-right
         item(span = { GridItemSpan(spanCount) }) {
-            Header(onThemeChange = onThemeChange, isAppDarkMode = isAppDarkMode)
+            Header(
+                onThemeChange = onThemeChange,
+                isAppDarkMode = isAppDarkMode,
+                showOrientationToggle = true,
+                isPortrait = isPortrait,
+                onOrientationChange = { newValue -> onOrientationChange(newValue) }
+            )
         }
 
         // Compact options panel inside a card
         item(span = { GridItemSpan(spanCount) }) {
             SectionCard {
                 CompactOptionsPanel(
-                    isPortrait = isPortrait,
-                    onOrientationChange = { newValue ->
-                        isPortrait = newValue
-                        wallpapers = generateWallpapers()
-                    },
                     toneMode = toneMode,
                     onToneChange = { newMode ->
                         toneMode = newMode
                         wallpapers = generateWallpapers()
                     },
                     selectedColors = selectedColors,
-                    onAddColor = { editingColorIndex = -1 },
+                    onAddColor = {
+                        val activity = context as? MainActivity
+                        if (activity != null && selectedColors.size < 5) {
+                            activity.openColorDialog(null) { pickedInt ->
+                                if (pickedInt != null && selectedColors.size < 5) {
+                                    selectedColors.add(pickedInt.toComposeColor())
+                                    wallpapers = generateWallpapers()
+                                }
+                            }
+                        }
+                    },
                     onRemoveColor = { idx ->
                         if (idx in selectedColors.indices) {
                             selectedColors.removeAt(idx)
                             wallpapers = generateWallpapers()
                         }
+                    },
+                    isMultiColor = isMultiColor,
+                    onMultiColorChange = { newValue ->
+                        isMultiColor = newValue
+                        wallpapers = generateWallpapers()
                     },
                     selectedGradientTypes = selectedGradientTypes,
                     onGradientToggle = { type ->
@@ -252,18 +279,16 @@ fun WallpaperGeneratorScreen(
                     },
                     addNoise = addNoise,
                     onNoiseToggle = {
+                        // Do NOT regenerate wallpapers, only toggle effect
                         onAddNoiseChange(!addNoise)
-                        wallpapers = generateWallpapers()
                     },
                     addStripes = addStripes,
                     onStripesToggle = {
                         onAddStripesChange(!addStripes)
-                        wallpapers = generateWallpapers()
                     },
                     addOverlay = addOverlay,
                     onOverlayToggle = {
                         onAddOverlayChange(!addOverlay)
-                        wallpapers = generateWallpapers()
                     }
                 )
             }
@@ -370,10 +395,9 @@ fun WallpaperGeneratorScreen(
         addStripes = addStripes,
         addOverlay = addOverlay,
         isWorking = isWorking,
-        onWorkingChange = { isWorking = it },
-        onDismiss = {
-            showApplyDialog = false
-            pendingClickedWallpaper = null
+        onWorkingChange = {isWorking = it }, //dont dismiss this warning
+        onDismiss = {showApplyDialog = false //dont dismiss this warning
+            pendingClickedWallpaper = null //dont dismiss this warning
         },
         writePermissionLauncher = writePermissionLauncher,
         context = context,

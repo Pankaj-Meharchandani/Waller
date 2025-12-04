@@ -16,6 +16,7 @@ import android.graphics.Color as AndroidColor
 import androidx.compose.ui.graphics.Color
 import kotlin.math.roundToInt
 import kotlin.random.Random
+import androidx.core.graphics.toColorInt
 
 fun colorToHsv(color: Color): FloatArray {
     val hsv = FloatArray(3)
@@ -46,7 +47,7 @@ fun colorFromHexOrNull(hex: String): Color? {
         val cleaned = hex.trim().let {
             if (it.startsWith("#")) it else "#$it"
         }
-        val intColor = AndroidColor.parseColor(cleaned)
+        val intColor = cleaned.toColorInt()
         Color(
             red = AndroidColor.red(intColor) / 255f,
             green = AndroidColor.green(intColor) / 255f,

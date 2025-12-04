@@ -3,9 +3,10 @@
  * Displays:
  * - App icon area
  * - App title + tagline
- * - Light/Dark theme toggle
+ * - Optional orientation toggle chip (Portrait / Landscape) on the right
  *
- * Pure presentation component with no business logic.
+ * Note: onThemeChange / isAppDarkMode are kept for compatibility but not used
+ * here anymore. App theme is controlled from the Settings screen.
  */
 
 package com.example.waller.ui.wallpaper.components
@@ -23,9 +24,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.StayCurrentPortrait
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,7 +39,13 @@ import androidx.compose.ui.unit.dp
 import com.example.waller.R
 
 @Composable
-fun Header(onThemeChange: () -> Unit, isAppDarkMode: Boolean) {
+fun Header(
+    onThemeChange: () -> Unit,          // kept for backwards compatibility (unused)
+    isAppDarkMode: Boolean,             // kept for backwards compatibility (unused)
+    showOrientationToggle: Boolean = false,
+    isPortrait: Boolean = true,
+    onOrientationChange: (Boolean) -> Unit = {}
+) {
     val chipSize = 42.dp
     val chipShape = RoundedCornerShape(14.dp)
 
@@ -84,33 +91,44 @@ fun Header(onThemeChange: () -> Unit, isAppDarkMode: Boolean) {
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Box(
-            modifier = Modifier
-                .size(chipSize)
-                .clip(chipShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .border(
-                    1.dp,
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
-                    chipShape
-                )
-                .clickable { onThemeChange() },
-            contentAlignment = Alignment.Center
-        ) {
-            if (isAppDarkMode) {
-                Icon(
-                    Icons.Filled.DarkMode,
-                    contentDescription = stringResource(id = R.string.theme_dark),
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                Icon(
-                    Icons.Filled.LightMode,
-                    contentDescription = stringResource(id = R.string.theme_light),
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        if (showOrientationToggle) {
+            val pillShape = RoundedCornerShape(999.dp)
+            Box(
+                modifier = Modifier
+                    .clip(pillShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f))
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                        pillShape
+                    )
+                    .clickable {
+                        onOrientationChange(!isPortrait)
+                    }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (isPortrait)
+                            Icons.Filled.StayCurrentPortrait
+                        else
+                            Icons.Filled.DesktopWindows,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (isPortrait)
+                            stringResource(id = R.string.orientation_portrait)
+                        else
+                            stringResource(id = R.string.orientation_landscape),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
             }
         }
     }

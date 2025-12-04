@@ -2,63 +2,49 @@
  * Favourites screen for Waller.
  * Shows only the wallpapers the user has marked with a heart.
  * Uses the stored effect flags (snow / stripes / glass) from FavoriteWallpaper snapshot.
- * Lets the user toggle preview orientation: Portrait / Landscape.
+ * Uses shared orientation state from WallerApp and lets user toggle it via the Header chip.
  */
 
 package com.example.waller.ui.wallpaper
 
+import android.annotation.SuppressLint
 import androidx.activity.compose.ManagedActivityResultLauncher
-import androidx.compose.foundation.clickable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.R
-import com.example.waller.ui.settings.DefaultOrientation
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
 import kotlinx.coroutines.launch
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun FavoritesScreen(
     modifier: Modifier = Modifier,
     isAppDarkMode: Boolean,
     onThemeChange: () -> Unit,
     favourites: List<FavoriteWallpaper>,
-    defaultOrientation: DefaultOrientation,
+    isPortrait: Boolean,
+    onOrientationChange: (Boolean) -> Unit,
     onRemoveFavourite: (FavoriteWallpaper) -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
-
-    // Orientation toggle state (initial value from defaultOrientation)
-    var isPortrait by remember {
-        mutableStateOf(
-            when (defaultOrientation) {
-                DefaultOrientation.LANDSCAPE -> false
-                DefaultOrientation.AUTO, DefaultOrientation.PORTRAIT -> true
-            }
-        )
-    }
 
     val writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean> =
         rememberLauncherForActivityResult(
@@ -89,12 +75,18 @@ fun FavoritesScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header
+        // Header with orientation chip (for symmetry with Home)
         item(span = { GridItemSpan(spanCount) }) {
-            Header(onThemeChange = onThemeChange, isAppDarkMode = isAppDarkMode)
+            Header(
+                onThemeChange = onThemeChange,
+                isAppDarkMode = isAppDarkMode,
+                showOrientationToggle = true,
+                isPortrait = isPortrait,
+                onOrientationChange = { newValue -> onOrientationChange(newValue) }
+            )
         }
 
-        // Favourites count + orientation toggle
+        // Favourites count row (no extra orientation toggle here)
         item(span = { GridItemSpan(spanCount) }) {
             Row(
                 modifier = Modifier
@@ -112,16 +104,6 @@ fun FavoritesScreen(
                     text = countText,
                     style = MaterialTheme.typography.titleMedium
                 )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                if (favourites.isNotEmpty()) {
-                    OrientationTogglePill(
-                        isPortrait = isPortrait,
-                        onPortraitSelected = { isPortrait = true },
-                        onLandscapeSelected = { isPortrait = false }
-                    )
-                }
             }
         }
 
@@ -168,7 +150,7 @@ fun FavoritesScreen(
         }
     }
 
-    // Apply / Download dialog uses the current orientation toggle
+    // Apply / Download dialog uses the shared orientation
     ApplyDownloadDialog(
         show = showApplyDialog,
         wallpaper = pendingClickedWallpaper?.wallpaper,
@@ -177,74 +159,12 @@ fun FavoritesScreen(
         addStripes = pendingClickedWallpaper?.addStripes ?: false,
         addOverlay = pendingClickedWallpaper?.addOverlay ?: false,
         isWorking = isWorking,
-        onWorkingChange = { },
-        onDismiss = {
+        onWorkingChange = {isWorking = it}, //dont dismiss this warning
+        onDismiss = {showApplyDialog = false //dont dismiss this warning
+            pendingClickedWallpaper = null //dont dismiss this warning
         },
         writePermissionLauncher = writePermissionLauncher,
         context = context,
         coroutineScope = coroutineScope
     )
-}
-
-/* ------------------------------- UI helpers ------------------------------- */
-
-@Composable
-private fun OrientationTogglePill(
-    isPortrait: Boolean,
-    onPortraitSelected: () -> Unit,
-    onLandscapeSelected: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                RoundedCornerShape(999.dp)
-            )
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OrientationChip(
-                label = stringResource(id = R.string.orientation_portrait),
-                selected = isPortrait,
-                onClick = onPortraitSelected
-            )
-            OrientationChip(
-                label = stringResource(id = R.string.orientation_landscape),
-                selected = !isPortrait,
-                onClick = onLandscapeSelected
-            )
-        }
-    }
-}
-
-@Composable
-private fun OrientationChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(
-                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                else Color.Transparent
-            )
-            .clickable(onClick = onClick)   // ← FIXED
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (selected)
-                MaterialTheme.colorScheme.primary
-            else
-                MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
 }
