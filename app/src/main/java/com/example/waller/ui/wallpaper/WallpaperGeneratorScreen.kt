@@ -135,15 +135,12 @@ fun WallpaperGeneratorScreen(
                         .map { createShade(it, toneMode, subtle = true) }
                 }
             } else {
-                // ---------- MULTI-COLOR LOGIC (3–6 stops) ----------
-                val minStops = 3
-                val maxStops = 5
+                // ---------- MULTI-COLOR LOGIC ----------
 
                 val targetStops = when {
-                    selectedColors.isEmpty() -> 4
-                    selectedColors.size == 1 -> 4
-                    selectedColors.size == 2 -> 5
-                    else -> (selectedColors.size + 1).coerceIn(minStops, maxStops)
+                    selectedColors.isEmpty() -> 2
+                    selectedColors.size == 1 -> 2
+                    else -> selectedColors.size.coerceIn(2, 5)
                 }
 
                 val baseList = mutableListOf<Color>()
