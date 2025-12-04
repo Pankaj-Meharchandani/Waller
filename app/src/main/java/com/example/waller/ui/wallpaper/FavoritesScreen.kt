@@ -159,7 +159,7 @@ fun FavoritesScreen(
         addStripes = pendingClickedWallpaper?.addStripes ?: false,
         addOverlay = pendingClickedWallpaper?.addOverlay ?: false,
         isWorking = isWorking,
-        onWorkingChange = { },
+        onWorkingChange = {isWorking = it},
         onDismiss = {showApplyDialog = false
             pendingClickedWallpaper = null
         },

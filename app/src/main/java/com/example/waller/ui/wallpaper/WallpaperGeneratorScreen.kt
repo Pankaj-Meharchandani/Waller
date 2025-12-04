@@ -395,7 +395,7 @@ fun WallpaperGeneratorScreen(
         addStripes = addStripes,
         addOverlay = addOverlay,
         isWorking = isWorking,
-        onWorkingChange = { },
+        onWorkingChange = {isWorking = it },
         onDismiss = {showApplyDialog = false
             pendingClickedWallpaper = null
         },
