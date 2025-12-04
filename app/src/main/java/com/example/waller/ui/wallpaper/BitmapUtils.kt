@@ -15,12 +15,10 @@
 
 package com.example.waller.ui.wallpaper
 
-import android.app.Activity
 import android.app.WallpaperManager
 import android.app.WallpaperManager.FLAG_LOCK
 import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.LinearGradient
 import android.graphics.Paint
@@ -28,15 +26,12 @@ import android.graphics.RadialGradient
 import android.graphics.Shader
 import android.graphics.SweepGradient
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.util.DisplayMetrics
 import android.view.WindowInsets
 import android.view.WindowManager
 import com.example.waller.R
 import androidx.core.graphics.scale
-import java.io.File
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.random.Random
