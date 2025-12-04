@@ -109,28 +109,64 @@ fun WallpaperGeneratorScreen(
         var previousType: GradientType? = null
 
         repeat(defaultGradientCount) {
-            val colors = when (selectedColors.size) {
-                0 -> listOf(
-                    generateRandomColor(toneMode),
-                    generateRandomColor(toneMode)
-                )
+            val colors: List<Color> = if (!isMultiColor) {
+                // ---------- ORIGINAL 2-COLOR LOGIC ----------
+                when (selectedColors.size) {
+                    0 -> listOf(
+                        generateRandomColor(toneMode),
+                        generateRandomColor(toneMode)
+                    )
 
-                1 -> {
-                    val base = selectedColors.first()
-                    val shadedBase = createShade(base, toneMode, subtle = true)
-                    val secondBase = when (toneMode) {
-                        ToneMode.LIGHT -> Color.White
-                        ToneMode.DARK -> Color.Black
-                        ToneMode.NEUTRAL -> Color.Gray
+                    1 -> {
+                        val base = selectedColors.first()
+                        val shadedBase = createShade(base, toneMode, subtle = true)
+                        val secondBase = when (toneMode) {
+                            ToneMode.LIGHT -> Color.White
+                            ToneMode.DARK -> Color.Black
+                            ToneMode.NEUTRAL -> Color.Gray
+                        }
+                        val shadedSecond = createShade(secondBase, toneMode, subtle = false)
+                        listOf(shadedBase, shadedSecond)
                     }
-                    val shadedSecond = createShade(secondBase, toneMode, subtle = false)
-                    listOf(shadedBase, shadedSecond)
+
+                    else -> selectedColors
+                        .shuffled()
+                        .take(2)
+                        .map { createShade(it, toneMode, subtle = true) }
+                }
+            } else {
+                // ---------- MULTI-COLOR LOGIC (3–6 stops) ----------
+                val minStops = 3
+                val maxStops = 5
+
+                val targetStops = when {
+                    selectedColors.isEmpty() -> 4
+                    selectedColors.size == 1 -> 4
+                    selectedColors.size == 2 -> 5
+                    else -> (selectedColors.size + 1).coerceIn(minStops, maxStops)
                 }
 
-                else -> selectedColors
-                    .shuffled()
-                    .take(2)
-                    .map { createShade(it, toneMode, subtle = true) }
+                val baseList = mutableListOf<Color>()
+
+                if (selectedColors.isEmpty()) {
+                    // No custom colors: generate a nice range within the chosen tone
+                    repeat(targetStops) {
+                        baseList += generateRandomColor(toneMode)
+                    }
+                } else {
+                    // We have user colors: build subtle variations around them
+                    val source = selectedColors.shuffled()
+                    var i = 0
+                    while (baseList.size < targetStops) {
+                        val src = source[i % source.size]
+                        val subtle = i != 0 // first can be a bit more distinct
+                        baseList += createShade(src, toneMode, subtle = subtle)
+                        i++
+                    }
+                }
+
+                // Slight shuffle so stops aren’t strictly grouped
+                baseList.shuffled()
             }
 
             val gradientType = run {
@@ -144,6 +180,7 @@ fun WallpaperGeneratorScreen(
                 }
                 available.random()
             }
+
             previousType = gradientType
             wallpapers.add(Wallpaper(colors = colors, type = gradientType))
         }
