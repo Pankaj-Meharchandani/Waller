@@ -3,7 +3,7 @@
  * Handles:
  * - App-wide theme (light / dark / system), persisted
  * - Gradient background toggle, persisted
- * - Wallpaper defaults (orientation, gradient count, effects, tone), persisted
+ * - Wallpaper defaults (orientation, gradient count, effects, tone, multicolor), persisted
  * - Shared favourite wallpapers (snapshot of wallpaper + effects), persisted
  * - Shared effect toggles (snow / stripes / glass) used by Home + Favourites
  * - Shared orientation state (portrait / landscape) for Home + Favourites
@@ -172,6 +172,16 @@ fun WallerApp() {
         prefs.edit().putString("default_tone_mode", value.name).apply()
     }
 
+    // Default multicolor: ON / OFF (off by default)
+    val initialMulticolor = remember {
+        prefs.getBoolean("default_enable_multicolor", false)
+    }
+    var enableMulticolorByDefault by remember { mutableStateOf(initialMulticolor) }
+    fun updateEnableMulticolor(value: Boolean) {
+        enableMulticolorByDefault = value
+        prefs.edit().putBoolean("default_enable_multicolor", value).apply()
+    }
+
     // --- SHARED EFFECT STATE (used by Home + as defaults when app starts) ---
     var snowEffectEnabled by remember { mutableStateOf(enableSnowByDefault) }
     var stripesEffectEnabled by remember { mutableStateOf(enableStripesByDefault) }
@@ -302,6 +312,7 @@ fun WallerApp() {
                             defaultEnableSnow = enableSnowByDefault,
                             defaultEnableStripes = enableStripesByDefault,
                             defaultToneMode = defaultToneMode,
+                            defaultEnableMulticolor = enableMulticolorByDefault,
                             addNoise = snowEffectEnabled,
                             onAddNoiseChange = { snowEffectEnabled = it },
                             addStripes = stripesEffectEnabled,
@@ -358,6 +369,8 @@ fun WallerApp() {
                             onEnableStripesByDefaultChange = { updateEnableStripes(it) },
                             defaultToneMode = defaultToneMode,
                             onDefaultToneModeChange = { updateDefaultToneMode(it) },
+                            defaultEnableMulticolor = enableMulticolorByDefault,
+                            onDefaultEnableMulticolorChange = { updateEnableMulticolor(it) },
                             onAboutClick = { currentScreen = RootScreen.ABOUT }
                         )
                     }

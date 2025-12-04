@@ -300,27 +300,29 @@ private fun CompactAddColorChip(
     }
 }
 
+
 @Composable
 private fun MultiColorToggleChip(
     isMultiColor: Boolean,
     onToggle: () -> Unit
 ) {
-    val shape = RoundedCornerShape(999.dp)
+    val chipShape = RoundedCornerShape(12.dp)
 
     Box(
         modifier = Modifier
-            .height(36.dp)
-            .clip(shape)
-            .background(
-                if (isMultiColor)
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                else
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f)
-            )
+            // match Add Color chip height / radius “family”
+            .height(32.dp)
+            .clip(chipShape)
             .border(
                 1.dp,
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                shape
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                chipShape
+            )
+            .background(
+                if (isMultiColor)
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f)
+                else
+                    Color.Transparent
             )
             .clickable(onClick = onToggle)
             .padding(horizontal = 12.dp),
@@ -330,7 +332,7 @@ private fun MultiColorToggleChip(
             text = stringResource(id = R.string.multicolor_label),
             style = MaterialTheme.typography.labelMedium,
             color = if (isMultiColor)
-                MaterialTheme.colorScheme.primary
+                MaterialTheme.colorScheme.onPrimaryContainer
             else
                 MaterialTheme.colorScheme.onSurfaceVariant
         )

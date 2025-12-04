@@ -2,7 +2,7 @@
  * Main screen of the app.
  *
  * Responsibilities:
- * - Holds UI state (colors, gradient types, tone)
+ * - Holds UI state (colors, gradient types, tone, multicolor)
  * - Uses shared effect toggles (snow / stripes / glass) from WallerApp
  * - Uses shared orientation state from WallerApp (portrait / landscape)
  * - Generates wallpaper preview list
@@ -23,7 +23,17 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -35,7 +45,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,6 +78,7 @@ fun WallpaperGeneratorScreen(
     defaultEnableSnow: Boolean,
     defaultEnableStripes: Boolean,
     defaultToneMode: ToneMode,
+    defaultEnableMulticolor: Boolean,
     addNoise: Boolean,
     onAddNoiseChange: (Boolean) -> Unit,
     addStripes: Boolean,
@@ -80,7 +98,10 @@ fun WallpaperGeneratorScreen(
     val selectedColors = remember { mutableStateListOf<Color>() }
 
     var editingColorIndex by remember { mutableStateOf<Int?>(null) }
-    var isMultiColor by remember { mutableStateOf(false) }
+
+    // multicolor state, initial from settings
+    var isMultiColor by remember { mutableStateOf(defaultEnableMulticolor) }
+
     val coroutineScope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
@@ -110,7 +131,7 @@ fun WallpaperGeneratorScreen(
 
         repeat(defaultGradientCount) {
             val colors: List<Color> = if (!isMultiColor) {
-                // ---------- ORIGINAL 2-COLOR LOGIC ----------
+                // ---------- 2-COLOR MODE ----------
                 when (selectedColors.size) {
                     0 -> listOf(
                         generateRandomColor(toneMode),
@@ -135,34 +156,32 @@ fun WallpaperGeneratorScreen(
                         .map { createShade(it, toneMode, subtle = true) }
                 }
             } else {
-                // ---------- MULTI-COLOR LOGIC ----------
-
-                val targetStops = when {
-                    selectedColors.isEmpty() -> 2
-                    selectedColors.size == 1 -> 2
-                    else -> selectedColors.size.coerceIn(2, 5)
+                // ---------- MULTI-COLOR MODE ----------
+                val targetStops = when (selectedColors.size) {
+                    0 -> 2
+                    1 -> 2
+                    2 -> 3
+                    else -> selectedColors.size.coerceIn(3, 5)
                 }
 
                 val baseList = mutableListOf<Color>()
 
                 if (selectedColors.isEmpty()) {
-                    // No custom colors: generate a nice range within the chosen tone
                     repeat(targetStops) {
                         baseList += generateRandomColor(toneMode)
                     }
                 } else {
-                    // We have user colors: build subtle variations around them
                     val source = selectedColors.shuffled()
                     var i = 0
                     while (baseList.size < targetStops) {
                         val src = source[i % source.size]
-                        val subtle = i != 0 // first can be a bit more distinct
+                        // first may be slightly stronger, rest more subtle
+                        val subtle = i != 0
                         baseList += createShade(src, toneMode, subtle = subtle)
                         i++
                     }
                 }
 
-                // Slight shuffle so stops aren’t strictly grouped
                 baseList.shuffled()
             }
 
@@ -262,7 +281,8 @@ fun WallpaperGeneratorScreen(
                             selectedColors.removeAt(idx)
                             wallpapers = generateWallpapers()
                         }
-                    },isMultiColor = isMultiColor,
+                    },
+                    isMultiColor = isMultiColor,
                     onMultiColorChange = { newValue ->
                         isMultiColor = newValue
                         wallpapers = generateWallpapers()
@@ -287,18 +307,16 @@ fun WallpaperGeneratorScreen(
                     },
                     addNoise = addNoise,
                     onNoiseToggle = {
+                        // Do NOT regenerate wallpapers, only toggle effect
                         onAddNoiseChange(!addNoise)
-                        wallpapers = generateWallpapers()
                     },
                     addStripes = addStripes,
                     onStripesToggle = {
                         onAddStripesChange(!addStripes)
-                        wallpapers = generateWallpapers()
                     },
                     addOverlay = addOverlay,
                     onOverlayToggle = {
                         onAddOverlayChange(!addOverlay)
-                        wallpapers = generateWallpapers()
                     }
                 )
             }

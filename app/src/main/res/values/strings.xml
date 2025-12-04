@@ -130,6 +130,7 @@
     <string name="favourites_count">%1$d favourites</string>
     <string name="scroll_to_top">Scroll to top</string>
     <string name="multicolor_label">Multi-color</string>
+    <string name="settings_enable_multicolor">Use multicolor gradients by default</string>
 
 
 </resources>
