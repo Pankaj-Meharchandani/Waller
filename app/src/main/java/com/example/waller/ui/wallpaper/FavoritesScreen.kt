@@ -159,9 +159,9 @@ fun FavoritesScreen(
         addStripes = pendingClickedWallpaper?.addStripes ?: false,
         addOverlay = pendingClickedWallpaper?.addOverlay ?: false,
         isWorking = isWorking,
-        onWorkingChange = {isWorking = it},
-        onDismiss = {showApplyDialog = false
-            pendingClickedWallpaper = null
+        onWorkingChange = {isWorking = it}, //dont dismiss this warning
+        onDismiss = {showApplyDialog = false //dont dismiss this warning
+            pendingClickedWallpaper = null //dont dismiss this warning
         },
         writePermissionLauncher = writePermissionLauncher,
         context = context,
