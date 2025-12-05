@@ -21,8 +21,12 @@ package com.example.waller.ui.wallpaper
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,12 +37,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -279,7 +288,6 @@ fun WallpaperGeneratorScreen(
                     },
                     addNoise = addNoise,
                     onNoiseToggle = {
-                        // Do NOT regenerate wallpapers, only toggle effect
                         onAddNoiseChange(!addNoise)
                     },
                     addStripes = addStripes,
@@ -328,7 +336,7 @@ fun WallpaperGeneratorScreen(
                             MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                             RoundedCornerShape(999.dp)
                         )
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = stringResource(
@@ -337,6 +345,41 @@ fun WallpaperGeneratorScreen(
                             types
                         ),
                         style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                val refreshRotation = remember { Animatable(0f) }
+                val refreshScope = rememberCoroutineScope()
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .clickable {
+                            refreshScope.launch {
+                                val start = refreshRotation.value
+                                val target = start + 360f
+                                refreshRotation.animateTo(
+                                    targetValue = target,
+                                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                                )
+                                // regenerate wallpapers after animation
+                                wallpapers = generateWallpapers()
+                            }
+                        }
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            RoundedCornerShape(999.dp)
+                        )
+                        .padding(horizontal = 4.dp, vertical = 4.dp)
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Default.Refresh,
+                        contentDescription = stringResource(id = R.string.actions_refresh_all),
+                        modifier = Modifier
+                            .size(20.dp)
+                            .rotate(refreshRotation.value)
                     )
                 }
             }
@@ -395,9 +438,9 @@ fun WallpaperGeneratorScreen(
         addStripes = addStripes,
         addOverlay = addOverlay,
         isWorking = isWorking,
-        onWorkingChange = {isWorking = it }, //dont dismiss this warning
-        onDismiss = {showApplyDialog = false //dont dismiss this warning
-            pendingClickedWallpaper = null //dont dismiss this warning
+        onWorkingChange = {isWorking = it }, //don't dismiss this warning
+        onDismiss = {showApplyDialog = false //don't dismiss this warning
+            pendingClickedWallpaper = null //don't dismiss this warning
         },
         writePermissionLauncher = writePermissionLauncher,
         context = context,
