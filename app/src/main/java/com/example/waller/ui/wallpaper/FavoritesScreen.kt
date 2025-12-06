@@ -201,17 +201,6 @@ fun FavoritesScreen(
                 pendingClickedWallpaper = null
             },
 
-            onApply = { home, lock, both, noise, stripes, overlay ->
-                // open ApplyDownloadDialog with the updated snapshot
-                showPreview = false
-                showApplyDialog = true
-            },
-
-            onDownload = { noise, stripes, overlay ->
-                showPreview = false
-                showApplyDialog = true
-            },
-
             writePermissionLauncher = writePermissionLauncher,
             context = context,
             coroutineScope = coroutineScope

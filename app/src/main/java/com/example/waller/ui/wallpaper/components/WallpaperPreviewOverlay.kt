@@ -5,11 +5,12 @@
  * - Minimal single-line headers for major sections.
  */
 
+@file:Suppress("DEPRECATION")
+
 package com.example.waller.ui.wallpaper.components
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.animation.AnimatedVisibility
@@ -26,7 +27,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -60,7 +60,6 @@ import androidx.compose.ui.zIndex
 import com.example.waller.ui.wallpaper.Wallpaper
 import com.example.waller.ui.wallpaper.ApplyDownloadDialog
 import kotlinx.coroutines.CoroutineScope
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.example.waller.R
@@ -76,8 +75,6 @@ fun WallpaperPreviewOverlay(
     globalOverlay: Boolean,
     onFavoriteToggle: (noise: Boolean, stripes: Boolean, overlay: Boolean) -> Unit,
     onDismiss: () -> Unit,
-    onApply: (home: Boolean, lock: Boolean, both: Boolean, noise: Boolean, stripes: Boolean, overlay: Boolean) -> Unit,
-    onDownload: (noise: Boolean, stripes: Boolean, overlay: Boolean) -> Unit,
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     context: Context,
     coroutineScope: CoroutineScope
@@ -88,7 +85,6 @@ fun WallpaperPreviewOverlay(
 
     var showApplyDialog by remember { mutableStateOf(false) }
     var isBusy by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
 
     BackHandler { onDismiss() }
@@ -97,7 +93,7 @@ fun WallpaperPreviewOverlay(
     val safeBottomPadding = 14.dp
     val safeVerticalPadding = 18.dp
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
-    val availableHeight = (screenHeightDp - statusBarPadding - safeVerticalPadding * 2).coerceAtLeast(200.dp)
+    (screenHeightDp - statusBarPadding - safeVerticalPadding * 2).coerceAtLeast(200.dp)
     val aspectRatio = if (isPortrait) (9f / 16f) else (16f / 9f)
 
     Box(
@@ -158,7 +154,6 @@ fun WallpaperPreviewOverlay(
             targetValue = if (pressed) 0.99f else 1f,
             animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium)
         )
-        val elevationDp by animateDpAsState(if (pressed) 12.dp else 24.dp, animationSpec = tween(220))
 
         Box(
             modifier = Modifier
@@ -179,9 +174,7 @@ fun WallpaperPreviewOverlay(
                             pressed = false
                         })
                     }
-                    .shadow(12.dp, RoundedCornerShape(20.dp)),
-                elevation = elevationDp,
-                maskBottomGestureHint = true
+                    .shadow(12.dp, RoundedCornerShape(20.dp))
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     WallpaperItemCard(
@@ -269,7 +262,7 @@ fun WallpaperPreviewOverlay(
 
         if (showApplyDialog) {
             ApplyDownloadDialog(
-                show = showApplyDialog,
+                show = true,
                 wallpaper = wallpaper,
                 isPortrait = isPortrait,
                 addNoise = noise,
@@ -289,8 +282,6 @@ fun WallpaperPreviewOverlay(
 @Composable
 private fun DeviceFrame(
     modifier: Modifier = Modifier,
-    elevation: Dp = 12.dp,
-    maskBottomGestureHint: Boolean = false,
     content: @Composable BoxScope.() -> Unit
 ) {
     Box(
@@ -299,7 +290,6 @@ private fun DeviceFrame(
             .background(MaterialTheme.colorScheme.surface)
             .border(width = 1.dp, color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.14f), shape = RoundedCornerShape(20.dp))
     ) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { }
 
         Box(modifier = Modifier.padding(8.dp)) { content() }
 

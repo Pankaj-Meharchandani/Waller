@@ -41,7 +41,6 @@ import androidx.compose.foundation.layout.padding
 import com.example.waller.ui.wallpaper.components.WallpaperPreviewOverlay
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -453,27 +452,6 @@ fun WallpaperGeneratorScreen(
             globalStripes = addStripes,
             globalOverlay = addOverlay,
             onDismiss = { showPreview = false },
-            onApply = { home, lock, both, noise, stripes, overlay ->
-                applyWallpaperFromPreview(
-                    home, lock, both,
-                    noise, stripes, overlay,
-                    previewWallpaper!!,
-                    isPortrait,
-                    context,
-                    coroutineScope,
-                    onDone = { showPreview = false }
-                )
-            },
-            onDownload = { noise, stripes, overlay ->
-                downloadFromPreview(
-                    previewWallpaper!!,
-                    noise, stripes, overlay,
-                    isPortrait,
-                    context,
-                    coroutineScope,
-                    onDone = { showPreview = false }
-                )
-            },
             writePermissionLauncher = writePermissionLauncher,
             context = context,
             coroutineScope = coroutineScope
