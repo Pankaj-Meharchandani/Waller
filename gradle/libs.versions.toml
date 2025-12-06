@@ -13,6 +13,7 @@ paletteKtx = "1.0.0"
 simpledialogfragments = "3.10"
 uiGraphics = "1.10.0"
 fragmentKtx = "1.8.9"
+media3Exoplayer = "1.8.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -35,6 +36,7 @@ androidx-palette-ktx = { group = "androidx.palette", name = "palette-ktx", versi
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
 simpledialogfragments = { module = "io.github.eltos:simpledialogfragments", version.ref = "simpledialogfragments" }
 androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" }
+androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3Exoplayer" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

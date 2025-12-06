@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -59,22 +60,35 @@ fun WallpaperItemCard(
     addOverlay: Boolean,
     isFavorite: Boolean,
     onFavoriteToggle: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isPreview: Boolean = false
 ) {
-    Card(
-        modifier = Modifier
+    // choose a modifier based on preview vs grid item
+    val cardModifier = if (isPreview) {
+        // large preview sizing (caller may override with modifier param if desired)
+        modifier
+            .fillMaxWidth()
+            .height(if (isPortrait) 600.dp else 420.dp)
+            .clickable { onClick() }
+    } else {
+        modifier
             .aspectRatio(if (isPortrait) 9f / 16f else 16f / 9f)
             .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(18.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            .clickable { onClick() }
+    }
+
+    Card(
+        modifier = cardModifier,
+        shape = RoundedCornerShape(if (isPreview) 14.dp else 18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isPreview) 12.dp else 8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.Black.copy(alpha = 0.04f)
+            containerColor = Color.Black.copy(alpha = if (isPreview) 0.02f else 0.04f)
         )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
 
-            // Actual wallpaper rendering
+            // Actual wallpaper rendering (same behavior)
             WallpaperItem(
                 wallpaper = wallpaper,
                 addNoise = addNoise,
@@ -104,6 +118,8 @@ fun WallpaperItemCard(
         }
     }
 }
+
+/* WallpaperItem remains unchanged from your original file — keep as-is below */
 
 @Composable
 fun WallpaperItem(

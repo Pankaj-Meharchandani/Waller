@@ -344,7 +344,17 @@ fun WallerApp() {
                             favourites = favouriteWallpapers,
                             isPortrait = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortrait = it },
-                            onRemoveFavourite = { removeFavourite(it) }
+
+                            onRemoveFavourite = { fav -> removeFavourite(fav) },
+
+                            onAddFavourite = { fav ->
+                                toggleFavouriteFromHome(
+                                    fav.wallpaper,
+                                    fav.addNoise,
+                                    fav.addStripes,
+                                    fav.addOverlay
+                                )
+                            }
                         )
                     }
 

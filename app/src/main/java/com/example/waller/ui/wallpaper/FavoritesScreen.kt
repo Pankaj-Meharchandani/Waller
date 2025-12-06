@@ -30,6 +30,8 @@ import com.example.waller.R
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import com.example.waller.ui.wallpaper.components.WallpaperPreviewOverlay
 
 @SuppressLint("LocalContextGetResourceValueCall")
 @Composable
@@ -40,7 +42,8 @@ fun FavoritesScreen(
     favourites: List<FavoriteWallpaper>,
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit,
-    onRemoveFavourite: (FavoriteWallpaper) -> Unit
+    onRemoveFavourite: (FavoriteWallpaper) -> Unit,
+    onAddFavourite: (FavoriteWallpaper) -> Unit // NEW: callback to add back a favourite
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -62,6 +65,9 @@ fun FavoritesScreen(
     var pendingClickedWallpaper by remember { mutableStateOf<FavoriteWallpaper?>(null) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isWorking by remember { mutableStateOf(false) }
+
+    // NEW: preview overlay visible state
+    var showPreview by remember { mutableStateOf(false) }
 
     val spanCount = if (isPortrait) 2 else 1
     val columns = GridCells.Fixed(spanCount)
@@ -86,7 +92,7 @@ fun FavoritesScreen(
             )
         }
 
-        // Favourites count row (no extra orientation toggle here)
+        // Favourites count row
         item(span = { GridItemSpan(spanCount) }) {
             Row(
                 modifier = Modifier
@@ -121,12 +127,12 @@ fun FavoritesScreen(
                 },
                 onClick = {
                     pendingClickedWallpaper = fav
-                    showApplyDialog = true
+                    showPreview = true
                 }
             )
         }
 
-        // Scroll-to-top button (only if there are favourites)
+        // Scroll-to-top button
         if (favourites.isNotEmpty()) {
             item(span = { GridItemSpan(spanCount) }) {
                 Column(
@@ -150,7 +156,67 @@ fun FavoritesScreen(
         }
     }
 
-    // Apply / Download dialog uses the shared orientation
+    // PREVIEW OVERLAY (opened when a favourite is tapped)
+    if (showPreview && pendingClickedWallpaper != null) {
+
+        val fav = pendingClickedWallpaper!!
+
+        // local overlay favourite UI state
+        var overlayIsFavorite by remember(fav) { mutableStateOf(true) }
+
+        WallpaperPreviewOverlay(
+            wallpaper = fav.wallpaper,
+            isPortrait = isPortrait,
+            isFavorite = overlayIsFavorite,
+
+            globalNoise = fav.addNoise,
+            globalStripes = fav.addStripes,
+            globalOverlay = fav.addOverlay,
+
+            onFavoriteToggle = { n, s, o ->
+                // toggle UI immediately
+                overlayIsFavorite = !overlayIsFavorite
+
+                if (overlayIsFavorite) {
+                    // re-add with UPDATED effect flags from the overlay
+                    val updatedFav = FavoriteWallpaper(
+                        wallpaper = fav.wallpaper,
+                        addNoise = n,
+                        addStripes = s,
+                        addOverlay = o
+                    )
+                    onAddFavourite(updatedFav)
+
+                    // update the pending snapshot so Apply uses correct effects
+                    pendingClickedWallpaper = updatedFav
+
+                } else {
+                    // remove old favourite
+                    onRemoveFavourite(fav)
+                }
+            },
+
+            onDismiss = {
+                showPreview = false
+                pendingClickedWallpaper = null
+            },
+
+            onApply = { home, lock, both, noise, stripes, overlay ->
+                // open ApplyDownloadDialog with the updated snapshot
+                showPreview = false
+                showApplyDialog = true
+            },
+
+            onDownload = { noise, stripes, overlay ->
+                showPreview = false
+                showApplyDialog = true
+            },
+
+            writePermissionLauncher = writePermissionLauncher,
+            context = context,
+            coroutineScope = coroutineScope
+        )
+    }
     ApplyDownloadDialog(
         show = showApplyDialog,
         wallpaper = pendingClickedWallpaper?.wallpaper,
@@ -159,9 +225,10 @@ fun FavoritesScreen(
         addStripes = pendingClickedWallpaper?.addStripes ?: false,
         addOverlay = pendingClickedWallpaper?.addOverlay ?: false,
         isWorking = isWorking,
-        onWorkingChange = {isWorking = it}, //dont dismiss this warning
-        onDismiss = {showApplyDialog = false //dont dismiss this warning
-            pendingClickedWallpaper = null //dont dismiss this warning
+        onWorkingChange = { isWorking = it }, //don't dismiss this warning
+        onDismiss = {
+            showApplyDialog = false //don't dismiss this warning
+            pendingClickedWallpaper = null //don't dismiss this warning
         },
         writePermissionLauncher = writePermissionLauncher,
         context = context,

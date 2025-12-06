@@ -18,6 +18,7 @@
 
 package com.example.waller.ui.wallpaper
 
+import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -37,6 +38,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import com.example.waller.ui.wallpaper.components.WallpaperPreviewOverlay
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -73,7 +75,9 @@ import com.example.waller.R
 import com.example.waller.ui.wallpaper.components.CompactOptionsPanel
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun WallpaperGeneratorScreen(
@@ -97,7 +101,8 @@ fun WallpaperGeneratorScreen(
     // ----------- STATE -----------
 
     var toneMode by remember { mutableStateOf(defaultToneMode) }
-
+    var showPreview by remember { mutableStateOf(false) }
+    var previewWallpaper by remember { mutableStateOf<Wallpaper?>(null) }
     val selectedGradientTypes = remember { mutableStateListOf(GradientType.Linear) }
     val selectedColors = remember { mutableStateListOf<Color>() }
 
@@ -399,8 +404,8 @@ fun WallpaperGeneratorScreen(
                     onToggleFavourite(wallpaper, addNoise, addStripes, addOverlay)
                 },
                 onClick = {
-                    pendingClickedWallpaper = wallpaper
-                    showApplyDialog = true
+                    previewWallpaper = wallpaper
+                    showPreview = true
                 }
             )
         }
@@ -429,7 +434,53 @@ fun WallpaperGeneratorScreen(
         }
     }
 
-    // Apply / Download dialog
+    // Inline preview overlay (opened when user taps a wallpaper)
+    if (showPreview && previewWallpaper != null) {
+        WallpaperPreviewOverlay(
+            wallpaper = previewWallpaper!!,
+            isPortrait = isPortrait,
+            isFavorite = favouriteWallpapers.any { it.wallpaper == previewWallpaper },
+            onFavoriteToggle = { n, s, o ->
+                onToggleFavourite(
+                    previewWallpaper!!,
+                    n,
+                    s,
+                    o
+                )
+            },
+
+            globalNoise = addNoise,
+            globalStripes = addStripes,
+            globalOverlay = addOverlay,
+            onDismiss = { showPreview = false },
+            onApply = { home, lock, both, noise, stripes, overlay ->
+                applyWallpaperFromPreview(
+                    home, lock, both,
+                    noise, stripes, overlay,
+                    previewWallpaper!!,
+                    isPortrait,
+                    context,
+                    coroutineScope,
+                    onDone = { showPreview = false }
+                )
+            },
+            onDownload = { noise, stripes, overlay ->
+                downloadFromPreview(
+                    previewWallpaper!!,
+                    noise, stripes, overlay,
+                    isPortrait,
+                    context,
+                    coroutineScope,
+                    onDone = { showPreview = false }
+                )
+            },
+            writePermissionLauncher = writePermissionLauncher,
+            context = context,
+            coroutineScope = coroutineScope
+        )
+    }
+
+    // Apply / Download dialog (legacy — still available if you open it elsewhere)
     ApplyDownloadDialog(
         show = showApplyDialog,
         wallpaper = pendingClickedWallpaper,
@@ -438,8 +489,9 @@ fun WallpaperGeneratorScreen(
         addStripes = addStripes,
         addOverlay = addOverlay,
         isWorking = isWorking,
-        onWorkingChange = {isWorking = it }, //don't dismiss this warning
-        onDismiss = {showApplyDialog = false //don't dismiss this warning
+        onWorkingChange = { isWorking = it }, //don't dismiss this warning
+        onDismiss = {
+            showApplyDialog = false //don't dismiss this warning
             pendingClickedWallpaper = null //don't dismiss this warning
         },
         writePermissionLauncher = writePermissionLauncher,
@@ -474,6 +526,77 @@ fun SectionCard(
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             content()
+        }
+    }
+}
+
+/* ----------------------- Helpers used by preview overlay ----------------------- */
+
+/**
+ * Apply wallpaper chosen in preview with local effect flags.
+ * Runs on background thread and shows a toast on completion.
+ */
+private fun applyWallpaperFromPreview(
+    home: Boolean,
+    lock: Boolean,
+    both: Boolean,
+    noise: Boolean,
+    stripes: Boolean,
+    overlay: Boolean,
+    wallpaper: Wallpaper,
+    isPortrait: Boolean,
+    context: android.content.Context,
+    scope: kotlinx.coroutines.CoroutineScope,
+    onDone: () -> Unit
+) {
+    scope.launch(Dispatchers.IO) {
+        val bmp = createGradientBitmap(context, wallpaper, isPortrait, noise, stripes, overlay)
+
+        val flags = when {
+            both -> android.app.WallpaperManager.FLAG_SYSTEM or getLockFlag()
+            home -> android.app.WallpaperManager.FLAG_SYSTEM
+            lock -> getLockFlag()
+            else -> android.app.WallpaperManager.FLAG_SYSTEM
+        }
+
+        val result = tryApplyWallpaper(context, bmp, flags)
+
+        withContext(Dispatchers.Main) {
+            Toast.makeText(
+                context,
+                if (result) "Applied!" else "Failed",
+                Toast.LENGTH_SHORT
+            ).show()
+            onDone()
+        }
+    }
+}
+
+/**
+ * Download / save wallpaper chosen in preview with local effect flags.
+ */
+private fun downloadFromPreview(
+    wallpaper: Wallpaper,
+    noise: Boolean,
+    stripes: Boolean,
+    overlay: Boolean,
+    isPortrait: Boolean,
+    context: android.content.Context,
+    scope: kotlinx.coroutines.CoroutineScope,
+    onDone: () -> Unit
+) {
+    scope.launch(Dispatchers.IO) {
+        val bmp = createGradientBitmap(context, wallpaper, isPortrait, noise, stripes, overlay)
+        val name = "waller_${System.currentTimeMillis()}.png"
+        val saved = saveBitmapToMediaStore(context, bmp, name)
+
+        withContext(Dispatchers.Main) {
+            Toast.makeText(
+                context,
+                if (saved) "Saved!" else "Failed",
+                Toast.LENGTH_SHORT
+            ).show()
+            onDone()
         }
     }
 }
