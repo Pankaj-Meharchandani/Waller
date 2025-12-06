@@ -115,6 +115,11 @@
     <string name="scroll_to_top">Scroll to top</string>
     <string name="multicolor_label">Multi-color</string>
     <string name="settings_enable_multicolor">Use multicolor gradients by default</string>
+    <string name="preview_done">Done</string>
+    <string name="preview_close">Close</string>
+    <string name="preview_effect_nothing">Nothing</string>
+    <string name="preview_effect_snow">Snow</string>
+    <string name="preview_effect_stripes">Stripes</string>
 
 
 </resources>

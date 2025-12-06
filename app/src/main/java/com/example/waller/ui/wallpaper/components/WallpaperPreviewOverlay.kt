@@ -32,7 +32,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,17 +53,17 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.example.waller.ui.wallpaper.Wallpaper
 import com.example.waller.ui.wallpaper.ApplyDownloadDialog
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import com.example.waller.R
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
@@ -79,17 +78,14 @@ fun WallpaperPreviewOverlay(
     onDismiss: () -> Unit,
     onApply: (home: Boolean, lock: Boolean, both: Boolean, noise: Boolean, stripes: Boolean, overlay: Boolean) -> Unit,
     onDownload: (noise: Boolean, stripes: Boolean, overlay: Boolean) -> Unit,
-    // ADDED: to show the Apply/Download dialog from Done
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     context: Context,
     coroutineScope: CoroutineScope
 ) {
-    // local effect states
     var noise by remember { mutableStateOf(globalNoise) }
     var stripes by remember { mutableStateOf(globalStripes) }
     var overlay by remember { mutableStateOf(globalOverlay) }
 
-    // dialog & busy states
     var showApplyDialog by remember { mutableStateOf(false) }
     var isBusy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -97,16 +93,13 @@ fun WallpaperPreviewOverlay(
 
     BackHandler { onDismiss() }
 
-    // insets & sizing
     val statusBarPadding: Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val navBarPadding: Dp = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val safeBottomPadding = 14.dp
     val safeVerticalPadding = 18.dp
-
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
-    val availableHeight = (screenHeightDp - statusBarPadding - navBarPadding - safeVerticalPadding * 2).coerceAtLeast(200.dp)
+    val availableHeight = (screenHeightDp - statusBarPadding - safeVerticalPadding * 2).coerceAtLeast(200.dp)
     val aspectRatio = if (isPortrait) (9f / 16f) else (16f / 9f)
 
-    // background scrim
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -126,7 +119,7 @@ fun WallpaperPreviewOverlay(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Top actions row
+
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
@@ -142,13 +135,12 @@ fun WallpaperPreviewOverlay(
                     modifier = Modifier.height(46.dp)
                 ) {
                     IconButton(onClick = onDismiss, modifier = Modifier.size(46.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(id = R.string.preview_close))
                     }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // DONE button now opens the dialog (does not auto apply/download)
                 TextButton(
                     onClick = {
                         if (isBusy) return@TextButton
@@ -156,12 +148,11 @@ fun WallpaperPreviewOverlay(
                     },
                     modifier = Modifier.height(44.dp)
                 ) {
-                    Text("Done")
+                    Text(stringResource(id = R.string.preview_done))
                 }
             }
         }
 
-        // center preview (lower zIndex)
         var pressed by remember { mutableStateOf(false) }
         val scale by animateFloatAsState(
             targetValue = if (pressed) 0.99f else 1f,
@@ -172,7 +163,7 @@ fun WallpaperPreviewOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = statusBarPadding + safeVerticalPadding, bottom = navBarPadding + safeVerticalPadding)
+                .padding(top = statusBarPadding + safeVerticalPadding, bottom = safeBottomPadding + safeVerticalPadding)
                 .zIndex(1f),
             contentAlignment = Alignment.Center
         ) {
@@ -189,10 +180,10 @@ fun WallpaperPreviewOverlay(
                         })
                     }
                     .shadow(12.dp, RoundedCornerShape(20.dp)),
-                elevation = elevationDp
+                elevation = elevationDp,
+                maskBottomGestureHint = true
             ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                    // Pass real favorite state & callback so the card's fav button works
+                Box(modifier = Modifier.fillMaxSize()) {
                     WallpaperItemCard(
                         wallpaper = wallpaper,
                         isPortrait = isPortrait,
@@ -200,12 +191,11 @@ fun WallpaperPreviewOverlay(
                         addStripes = stripes,
                         addOverlay = overlay,
                         isFavorite = isFavorite,
-                        onFavoriteToggle = { /* from card -> forward local preview flags */
+                        onFavoriteToggle = {
                             onFavoriteToggle(noise, stripes, overlay)
                         },
                         onClick = {},
                         isPreview = true
-
                     )
 
                     AnimatedVisibility(visible = isBusy, enter = fadeIn(), exit = fadeOut()) {
@@ -228,32 +218,20 @@ fun WallpaperPreviewOverlay(
             }
         }
 
-        // bottom sheet with effects (kept) — ensure it has a min height so chips are visible
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .zIndex(3f)
-                .padding(bottom = navBarPadding)
+                .padding(bottom = safeBottomPadding)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .clip(RoundedCornerShape(18.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.10f))
                 .padding(14.dp)
                 .fillMaxWidth(0.96f)
                 .heightIn(min = 160.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // small handle
-            Box(
-                modifier = Modifier
-                    .width(36.dp)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.06f))
-            )
-
             Spacer(modifier = Modifier.height(10.dp))
 
-            // effects row placed inside bottom sheet (centered)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -261,7 +239,7 @@ fun WallpaperPreviewOverlay(
                     .zIndex(5f),
                 contentAlignment = Alignment.Center
             ) {
-            Row(
+                Row(
                     modifier = Modifier
                         .wrapContentWidth()
                         .clip(RoundedCornerShape(999.dp))
@@ -271,15 +249,15 @@ fun WallpaperPreviewOverlay(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    EffectChip(label = "Nothing", selected = overlay) {
+                    EffectChip(label = stringResource(id = R.string.preview_effect_nothing), selected = overlay) {
                         overlay = !overlay
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     }
-                    EffectChip(label = "Snow", selected = noise) {
+                    EffectChip(label = stringResource(id = R.string.preview_effect_snow), selected = noise) {
                         noise = !noise
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     }
-                    EffectChip(label = "Stripes", selected = stripes) {
+                    EffectChip(label = stringResource(id = R.string.preview_effect_stripes), selected = stripes) {
                         stripes = !stripes
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     }
@@ -287,11 +265,8 @@ fun WallpaperPreviewOverlay(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-
-            // no action buttons here; Done opens the dialog
         }
 
-        // Apply/Download dialog (opened when Done pressed)
         if (showApplyDialog) {
             ApplyDownloadDialog(
                 show = showApplyDialog,
@@ -312,20 +287,21 @@ fun WallpaperPreviewOverlay(
 }
 
 @Composable
-private fun DeviceFrame(modifier: Modifier = Modifier, elevation: Dp = 12.dp, content: @Composable BoxScope.() -> Unit) {
+private fun DeviceFrame(
+    modifier: Modifier = Modifier,
+    elevation: Dp = 12.dp,
+    maskBottomGestureHint: Boolean = false,
+    content: @Composable BoxScope.() -> Unit
+) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.surface)
             .border(width = 1.dp, color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.14f), shape = RoundedCornerShape(20.dp))
     ) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // optional blur hook
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { }
 
-        Box(modifier = Modifier.padding(8.dp)) {
-            content()
-        }
+        Box(modifier = Modifier.padding(8.dp)) { content() }
 
         Box(
             modifier = Modifier
@@ -335,7 +311,7 @@ private fun DeviceFrame(modifier: Modifier = Modifier, elevation: Dp = 12.dp, co
                 .height(4.dp)
                 .clip(RoundedCornerShape(2.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.06f))
-        ) {}
+        )
     }
 }
 
