@@ -18,7 +18,6 @@
 
 package com.example.waller.ui.wallpaper
 
-import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -74,9 +73,7 @@ import com.example.waller.R
 import com.example.waller.ui.wallpaper.components.CompactOptionsPanel
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 fun WallpaperGeneratorScreen(
@@ -504,77 +501,6 @@ fun SectionCard(
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             content()
-        }
-    }
-}
-
-/* ----------------------- Helpers used by preview overlay ----------------------- */
-
-/**
- * Apply wallpaper chosen in preview with local effect flags.
- * Runs on background thread and shows a toast on completion.
- */
-private fun applyWallpaperFromPreview(
-    home: Boolean,
-    lock: Boolean,
-    both: Boolean,
-    noise: Boolean,
-    stripes: Boolean,
-    overlay: Boolean,
-    wallpaper: Wallpaper,
-    isPortrait: Boolean,
-    context: android.content.Context,
-    scope: kotlinx.coroutines.CoroutineScope,
-    onDone: () -> Unit
-) {
-    scope.launch(Dispatchers.IO) {
-        val bmp = createGradientBitmap(context, wallpaper, isPortrait, noise, stripes, overlay)
-
-        val flags = when {
-            both -> android.app.WallpaperManager.FLAG_SYSTEM or getLockFlag()
-            home -> android.app.WallpaperManager.FLAG_SYSTEM
-            lock -> getLockFlag()
-            else -> android.app.WallpaperManager.FLAG_SYSTEM
-        }
-
-        val result = tryApplyWallpaper(context, bmp, flags)
-
-        withContext(Dispatchers.Main) {
-            Toast.makeText(
-                context,
-                if (result) "Applied!" else "Failed",
-                Toast.LENGTH_SHORT
-            ).show()
-            onDone()
-        }
-    }
-}
-
-/**
- * Download / save wallpaper chosen in preview with local effect flags.
- */
-private fun downloadFromPreview(
-    wallpaper: Wallpaper,
-    noise: Boolean,
-    stripes: Boolean,
-    overlay: Boolean,
-    isPortrait: Boolean,
-    context: android.content.Context,
-    scope: kotlinx.coroutines.CoroutineScope,
-    onDone: () -> Unit
-) {
-    scope.launch(Dispatchers.IO) {
-        val bmp = createGradientBitmap(context, wallpaper, isPortrait, noise, stripes, overlay)
-        val name = "waller_${System.currentTimeMillis()}.png"
-        val saved = saveBitmapToMediaStore(context, bmp, name)
-
-        withContext(Dispatchers.Main) {
-            Toast.makeText(
-                context,
-                if (saved) "Saved!" else "Failed",
-                Toast.LENGTH_SHORT
-            ).show()
-            onDone()
         }
     }
 }
