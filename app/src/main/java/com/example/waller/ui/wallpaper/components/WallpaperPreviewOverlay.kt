@@ -72,12 +72,12 @@ fun WallpaperPreviewOverlay(
     var stripes by remember { mutableStateOf(globalStripes) }
     var overlay by remember { mutableStateOf(globalOverlay) }
 
-    var noiseAlpha by remember { mutableStateOf(0.65f) }
-    var stripesAlpha by remember { mutableStateOf(0.55f) }
-    var overlayAlpha by remember { mutableStateOf(0.35f) }
+    var noiseAlpha by remember { mutableFloatStateOf(0.65f) }
+    var stripesAlpha by remember { mutableFloatStateOf(0.55f) }
+    var overlayAlpha by remember { mutableFloatStateOf(0.35f) }
 
     var selectedGradient by remember { mutableStateOf(GradientType.LINEAR) }
-    var gradientAngle by remember { mutableStateOf(45f) }
+    var gradientAngle by remember { mutableFloatStateOf(45f) }
 
     var showApplyDialog by remember { mutableStateOf(false) }
     var isBusy by remember { mutableStateOf(false) }
