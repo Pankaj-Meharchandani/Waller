@@ -158,11 +158,12 @@ fun WallpaperPreviewOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(50.dp)   // ← ADD HERE ONLY
                 .padding(top = statusBarPadding + safeVerticalPadding, bottom = safeBottomPadding + safeVerticalPadding)
                 .zIndex(1f),
             contentAlignment = Alignment.Center
         ) {
-            DeviceFrame(
+        DeviceFrame(
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
                     .aspectRatio(aspectRatio)
