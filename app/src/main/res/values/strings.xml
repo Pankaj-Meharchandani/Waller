@@ -120,6 +120,12 @@
     <string name="preview_effect_nothing">Nothing</string>
     <string name="preview_effect_snow">Snow</string>
     <string name="preview_effect_stripes">Stripes</string>
+    <string name="gradient_style_title">Gradient Style</string>
+    <string name="preview_opacity_nothing">Nothing glass Opacity</string>
+    <string name="preview_opacity_snow">Snow effect Opacity</string>
+    <string name="preview_opacity_stripes">Stripes Opacity</string>
+    <string name="preview_off">Off</string>
+    <string name="preview_high">High</string>
 
 
 </resources>

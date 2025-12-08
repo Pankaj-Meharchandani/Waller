@@ -1,8 +1,6 @@
 /**
- * WallpaperPreviewOverlay — Done opens dialog; effects visible.
- * - Done opens ApplyDownloadDialog (does not auto-apply / auto-download).
- * - Bottom sheet has a minimum height so effect chips remain visible.
- * - Minimal single-line headers for major sections.
+ * WallpaperPreviewOverlay — Centered preview + gradient block.
+ * Background slightly less transparent, individual opacity sliders, centered effects row.
  */
 
 @file:Suppress("DEPRECATION")
@@ -13,12 +11,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.ManagedActivityResultLauncher
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,43 +23,36 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
-import com.example.waller.ui.wallpaper.Wallpaper
-import com.example.waller.ui.wallpaper.ApplyDownloadDialog
-import kotlinx.coroutines.CoroutineScope
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.unit.sp
 import com.example.waller.R
+import com.example.waller.ui.wallpaper.ApplyDownloadDialog
+import com.example.waller.ui.wallpaper.Wallpaper
+import kotlinx.coroutines.CoroutineScope
+
+enum class GradientType { ANGULAR, LINEAR, DIAMOND, RADIAL }
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
@@ -85,6 +73,13 @@ fun WallpaperPreviewOverlay(
     var stripes by remember { mutableStateOf(globalStripes) }
     var overlay by remember { mutableStateOf(globalOverlay) }
 
+    var noiseAlpha by remember { mutableStateOf(0.65f) }
+    var stripesAlpha by remember { mutableStateOf(0.55f) }
+    var overlayAlpha by remember { mutableStateOf(0.35f) }
+
+    var selectedGradient by remember { mutableStateOf(GradientType.LINEAR) }
+    var gradientAngle by remember { mutableStateOf(45f) }
+
     var showApplyDialog by remember { mutableStateOf(false) }
     var isBusy by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
@@ -92,21 +87,18 @@ fun WallpaperPreviewOverlay(
     BackHandler { onDismiss() }
 
     val statusBarPadding: Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val safeBottomPadding = 14.dp
-    val safeVerticalPadding = 18.dp
-    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
-    (screenHeightDp - statusBarPadding - safeVerticalPadding * 2).coerceAtLeast(200.dp)
-    val aspectRatio = if (isPortrait) (9f / 16f) else (16f / 9f)
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val aspectRatio = if (isPortrait) 9f / 16f else 16f / 9f
 
+    // Background
     Box(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) { detectTapGestures { onDismiss() } }
-            .background(Color.Black.copy(alpha = 0.60f))
+            .background(Color.Black.copy(alpha = 0.75f))
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
+            modifier = Modifier.fillMaxSize()
                 .background(
                     Brush.radialGradient(
                         listOf(Color.Transparent, Color.Black.copy(alpha = 0.32f)),
@@ -116,151 +108,200 @@ fun WallpaperPreviewOverlay(
         )
     }
 
+    // Main container
     Box(modifier = Modifier.fillMaxSize()) {
 
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = statusBarPadding)
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = statusBarPadding)
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f),
+                modifier = Modifier.height(46.dp)
             ) {
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f),
-                    tonalElevation = 6.dp,
-                    modifier = Modifier.height(46.dp)
-                ) {
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(46.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(id = R.string.preview_close))
-                    }
+                IconButton(onClick = onDismiss, modifier = Modifier.size(46.dp)) {
+                    Icon(Icons.Default.Close, contentDescription = stringResource(id = R.string.preview_close))
                 }
+            }
 
-                Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
 
-                TextButton(
-                    onClick = {
-                        if (isBusy) return@TextButton
-                        showApplyDialog = true
-                    },
-                    modifier = Modifier.height(44.dp)
-                ) {
-                    Text(stringResource(id = R.string.preview_done))
-                }
+            TextButton(
+                onClick = {
+                    if (!isBusy) showApplyDialog = true
+                },
+                modifier = Modifier.height(44.dp)
+            ) {
+                Text(stringResource(id = R.string.preview_done))
             }
         }
 
-        var pressed by remember { mutableStateOf(false) }
-        val scale by animateFloatAsState(
-            targetValue = if (pressed) 0.99f else 1f,
-            animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium)
-        )
-
-        Box(
+        // Center block
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(50.dp)   // ← ADD HERE ONLY
-                .padding(top = statusBarPadding + safeVerticalPadding, bottom = safeBottomPadding + safeVerticalPadding)
-                .zIndex(1f),
-            contentAlignment = Alignment.Center
+                .padding(horizontal = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-        DeviceFrame(
-                modifier = Modifier
-                    .fillMaxWidth(0.92f)
-                    .aspectRatio(aspectRatio)
-                    .graphicsLayer { scaleX = scale; scaleY = scale }
-                    .pointerInput(Unit) {
-                        detectTapGestures(onPress = {
-                            pressed = true
-                            tryAwaitRelease()
-                            pressed = false
-                        })
-                    }
-                    .shadow(12.dp, RoundedCornerShape(20.dp))
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    WallpaperItemCard(
-                        wallpaper = wallpaper,
-                        isPortrait = isPortrait,
-                        addNoise = noise,
-                        addStripes = stripes,
-                        addOverlay = overlay,
-                        isFavorite = isFavorite,
-                        onFavoriteToggle = {
-                            onFavoriteToggle(noise, stripes, overlay)
-                        },
-                        onClick = {},
-                        isPreview = true
-                    )
 
-                    AnimatedVisibility(visible = isBusy, enter = fadeIn(), exit = fadeOut()) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(10.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f))
-                                .padding(8.dp)
+            // Row: Preview + Gradient options
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val previewWidth = (screenWidth * 0.36f).coerceAtMost(420.dp)
+
+                // Wallpaper preview
+                Box(
+                    modifier = Modifier
+                        .width(previewWidth)
+                        .aspectRatio(aspectRatio)
+                        .clip(RoundedCornerShape(14.dp))
+                        .shadow(6.dp)
+                        .background(MaterialTheme.colorScheme.surface)
+                ) {
+                    DeviceFrame(modifier = Modifier.fillMaxSize()) {
+                        WallpaperItemCard(
+                            wallpaper = wallpaper,
+                            isPortrait = isPortrait,
+                            addNoise = noise,
+                            addStripes = stripes,
+                            addOverlay = overlay,
+                            isFavorite = isFavorite,
+                            onFavoriteToggle = { onFavoriteToggle(noise, stripes, overlay) },
+                            onClick = {},
+                            isPreview = true
+                        )
+
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = isBusy,
+                            enter = fadeIn(), exit = fadeOut()
                         ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(8.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f))
+                                    .padding(6.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            }
                         }
                     }
                 }
-            }
-        }
 
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .zIndex(3f)
-                .padding(bottom = safeBottomPadding)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .padding(14.dp)
-                .fillMaxWidth(0.96f)
-                .heightIn(min = 160.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.width(14.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .zIndex(5f),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
+                // Gradient panel
+                Column(
                     modifier = Modifier
-                        .wrapContentWidth()
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.18f))
-                        .shadow(4.dp, RoundedCornerShape(999.dp))
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .widthIn(min = 180.dp, max = 320.dp)
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    EffectChip(label = stringResource(id = R.string.preview_effect_nothing), selected = overlay) {
-                        overlay = !overlay
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    Text(stringResource(id = R.string.gradient_style_title), fontWeight = FontWeight.Medium)
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        GradientTypeItem(stringResource(id = R.string.gradient_style_angular), selectedGradient == GradientType.ANGULAR) {
+                            selectedGradient = GradientType.ANGULAR
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                        GradientTypeItem(stringResource(id = R.string.gradient_style_linear), selectedGradient == GradientType.LINEAR) {
+                            selectedGradient = GradientType.LINEAR
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                        GradientTypeItem(stringResource(id = R.string.gradient_style_diamond), selectedGradient == GradientType.DIAMOND) {
+                            selectedGradient = GradientType.DIAMOND
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                        GradientTypeItem(stringResource(id = R.string.gradient_style_radial), selectedGradient == GradientType.RADIAL) {
+                            selectedGradient = GradientType.RADIAL
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
                     }
-                    EffectChip(label = stringResource(id = R.string.preview_effect_snow), selected = noise) {
-                        noise = !noise
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("${gradientAngle.toInt()}°", modifier = Modifier.width(44.dp))
+                        Slider(
+                            value = gradientAngle,
+                            onValueChange = { gradientAngle = it },
+                            valueRange = 0f..360f,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
                     }
-                    EffectChip(label = stringResource(id = R.string.preview_effect_stripes), selected = stripes) {
-                        stripes = !stripes
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Effects center row
+            Row(
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.06f))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                EffectChip(stringResource(id = R.string.preview_effect_nothing), overlay) {
+                    overlay = !overlay
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
+                EffectChip(stringResource(id = R.string.preview_effect_snow), noise) {
+                    noise = !noise
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
+                EffectChip(stringResource(id = R.string.preview_effect_stripes), stripes) {
+                    stripes = !stripes
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+
+            // Effect sliders
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (overlay) {
+                    EffectOpacitySlider(
+                        label = stringResource(id = R.string.preview_opacity_nothing),
+                        value = overlayAlpha,
+                        onChange = { overlayAlpha = it }
+                    )
+                }
+                if (noise) {
+                    EffectOpacitySlider(
+                        label = stringResource(id = R.string.preview_opacity_snow),
+                        value = noiseAlpha,
+                        onChange = { noiseAlpha = it }
+                    )
+                }
+                if (stripes) {
+                    EffectOpacitySlider(
+                        label = stringResource(id = R.string.preview_opacity_stripes),
+                        value = stripesAlpha,
+                        onChange = { stripesAlpha = it }
+                    )
+                }
+            }
         }
 
         if (showApplyDialog) {
@@ -272,12 +313,58 @@ fun WallpaperPreviewOverlay(
                 addStripes = stripes,
                 addOverlay = overlay,
                 isWorking = isBusy,
-                onWorkingChange = { isWorking -> isBusy = isWorking },
+                onWorkingChange = { isBusy = it },
                 onDismiss = { showApplyDialog = false },
                 writePermissionLauncher = writePermissionLauncher,
                 context = context,
                 coroutineScope = coroutineScope
             )
+        }
+    }
+}
+
+@Composable
+private fun EffectOpacitySlider(label: String, value: Float, onChange: (Float) -> Unit) {
+    Text(label, fontWeight = FontWeight.Medium)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(id = R.string.preview_off), modifier = Modifier.width(40.dp))
+        Slider(
+            value = value,
+            onValueChange = onChange,
+            modifier = Modifier.weight(1f),
+            valueRange = 0f..1f
+        )
+        Text(stringResource(id = R.string.preview_high), modifier = Modifier.width(40.dp))
+    }
+}
+
+@Composable
+private fun GradientTypeItem(label: String, selected: Boolean, onClick: () -> Unit) {
+    val bg = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+    val contentColor =
+        if (selected && bg.luminance() > 0.5f) Color.Black else MaterialTheme.colorScheme.onSurface
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = bg,
+        tonalElevation = if (selected) 6.dp else 0.dp,
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                    )
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(label, color = contentColor)
         }
     }
 }
@@ -289,13 +376,13 @@ private fun DeviceFrame(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .border(width = 1.dp, color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.14f), shape = RoundedCornerShape(20.dp))
+            .border(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.14f), RoundedCornerShape(14.dp))
     ) {
-
-        Box(modifier = Modifier.padding(8.dp)) { content() }
-
+        Box(modifier = Modifier.padding(6.dp)) {
+            content()
+        }
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -310,37 +397,33 @@ private fun DeviceFrame(
 
 @Composable
 private fun EffectChip(label: String, selected: Boolean, onToggle: () -> Unit) {
-    val themeBg = MaterialTheme.colorScheme.background
-    val isThemeLight = themeBg.luminance() > 0.5f
-    val unselectedBg = if (isThemeLight) {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.06f)
-    } else {
-        Color.Transparent
-    }
+    val unselectedBg =
+        if (MaterialTheme.colorScheme.background.luminance() > 0.5f)
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.06f)
+        else Color.Transparent
 
-    val targetBg = if (selected) MaterialTheme.colorScheme.primaryContainer else unselectedBg
-    val bg by androidx.compose.animation.animateColorAsState(targetBg, animationSpec = tween(220))
-    val contentColor = if (!selected) {
-        Color.White
-    } else {
-        if (bg.luminance() > 0.5f) Color.Black else Color.White
-    }
+    val targetBg =
+        if (selected) MaterialTheme.colorScheme.primaryContainer else unselectedBg
 
-    val elev by animateDpAsState(if (selected) 6.dp else 0.dp)
+    val bg by animateColorAsState(targetBg, tween(220))
+
+    val contentColor =
+        if (selected && bg.luminance() > 0.5f) Color.Black else Color.White
+
+    val elev by androidx.compose.animation.core.animateDpAsState(if (selected) 6.dp else 0.dp)
 
     Surface(
         shape = RoundedCornerShape(999.dp),
         tonalElevation = elev,
         color = bg,
-        border = if (selected) null else ButtonDefaults.outlinedButtonBorder,
+        border = if (!selected) ButtonDefaults.outlinedButtonBorder else null
     ) {
         Row(
-            modifier = Modifier
-                .clickable(onClick = onToggle)
+            modifier = Modifier.clickable { onToggle() }
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = label, color = contentColor)
+            Text(label, color = contentColor)
         }
     }
 }
