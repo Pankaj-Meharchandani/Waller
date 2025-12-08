@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,6 +62,7 @@ import com.example.waller.ui.wallpaper.Wallpaper
 import com.example.waller.ui.wallpaper.ApplyDownloadDialog
 import kotlinx.coroutines.CoroutineScope
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.example.waller.R
 
@@ -308,16 +310,29 @@ private fun DeviceFrame(
 
 @Composable
 private fun EffectChip(label: String, selected: Boolean, onToggle: () -> Unit) {
-    val targetBg = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+    val themeBg = MaterialTheme.colorScheme.background
+    val isThemeLight = themeBg.luminance() > 0.5f
+    val unselectedBg = if (isThemeLight) {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.06f)
+    } else {
+        Color.Transparent
+    }
+
+    val targetBg = if (selected) MaterialTheme.colorScheme.primaryContainer else unselectedBg
     val bg by androidx.compose.animation.animateColorAsState(targetBg, animationSpec = tween(220))
-    val contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+    val contentColor = if (!selected) {
+        Color.White
+    } else {
+        if (bg.luminance() > 0.5f) Color.Black else Color.White
+    }
+
     val elev by animateDpAsState(if (selected) 6.dp else 0.dp)
 
     Surface(
         shape = RoundedCornerShape(999.dp),
         tonalElevation = elev,
         color = bg,
-        border = if (selected) null else androidx.compose.material3.ButtonDefaults.outlinedButtonBorder,
+        border = if (selected) null else ButtonDefaults.outlinedButtonBorder,
     ) {
         Row(
             modifier = Modifier
