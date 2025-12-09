@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.androidx.palette.ktx)
     implementation(libs.simpledialogfragments)
     implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.compose.foundation.layout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

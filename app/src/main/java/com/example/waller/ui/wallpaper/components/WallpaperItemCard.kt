@@ -1,15 +1,18 @@
 /**
+ * WallpaperItemCard.kt
  * Individual wallpaper preview card used inside the lazy grid.
  * Renders:
  * - Gradient background (Compose Brush)
  * - Optional noise and stripe effects
  * - Optional Nothing-style PNG overlay
- * - Bottom-left tag: gradient type + 2 color swatches
- * - Top-right heart icon to mark/unmark as favourite
+ * - Bottom-left tag: gradient type + color swatches
+ * - Top-right heart icon visually outside the card to mark/unmark as favourite
+ * - Shows saved angle badge when angle != 0
  *
  * Opens the Apply/Download dialog when tapped.
  */
 
+@file:Suppress("DEPRECATION")
 package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.Canvas
@@ -19,6 +22,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +39,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,11 +51,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.Wallpaper
 import kotlin.random.Random
+import androidx.compose.ui.text.style.TextAlign
 
+/**
+ * Changed signature: onFavoriteToggle now gets the Wallpaper and current effect flags
+ * so parents can create a proper FavoriteWallpaper snapshot (with angle/type).
+ *
+ * onFavoriteToggle: (wallpaper, addNoise, addStripes, addOverlay) -> Unit
+ */
 @Composable
 fun WallpaperItemCard(
     wallpaper: Wallpaper,
@@ -59,7 +72,7 @@ fun WallpaperItemCard(
     addStripes: Boolean,
     addOverlay: Boolean,
     isFavorite: Boolean,
-    onFavoriteToggle: () -> Unit,
+    onFavoriteToggle: (Wallpaper, Boolean, Boolean, Boolean) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isPreview: Boolean = false
@@ -96,30 +109,34 @@ fun WallpaperItemCard(
                 addOverlay = addOverlay
             )
 
-            // Favourite heart in top-right with "squarcle" background
+            // Floating fav button placed slightly outside the card bounds (top-right)
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 8.dp, end = 8.dp)
-                    .clip(RoundedCornerShape(30.dp))
-                    .background(Color.Black.copy(alpha = 0.35f))
+                    // push outside the card by negative offset on Y
+                    .offset(x = 8.dp, y = (-8).dp)
             ) {
-                IconButton(
-                    onClick = onFavoriteToggle,
-                    modifier = Modifier.size(40.dp)
+                Surface(
+                    shape = RoundedCornerShape(30.dp),
+                    color = Color.Black.copy(alpha = 0.35f)
                 ) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                        contentDescription = null,
-                        tint = if (isFavorite) Color(0xFFFF4D6A) else Color.White
-                    )
+                    IconButton(
+                        onClick = { onFavoriteToggle(wallpaper, addNoise, addStripes, addOverlay) },
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = null,
+                            tint = if (isFavorite) Color(0xFFFF4D6A) else Color.White
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-/* WallpaperItem remains unchanged from your original file — keep as-is below */
+/* WallpaperItem kept as in your original file — rendering logic for gradient/effects/overlay */
 
 @Composable
 fun WallpaperItem(

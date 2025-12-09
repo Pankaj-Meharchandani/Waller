@@ -126,6 +126,7 @@
     <string name="preview_opacity_stripes">Stripes Opacity</string>
     <string name="preview_off">Off</string>
     <string name="preview_high">High</string>
+    <string name="preview_favorite">Favourite</string>
 
 
 </resources>

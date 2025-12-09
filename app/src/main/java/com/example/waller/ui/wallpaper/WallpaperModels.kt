@@ -21,7 +21,8 @@ import androidx.compose.ui.graphics.Color
 
 data class Wallpaper(
     val colors: List<Color>,
-    val type: GradientType
+    val type: GradientType,
+    val angleDeg: Float = 0f
 )
 
 enum class GradientType {

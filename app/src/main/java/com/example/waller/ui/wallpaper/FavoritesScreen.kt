@@ -43,7 +43,7 @@ fun FavoritesScreen(
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit,
     onRemoveFavourite: (FavoriteWallpaper) -> Unit,
-    onAddFavourite: (FavoriteWallpaper) -> Unit // NEW: callback to add back a favourite
+    onAddFavourite: (FavoriteWallpaper) -> Unit // callback to add back a favourite
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -122,7 +122,7 @@ fun FavoritesScreen(
                 addStripes = fav.addStripes,
                 addOverlay = fav.addOverlay,
                 isFavorite = true,
-                onFavoriteToggle = {
+                onFavoriteToggle = { w, n, s, o ->
                     onRemoveFavourite(fav)
                 },
                 onClick = {
@@ -161,8 +161,33 @@ fun FavoritesScreen(
 
         val fav = pendingClickedWallpaper!!
 
-        // local overlay favourite UI state
-        var overlayIsFavorite by remember(fav) { mutableStateOf(true) }
+        // Helper: compare colors list exactly via hex (stable string form).
+        fun sameColors(a: List<androidx.compose.ui.graphics.Color>, b: List<androidx.compose.ui.graphics.Color>): Boolean {
+            if (a.size != b.size) return false
+            for (i in a.indices) if (a[i].toHexString() != b[i].toHexString()) return false
+            return true
+        }
+
+        // Find the stored favourite that corresponds to a given wallpaper snapshot.
+        // 1) try exact match (including angle),
+        // 2) fallback to match by type + colors (backward-compatibility; ignores angle).
+        fun findStoredFavouriteFor(snapshot: Wallpaper): FavoriteWallpaper? {
+            // exact match (data class equality will compare angle if your Wallpaper includes it)
+            favourites.find { it.wallpaper == snapshot }?.let { return it }
+
+            // fallback: match by type + exact color stops
+            for (stored in favourites) {
+                if (stored.wallpaper.type == snapshot.type && sameColors(stored.wallpaper.colors, snapshot.colors)) {
+                    return stored
+                }
+            }
+            return null
+        }
+
+        // Initialize overlayIsFavorite by checking stored favourites (exact or fallback).
+        var overlayIsFavorite by remember(fav, favourites) {
+            mutableStateOf(findStoredFavouriteFor(fav.wallpaper) != null)
+        }
 
         WallpaperPreviewOverlay(
             wallpaper = fav.wallpaper,
@@ -173,26 +198,36 @@ fun FavoritesScreen(
             globalStripes = fav.addStripes,
             globalOverlay = fav.addOverlay,
 
-            onFavoriteToggle = { n, s, o ->
-                // toggle UI immediately
+            onFavoriteToggle = { wallpaperSnapshot, n, s, o ->
+                // Toggle UI immediately for responsiveness
                 overlayIsFavorite = !overlayIsFavorite
 
                 if (overlayIsFavorite) {
-                    // re-add with UPDATED effect flags from the overlay
+                    // ADD: create a new favourite with the exact snapshot (preserves angle)
                     val updatedFav = FavoriteWallpaper(
-                        wallpaper = fav.wallpaper,
+                        wallpaper = wallpaperSnapshot,
                         addNoise = n,
                         addStripes = s,
                         addOverlay = o
                     )
-                    onAddFavourite(updatedFav)
 
-                    // update the pending snapshot so Apply uses correct effects
+                    // Avoid duplicate: if there's already a compatible stored fav, remove it first so we replace.
+                    val existing = findStoredFavouriteFor(wallpaperSnapshot)
+                    if (existing != null) {
+                        onRemoveFavourite(existing)
+                    }
+
+                    onAddFavourite(updatedFav)
+                    // update pendingClickedWallpaper so apply/save uses the new snapshot
                     pendingClickedWallpaper = updatedFav
 
                 } else {
-                    // remove old favourite
-                    onRemoveFavourite(fav)
+                    // REMOVE: remove the stored favourite corresponding to this snapshot (exact or fallback)
+                    val stored = findStoredFavouriteFor(wallpaperSnapshot) ?: fav
+                    onRemoveFavourite(stored)
+
+                    // keep overlay open, update pending to the removed entry so UI remains consistent
+                    pendingClickedWallpaper = stored
                 }
             },
 
@@ -206,6 +241,7 @@ fun FavoritesScreen(
             coroutineScope = coroutineScope
         )
     }
+
     ApplyDownloadDialog(
         show = showApplyDialog,
         wallpaper = pendingClickedWallpaper?.wallpaper,
@@ -214,10 +250,10 @@ fun FavoritesScreen(
         addStripes = pendingClickedWallpaper?.addStripes ?: false,
         addOverlay = pendingClickedWallpaper?.addOverlay ?: false,
         isWorking = isWorking,
-        onWorkingChange = { isWorking = it }, //don't dismiss this warning
+        onWorkingChange = { isWorking = it },
         onDismiss = {
-            showApplyDialog = false //don't dismiss this warning
-            pendingClickedWallpaper = null //don't dismiss this warning
+            showApplyDialog = false
+            pendingClickedWallpaper = null
         },
         writePermissionLauncher = writePermissionLauncher,
         context = context,

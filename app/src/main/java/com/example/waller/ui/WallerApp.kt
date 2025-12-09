@@ -56,6 +56,7 @@ import com.example.waller.ui.wallpaper.WallpaperGeneratorScreen
 import com.example.waller.ui.wallpaper.colorFromHexOrNull
 import com.example.waller.ui.wallpaper.toHexString
 import androidx.core.content.edit
+import kotlin.math.roundToInt
 
 // Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
@@ -205,24 +206,39 @@ fun WallerApp() {
     }
 
     // From Home screen: toggle by wallpaper; snapshot current effects when adding.
+// Matching strategy: try exact match (colors+type+angle), fallback to colors+type (ignore angle)
     fun toggleFavouriteFromHome(
         wallpaper: Wallpaper,
         addNoise: Boolean,
         addStripes: Boolean,
         addOverlay: Boolean
     ) {
-        val existing = favouriteWallpapers.find { it.wallpaper == wallpaper }
-        favouriteWallpapers =
-            if (existing != null) {
-                favouriteWallpapers - existing
-            } else {
-                favouriteWallpapers + FavoriteWallpaper(
-                    wallpaper = wallpaper,
-                    addNoise = addNoise,
-                    addStripes = addStripes,
-                    addOverlay = addOverlay
-                )
-            }
+        // exact compare (type + angle + color stops)
+        fun exactMatch(a: Wallpaper, b: Wallpaper): Boolean =
+            a.type == b.type &&
+                    a.angleDeg.compareTo(b.angleDeg) == 0 &&
+                    a.colors.size == b.colors.size &&
+                    a.colors.zip(b.colors).all { (x, y) -> x.toHexString() == y.toHexString() }
+
+        // match ignoring angle (back-compat)
+        fun matchIgnoringAngle(a: Wallpaper, b: Wallpaper): Boolean =
+            a.type == b.type &&
+                    a.colors.size == b.colors.size &&
+                    a.colors.zip(b.colors).all { (x, y) -> x.toHexString() == y.toHexString() }
+
+        val existingExact = favouriteWallpapers.find { exactMatch(it.wallpaper, wallpaper) }
+        val existingIgnoreAngle = favouriteWallpapers.find { matchIgnoringAngle(it.wallpaper, wallpaper) }
+
+        favouriteWallpapers = when {
+            existingExact != null -> favouriteWallpapers - existingExact
+            existingIgnoreAngle != null -> favouriteWallpapers - existingIgnoreAngle
+            else -> favouriteWallpapers + FavoriteWallpaper(
+                wallpaper = wallpaper, // keep angle from the given wallpaper
+                addNoise = addNoise,
+                addStripes = addStripes,
+                addOverlay = addOverlay
+            )
+        }
         persistFavourites()
     }
 
@@ -427,39 +443,42 @@ private fun WallerBottomBar(
 
 /* --------------------------- Favourites encode/decode --------------------------- */
 
+/** Encodes favourites as: type|hex1,hex2,...|flagsCsv|angleInt  (joined by ';' between items) */
 private fun encodeFavourites(list: List<FavoriteWallpaper>): String =
     list.joinToString(";") { fav ->
         val typeName = fav.wallpaper.type.name
         val colorsStr = fav.wallpaper.colors.joinToString(",") { it.toHexString() }
         val flagsStr = listOf(fav.addNoise, fav.addStripes, fav.addOverlay)
             .joinToString(",") { if (it) "1" else "0" }
-
-        listOf(typeName, colorsStr, flagsStr).joinToString("|")
+        val angleInt = fav.wallpaper.angleDeg.roundToInt()
+        listOf(typeName, colorsStr, flagsStr, angleInt.toString()).joinToString("|")
     }
 
+/** Decodes both new (4-part) and old (3-part without angle) formats. */
 private fun decodeFavourites(raw: String): List<FavoriteWallpaper> =
     raw.split(";")
         .mapNotNull { item ->
             if (item.isBlank()) return@mapNotNull null
             val parts = item.split("|")
-            if (parts.size != 3) return@mapNotNull null
+            if (parts.size < 3) return@mapNotNull null
 
-            val type = runCatching { GradientType.valueOf(parts[0]) }.getOrNull()
+            val type = runCatching { GradientType.valueOf(parts[0]) }.getOrNull() ?: return@mapNotNull null
+
+            val colors = parts.getOrNull(1)
+                ?.split(",")
+                ?.mapNotNull { token -> colorFromHexOrNull(token) }
+                ?.takeIf { it.isNotEmpty() }
                 ?: return@mapNotNull null
 
-            val colors = parts[1]
-                .split(",")
-                .mapNotNull { token -> colorFromHexOrNull(token) }
-                .takeIf { it.isNotEmpty() }
-                ?: return@mapNotNull null
-
-            val flagTokens = parts[2].split(",")
+            val flagTokens = parts.getOrNull(2)?.split(",") ?: listOf()
             val addNoise = flagTokens.getOrNull(0) == "1"
             val addStripes = flagTokens.getOrNull(1) == "1"
             val addOverlay = flagTokens.getOrNull(2) == "1"
 
+            val angleDeg = parts.getOrNull(3)?.toFloatOrNull() ?: 0f
+
             FavoriteWallpaper(
-                wallpaper = Wallpaper(colors = colors, type = type),
+                wallpaper = Wallpaper(colors = colors, type = type, angleDeg = angleDeg),
                 addNoise = addNoise,
                 addStripes = addStripes,
                 addOverlay = addOverlay

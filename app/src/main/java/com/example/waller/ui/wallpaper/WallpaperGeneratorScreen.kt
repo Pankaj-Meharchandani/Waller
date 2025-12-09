@@ -396,10 +396,10 @@ fun WallpaperGeneratorScreen(
                 addStripes = addStripes,
                 addOverlay = addOverlay,
                 isFavorite = isFavourite,
-                onFavoriteToggle = {
-                    onToggleFavourite(wallpaper, addNoise, addStripes, addOverlay)
+                onFavoriteToggle = { w, n, s, o ->
+                    onToggleFavourite(w, n, s, o)
                 },
-                onClick = {
+                        onClick = {
                     previewWallpaper = wallpaper
                     showPreview = true
                 }
@@ -431,20 +431,18 @@ fun WallpaperGeneratorScreen(
     }
 
     // Inline preview overlay (opened when user taps a wallpaper)
+    // inside WallpaperGeneratorScreen where you show overlay:
     if (showPreview && previewWallpaper != null) {
+        val preview = previewWallpaper!!
         WallpaperPreviewOverlay(
-            wallpaper = previewWallpaper!!,
+            wallpaper = preview,
             isPortrait = isPortrait,
-            isFavorite = favouriteWallpapers.any { it.wallpaper == previewWallpaper },
-            onFavoriteToggle = { n, s, o ->
-                onToggleFavourite(
-                    previewWallpaper!!,
-                    n,
-                    s,
-                    o
-                )
+            isFavorite = favouriteWallpapers.any { it.wallpaper == preview },
+            // NEW: overlay will pass the exact wallpaper to save (with type & angle)
+            onFavoriteToggle = { wallpaperToSave, n, s, o ->
+                // forward to your existing toggle handler; pass the wallpaper with current flags
+                onToggleFavourite(wallpaperToSave, n, s, o)
             },
-
             globalNoise = addNoise,
             globalStripes = addStripes,
             globalOverlay = addOverlay,
