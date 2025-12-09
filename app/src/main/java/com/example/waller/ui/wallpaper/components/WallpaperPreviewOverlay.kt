@@ -1,9 +1,14 @@
 /**
  * Fullscreen overlay for previewing a wallpaper before saving or applying.
  * Shows a live device-frame preview with controls for gradient style, angle,
- * and visual effects such as noise, stripes, and overlay opacity.
+ * and visual effects such as noise, stripes, and overlay PNG.
  * Designed to provide an interactive, real-time editing experience
  * while keeping the UI consistent in both portrait and landscape modes.
+ *
+ * - Tapping gradient buttons switches the preview's gradient type but keeps the
+ *   original wallpaper colors.
+ * - Angle slider (0..360) controls the starting point / rotation of the
+ *   gradient for the preview.
  */
 
 @file:Suppress("DEPRECATION")
@@ -16,6 +21,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,10 +46,25 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import android.graphics.Matrix
+import android.graphics.Shader
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -51,6 +73,7 @@ import com.example.waller.R
 import com.example.waller.ui.wallpaper.ApplyDownloadDialog
 import com.example.waller.ui.wallpaper.Wallpaper
 import kotlinx.coroutines.CoroutineScope
+import kotlin.math.*
 
 enum class GradientType { ANGULAR, LINEAR, DIAMOND, RADIAL }
 
@@ -103,6 +126,7 @@ fun WallpaperPreviewOverlay(
         )
     }
 
+    // angle in degrees (0..360)
     var gradientAngle by remember { mutableFloatStateOf(45f) }
 
     var showApplyDialog by remember { mutableStateOf(false) }
@@ -191,16 +215,15 @@ fun WallpaperPreviewOverlay(
                             .background(MaterialTheme.colorScheme.surface)
                     ) {
                         DeviceFrame(modifier = Modifier.fillMaxSize()) {
-                            WallpaperItemCard(
+                            // <-- Use local preview renderer that respects selectedGradient & gradientAngle -->
+                            PreviewWallpaperRender(
                                 wallpaper = wallpaper,
-                                isPortrait = isPortrait,
+                                previewType = selectedGradient,
+                                angleDeg = gradientAngle,
                                 addNoise = noise,
                                 addStripes = stripes,
                                 addOverlay = overlay,
-                                isFavorite = isFavorite,
-                                onFavoriteToggle = { onFavoriteToggle(noise, stripes, overlay) },
-                                onClick = {},
-                                isPreview = true
+                                modifier = Modifier.fillMaxSize()
                             )
 
                             if (isBusy) {
@@ -305,16 +328,14 @@ fun WallpaperPreviewOverlay(
                             .background(MaterialTheme.colorScheme.surface)
                     ) {
                         DeviceFrame(modifier = Modifier.fillMaxSize()) {
-                            WallpaperItemCard(
+                            PreviewWallpaperRender(
                                 wallpaper = wallpaper,
-                                isPortrait = isPortrait,
+                                previewType = selectedGradient,
+                                angleDeg = gradientAngle,
                                 addNoise = noise,
                                 addStripes = stripes,
                                 addOverlay = overlay,
-                                isFavorite = isFavorite,
-                                onFavoriteToggle = { onFavoriteToggle(noise, stripes, overlay) },
-                                onClick = {},
-                                isPreview = true
+                                modifier = Modifier.fillMaxSize()
                             )
 
                             if (isBusy) {
@@ -506,6 +527,272 @@ fun WallpaperPreviewOverlay(
                 context = context,
                 coroutineScope = coroutineScope
             )
+        }
+    }
+}
+
+/** Small helper: creates a preview brush taking angle into account. */
+private fun createBrushForPreview(
+    colors: List<Color>,
+    type: GradientType,
+    widthPx: Float,
+    heightPx: Float,
+    angleDeg: Float
+): Brush {
+    // convert degrees -> radians
+    val a = Math.toRadians(angleDeg.toDouble()).toFloat()
+    val cx = widthPx / 2f
+    val cy = heightPx / 2f
+
+    return when (type) {
+        GradientType.LINEAR, GradientType.DIAMOND -> {
+            // start/end along angle vector
+            val dx = cos(a)
+            val dy = sin(a)
+            val halfW = widthPx / 2f
+            val halfH = heightPx / 2f
+            val start = androidx.compose.ui.geometry.Offset(cx - dx * halfW, cy - dy * halfH)
+            val end = androidx.compose.ui.geometry.Offset(cx + dx * halfW, cy + dy * halfH)
+            Brush.linearGradient(colors = colors, start = start, end = end)
+        }
+        GradientType.RADIAL -> {
+            // shift radial center along angle (not huge shift; subtle)
+            val radius = max(widthPx, heightPx) * 0.6f
+            val shiftFactor = 0.22f
+            val ox = cx + cos(a) * radius * shiftFactor
+            val oy = cy + sin(a) * radius * shiftFactor
+            Brush.radialGradient(colors = colors, center = androidx.compose.ui.geometry.Offset(ox, oy), radius = radius)
+        }
+        GradientType.ANGULAR -> {
+            // Sweep gradient — Compose doesn't expose rotation param on SweepBrush in all versions,
+            // so we'll rotate the container instead of the brush. Use a default sweep here.
+            Brush.sweepGradient(colors = colors)
+        }
+    }
+}
+
+/**
+ * Local preview renderer that accepts angle + gradient type and renders the
+ * same visual effects as the item cards (noise, stripes, PNG overlay).
+ *
+ * This keeps preview behavior local to overlay and avoids touching other files.
+ */
+@Composable
+private fun PreviewWallpaperRender(
+    wallpaper: Wallpaper,
+    previewType: GradientType,
+    angleDeg: Float,
+    addNoise: Boolean,
+    addStripes: Boolean,
+    addOverlay: Boolean,
+    modifier: Modifier = Modifier
+) {
+    // ensure rounded clipping so corners are always rounded
+    val cornerRadius = 14.dp
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(cornerRadius))
+    ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val widthDp = maxWidth
+            val heightDp = maxHeight
+            val density = LocalDensity.current
+            val widthPx = with(density) { widthDp.toPx() }
+            val heightPx = with(density) { heightDp.toPx() }
+
+            // convert Compose colors to android ints for native shader usage
+            val androidColors = wallpaper.colors.map { it.toArgb() }.toIntArray()
+
+            // For LINEAR / RADIAL / DIAMOND use Compose brushes as before
+            val brush = remember(wallpaper.colors, previewType, angleDeg, widthPx, heightPx) {
+                createBrushForPreview(wallpaper.colors, previewType, widthPx, heightPx, angleDeg)
+            }
+
+            // If ANGULAR we will paint gradient using native canvas + SweepGradient and rotate ONLY the shader.
+            if (previewType == GradientType.ANGULAR) {
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    // draw sweep shader into native canvas and rotate shader via Matrix
+                    val cx = size.width / 2f
+                    val cy = size.height / 2f
+
+                    val sweep = android.graphics.SweepGradient(cx, cy, androidColors, null)
+
+                    // rotate shader so 0deg aligns with angleDeg slider
+                    val matrix = Matrix()
+                    matrix.setRotate(angleDeg, cx, cy)
+                    // set local matrix on shader
+                    try {
+                        sweep.setLocalMatrix(matrix)
+                    } catch (e: Exception) {
+                        // fall back if not supported on some devices
+                    }
+
+                    val paint = android.graphics.Paint().apply {
+                        isAntiAlias = true
+                        shader = sweep
+                    }
+
+                    // draw gradient rectangle via nativeCanvas (keeps shader rotation local)
+                    drawContext.canvas.nativeCanvas.drawRect(0f, 0f, size.width, size.height, paint)
+
+                    // now draw noise on top (compose)
+                    if (addNoise) {
+                        val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
+                        val numNoisePoints =
+                            (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                        repeat(numNoisePoints) {
+                            val x = kotlin.random.Random.nextFloat() * size.width
+                            val y = kotlin.random.Random.nextFloat() * size.height
+                            val alpha = kotlin.random.Random.nextFloat() * 0.15f
+                            drawCircle(
+                                color = Color.White.copy(alpha = alpha),
+                                radius = noiseSize,
+                                center = Offset(x, y)
+                            )
+                        }
+                    }
+
+                    // stripes
+                    if (addStripes) {
+                        val stripeCount = 18
+                        val stripeWidth = size.width / (stripeCount * 2f)
+                        for (i in 0 until stripeCount) {
+                            val left = i * stripeWidth * 2f
+                            drawRect(
+                                color = Color.White.copy(alpha = 0.10f),
+                                topLeft = Offset(left, 0f),
+                                size = Size(stripeWidth, size.height)
+                            )
+                        }
+                    }
+
+                    // overlay PNG
+                    if (addOverlay) {
+                        // draw overlay using Compose Image for correct scaling & alpha
+                        // place an Image composable over the Canvas
+                    }
+                }
+
+                // Draw overlay PNG and other composables on top (outside Canvas) so they are not rotated.
+                if (addOverlay) {
+                    Image(
+                        painter = painterResource(id = R.drawable.overlay_stripes),
+                        contentDescription = null,
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.FillBounds
+                    )
+                }
+
+                // bottom tag (type + swatches)
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(10.dp)
+                        .background(
+                            Color.Black.copy(alpha = 0.36f),
+                            shape = RoundedCornerShape(999.dp)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = previewType.name.lowercase().replaceFirstChar { it.uppercase() },
+                        color = Color.White
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    wallpaper.colors.forEachIndexed { index, color ->
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(color)
+                        )
+                        if (index != wallpaper.colors.lastIndex) {
+                            Spacer(Modifier.width(6.dp))
+                        }
+                    }
+                }
+            } else {
+                // Non-angular flows (linear / radial / diamond) — use compose brush then draw noise/stripes/overlay on top
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier
+                        .matchParentSize()
+                        .background(brush)
+                    )
+
+                    if (addNoise) {
+                        Canvas(modifier = Modifier.matchParentSize()) {
+                            val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
+                            val numNoisePoints =
+                                (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                            repeat(numNoisePoints) {
+                                val x = kotlin.random.Random.nextFloat() * size.width
+                                val y = kotlin.random.Random.nextFloat() * size.height
+                                val alpha = kotlin.random.Random.nextFloat() * 0.15f
+                                drawCircle(
+                                    color = Color.White.copy(alpha = alpha),
+                                    radius = noiseSize,
+                                    center = Offset(x, y)
+                                )
+                            }
+                        }
+                    }
+
+                    if (addStripes) {
+                        Canvas(modifier = Modifier.matchParentSize()) {
+                            val stripeCount = 18
+                            val stripeWidth = size.width / (stripeCount * 2f)
+                            for (i in 0 until stripeCount) {
+                                val left = i * stripeWidth * 2f
+                                drawRect(
+                                    color = Color.White.copy(alpha = 0.10f),
+                                    topLeft = Offset(left, 0f),
+                                    size = Size(stripeWidth, size.height)
+                                )
+                            }
+                        }
+                    }
+
+                    if (addOverlay) {
+                        Image(
+                            painter = painterResource(id = R.drawable.overlay_stripes),
+                            contentDescription = null,
+                            modifier = Modifier.matchParentSize(),
+                            contentScale = ContentScale.FillBounds
+                        )
+                    }
+
+                    // bottom tag (type + swatches)
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(10.dp)
+                            .background(
+                                Color.Black.copy(alpha = 0.36f),
+                                shape = RoundedCornerShape(999.dp)
+                            )
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = previewType.name.lowercase().replaceFirstChar { it.uppercase() },
+                            color = Color.White
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        wallpaper.colors.forEachIndexed { index, color ->
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(color)
+                            )
+                            if (index != wallpaper.colors.lastIndex) {
+                                Spacer(Modifier.width(6.dp))
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
