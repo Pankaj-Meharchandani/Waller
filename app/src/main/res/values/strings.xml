@@ -128,5 +128,11 @@
     <string name="preview_high">High</string>
     <string name="preview_favorite">Favourite</string>
 
+    <string name="interaction_mode_title">Interaction mode</string>
+    <string name="interaction_mode_simple">Simple</string>
+    <string name="interaction_mode_simple_sub">One-tap apply/download wallpapers</string>
+    <string name="interaction_mode_advanced">Advanced</string>
+    <string name="interaction_mode_advanced_sub">Open preview overlay with full controls. \nWarning: App auto rotate locked.</string>
+
 
 </resources>

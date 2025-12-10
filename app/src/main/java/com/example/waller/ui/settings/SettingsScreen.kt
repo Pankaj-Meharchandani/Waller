@@ -128,7 +128,7 @@ fun SettingsScreen(
         // Interaction Mode (Simple / Advanced) ----------------------------
         SectionCard {
             Text(
-                text = "Interaction mode",
+                text = stringResource(R.string.interaction_mode_title),
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(Modifier.height(8.dp))
@@ -146,9 +146,9 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.width(8.dp))
                 Column {
-                    Text("Simple")
+                    Text(stringResource(R.string.interaction_mode_simple))
                     Text(
-                        "One-tap apply wallpapers",
+                        stringResource(R.string.interaction_mode_simple_sub),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -170,9 +170,9 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.width(8.dp))
                 Column {
-                    Text("Advanced")
+                    Text(stringResource(R.string.interaction_mode_advanced))
                     Text(
-                        "Open preview overlay with full controls",
+                        stringResource(R.string.interaction_mode_advanced_sub),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
