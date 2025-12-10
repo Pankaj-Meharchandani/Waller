@@ -253,30 +253,6 @@ fun WallerApp() {
     }
 
 
-    // Helper builder to create a FavoriteWallpaper with alpha fields
-    fun favoriteWallpapersPlus(
-        wallpaper: Wallpaper,
-        addNoise: Boolean,
-        addStripes: Boolean,
-        addOverlay: Boolean,
-        noiseAlpha: Float,
-        stripesAlpha: Float,
-        overlayAlpha: Float
-    ): List<FavoriteWallpaper> {
-        // Append new FavoriteWallpaper preserving alphas
-        val newFav = FavoriteWallpaper(
-            wallpaper = wallpaper,
-            addNoise = addNoise,
-            addStripes = addStripes,
-            addOverlay = addOverlay,
-            // assume FavoriteWallpaper has these fields in your model
-            noiseAlpha = noiseAlpha,
-            stripesAlpha = stripesAlpha,
-            overlayAlpha = overlayAlpha
-        )
-        return favouriteWallpapers + newFav
-    }
-
     // From Favourites screen: remove that exact favourite entry.
     fun removeFavourite(fav: FavoriteWallpaper) {
         favouriteWallpapers = favouriteWallpapers - fav
