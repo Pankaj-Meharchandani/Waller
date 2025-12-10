@@ -481,6 +481,7 @@ fun WallpaperPreviewOverlay(
                             Slider(
                                 value = gradientAngle,
                                 onValueChange = { gradientAngle = it },
+                                valueRange = 0f..360f,
                                 onValueChangeFinished = {
                                     val checkpoints = listOf(0f, 90f, 180f, 270f)
                                     val nearest = checkpoints.minByOrNull { kotlin.math.abs(it - gradientAngle) } ?: 0f
@@ -720,8 +721,7 @@ private fun PreviewWallpaperRender(
                 }
             }
 
-            // bottom tag
-            // bottom tag (type + swatches)
+            // bottom tag (type + Colors)
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)

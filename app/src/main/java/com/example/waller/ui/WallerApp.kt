@@ -58,17 +58,24 @@ import com.example.waller.ui.wallpaper.toHexString
 import androidx.core.content.edit
 import com.example.waller.ui.wallpaper.InteractionMode
 import kotlin.math.roundToInt
+import android.app.Activity
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import android.view.Surface
+import androidx.compose.runtime.LaunchedEffect
 
 // Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
 
 private const val FAVOURITES_KEY = "favourites_v1"
 private const val PREF_KEY_INTERACTION_MODE = "interaction_mode_v1"
+private const val PREF_KEY_LOCKED_ORIENTATION = "locked_orientation_v1"
 
 @Composable
 fun WallerApp() {
     val systemIsDark = isSystemInDarkTheme()
     val context = LocalContext.current
+    val activity = context as Activity
 
     // --- SharedPreferences handle ---
     val prefs = remember {
@@ -110,7 +117,50 @@ fun WallerApp() {
     fun updateInteractionMode(mode: InteractionMode) {
         interactionMode = mode
         prefs.edit { putString(PREF_KEY_INTERACTION_MODE, mode.name) }
+
+        // Determine current physical orientation from system configuration (portrait vs landscape)
+        val isCurrentlyPortrait = context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+
+        if (mode == InteractionMode.ADVANCED) {
+            // compute lockMode based on current rotation
+            val rotation = try {
+                @Suppress("DEPRECATION")
+                activity.windowManager.defaultDisplay.rotation
+            } catch (_: Exception) {
+                if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) 0 else 1
+            }
+
+            val lockMode = when (rotation) {
+                Surface.ROTATION_0 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                Surface.ROTATION_90 -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                Surface.ROTATION_180 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT
+                Surface.ROTATION_270 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+                else -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
+
+            activity.requestedOrientation = lockMode
+            // persist the lock so we can reapply the same exact lock on startup
+            prefs.edit { putInt(PREF_KEY_LOCKED_ORIENTATION, lockMode) }
+        } else {
+            // SIMPLE mode → restore normal rotation
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
     }
+    // Reapply orientation lock on app startup based on saved mode
+    LaunchedEffect(Unit) {
+        val isPortrait = context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+
+        if (interactionMode == InteractionMode.ADVANCED) {
+            val lockMode =
+                if (isPortrait) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                else ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+
+            activity.requestedOrientation = lockMode
+        } else {
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
 
     // Orientation: AUTO / PORTRAIT / LANDSCAPE
     val initialOrientation = remember {
