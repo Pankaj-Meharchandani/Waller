@@ -90,7 +90,9 @@ fun WallpaperGeneratorScreen(
     addOverlay: Boolean,
     onAddOverlayChange: (Boolean) -> Unit,
     favouriteWallpapers: List<FavoriteWallpaper>,
-    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean) -> Unit,
+    // UPDATED: onToggleFavourite now accepts per-effect alpha floats as well
+    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean,
+                        noiseAlpha: Float, stripesAlpha: Float, overlayAlpha: Float) -> Unit,
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit
 ) {
@@ -395,11 +397,16 @@ fun WallpaperGeneratorScreen(
                 addNoise = addNoise,
                 addStripes = addStripes,
                 addOverlay = addOverlay,
+                // grid-level cards don't have per-card sliders: use global-enabled -> full alpha (1f) or 0f
+                noiseAlpha = if (addNoise) 1f else 0f,
+                stripesAlpha = if (addStripes) 1f else 0f,
+                overlayAlpha = if (addOverlay) 1f else 0f,
                 isFavorite = isFavourite,
-                onFavoriteToggle = { w, n, s, o ->
-                    onToggleFavourite(w, n, s, o)
+                onFavoriteToggle = { w, n, s, o, na, sa, oa ->
+                    // forward the per-item alphas (from card or overlay) to the parent handler
+                    onToggleFavourite(w, n, s, o, na, sa, oa)
                 },
-                        onClick = {
+                onClick = {
                     previewWallpaper = wallpaper
                     showPreview = true
                 }
@@ -437,11 +444,12 @@ fun WallpaperGeneratorScreen(
         WallpaperPreviewOverlay(
             wallpaper = preview,
             isPortrait = isPortrait,
+            initialNoiseAlpha = if (addNoise) 1f else 0f,
+            initialStripesAlpha = if (addStripes) 1f else 0f,
+            initialOverlayAlpha = if (addOverlay) 1f else 0f,
             isFavorite = favouriteWallpapers.any { it.wallpaper == preview },
-            // NEW: overlay will pass the exact wallpaper to save (with type & angle)
-            onFavoriteToggle = { wallpaperToSave, n, s, o ->
-                // forward to your existing toggle handler; pass the wallpaper with current flags
-                onToggleFavourite(wallpaperToSave, n, s, o)
+            onFavoriteToggle = { wallpaperToSave, n, s, o, na, sa, oa ->
+                onToggleFavourite(wallpaperToSave, n, s, o, na, sa, oa)
             },
             globalNoise = addNoise,
             globalStripes = addStripes,
@@ -461,11 +469,14 @@ fun WallpaperGeneratorScreen(
         addNoise = addNoise,
         addStripes = addStripes,
         addOverlay = addOverlay,
+        noiseAlpha = if (addNoise) 1f else 0f, // grid-level default: full or 0
+        stripesAlpha = if (addStripes) 1f else 0f,
+        overlayAlpha = if (addOverlay) 1f else 0f,
         isWorking = isWorking,
-        onWorkingChange = { isWorking = it }, //don't dismiss this warning
+        onWorkingChange = { isWorking = it },
         onDismiss = {
-            showApplyDialog = false //don't dismiss this warning
-            pendingClickedWallpaper = null //don't dismiss this warning
+            showApplyDialog = false
+            pendingClickedWallpaper = null
         },
         writePermissionLauncher = writePermissionLauncher,
         context = context,

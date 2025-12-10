@@ -42,6 +42,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -52,6 +53,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.waller.R
@@ -70,8 +72,18 @@ fun WallpaperPreviewOverlay(
     globalNoise: Boolean,
     globalStripes: Boolean,
     globalOverlay: Boolean,
-    // updated callback: receive the wallpaper snapshot + effect flags
-    onFavoriteToggle: (wallpaper: Wallpaper, noise: Boolean, stripes: Boolean, overlay: Boolean) -> Unit,
+    initialNoiseAlpha: Float = initAlphaFor(globalNoise, DEFAULT_NOISE_ALPHA),
+    initialStripesAlpha: Float = initAlphaFor(globalStripes, DEFAULT_STRIPES_ALPHA),
+    initialOverlayAlpha: Float = initAlphaFor(globalOverlay, DEFAULT_OVERLAY_ALPHA),
+    onFavoriteToggle: (
+        wallpaper: Wallpaper,
+        noise: Boolean,
+        stripes: Boolean,
+        overlay: Boolean,
+        noiseAlpha: Float,
+        stripesAlpha: Float,
+        overlayAlpha: Float
+    ) -> Unit,
     onDismiss: () -> Unit,
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     context: Context,
@@ -88,9 +100,10 @@ fun WallpaperPreviewOverlay(
     var stripes by remember { mutableStateOf(globalStripes) }
     var overlay by remember { mutableStateOf(globalOverlay) }
 
-    var noiseAlpha by remember { mutableFloatStateOf(initAlphaFor(noise, DEFAULT_NOISE_ALPHA)) }
-    var stripesAlpha by remember { mutableFloatStateOf(initAlphaFor(stripes, DEFAULT_STRIPES_ALPHA)) }
-    var overlayAlpha by remember { mutableFloatStateOf(initAlphaFor(overlay, DEFAULT_OVERLAY_ALPHA)) }
+    // per-effect opacity state (already present, just used more thoroughly now)
+    var noiseAlpha by remember { mutableFloatStateOf(initialNoiseAlpha) }
+    var stripesAlpha by remember { mutableFloatStateOf(initialStripesAlpha) }
+    var overlayAlpha by remember { mutableFloatStateOf(initialOverlayAlpha) }
 
     var selectedGradient by remember(wallpaper) {
         mutableStateOf(
@@ -103,6 +116,7 @@ fun WallpaperPreviewOverlay(
         )
     }
 
+    // angle initialized from wallpaper (so overlay respects stored angle)
     var gradientAngle by remember(wallpaper) { mutableFloatStateOf(wallpaper.angleDeg) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isBusy by remember { mutableStateOf(false) }
@@ -121,7 +135,7 @@ fun WallpaperPreviewOverlay(
         justOpened = false
     }
 
-    // create a previewWallpaper snapshot that represents the user's preview choices.
+    // preview snapshot that reflects current style + angle
     val previewWallpaper = remember(wallpaper, selectedGradient, gradientAngle) {
         wallpaper.copy(type = selectedGradient, angleDeg = gradientAngle)
     }
@@ -217,6 +231,9 @@ fun WallpaperPreviewOverlay(
                                 addNoise = noise,
                                 addStripes = stripes,
                                 addOverlay = overlay,
+                                noiseAlpha = noiseAlpha,
+                                stripesAlpha = stripesAlpha,
+                                overlayAlpha = overlayAlpha,
                                 modifier = Modifier.fillMaxSize()
                             )
 
@@ -235,8 +252,16 @@ fun WallpaperPreviewOverlay(
                                         onClick = {
                                             // optimistic toggle so user sees immediate feedback
                                             localFav = !localFav
-                                            // propagate favorite change with current preview snapshot + effect flags
-                                            onFavoriteToggle(previewWallpaper, noise, stripes, overlay)
+                                            // propagate favorite change with current preview snapshot + effect flags + alphas
+                                            onFavoriteToggle(
+                                                previewWallpaper,
+                                                noise,
+                                                stripes,
+                                                overlay,
+                                                noiseAlpha,
+                                                stripesAlpha,
+                                                overlayAlpha
+                                            )
                                         },
                                         modifier = Modifier.size(44.dp)
                                     ) {
@@ -269,7 +294,11 @@ fun WallpaperPreviewOverlay(
                             .widthIn(min = 180.dp, max = 320.dp)
                             .verticalScroll(rememberScrollState())
                     ) {
-                        Text(stringResource(id = R.string.gradient_style_title), style = MaterialTheme.typography.titleMedium, color = overlayTextColor())
+                        Text(
+                            stringResource(id = R.string.gradient_style_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = overlayTextColor()
+                        )
                         Spacer(Modifier.height(8.dp))
 
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -313,14 +342,31 @@ fun WallpaperPreviewOverlay(
                         Spacer(Modifier.height(12.dp))
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("${gradientAngle.toInt()}°", modifier = Modifier.width(44.dp), color = overlayTextColor())
+                            Text(
+                                "${gradientAngle.toInt()}°",
+                                modifier = Modifier.width(44.dp),
+                                color = overlayTextColor()
+                            )
                             Slider(
                                 value = gradientAngle,
                                 onValueChange = { gradientAngle = it },
                                 valueRange = 0f..360f,
+                                onValueChangeFinished = {
+                                    // snap to 0 / 90 / 180 / 270 if close
+                                    val checkpoints = listOf(0f, 90f, 180f, 270f)
+                                    val nearest = checkpoints.minByOrNull { kotlin.math.abs(it - gradientAngle) } ?: 0f
+                                    if (kotlin.math.abs(nearest - gradientAngle) <= 8f) {
+                                        gradientAngle = nearest
+                                    }
+                                },
                                 modifier = Modifier.weight(1f)
                             )
-                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
                         }
                     }
                 }
@@ -344,6 +390,9 @@ fun WallpaperPreviewOverlay(
                                 addNoise = noise,
                                 addStripes = stripes,
                                 addOverlay = overlay,
+                                noiseAlpha = noiseAlpha,
+                                stripesAlpha = stripesAlpha,
+                                overlayAlpha = overlayAlpha,
                                 modifier = Modifier.fillMaxSize()
                             )
                             var localFav by remember { mutableStateOf(isFavorite) } // optimistic UI; parent should update real state
@@ -361,8 +410,16 @@ fun WallpaperPreviewOverlay(
                                         onClick = {
                                             // optimistic toggle so user sees immediate feedback
                                             localFav = !localFav
-                                            // propagate favorite change with current preview snapshot + effect flags
-                                            onFavoriteToggle(previewWallpaper, noise, stripes, overlay)
+                                            // propagate favorite change with current preview snapshot + effect flags + alphas
+                                            onFavoriteToggle(
+                                                previewWallpaper,
+                                                noise,
+                                                stripes,
+                                                overlay,
+                                                noiseAlpha,
+                                                stripesAlpha,
+                                                overlayAlpha
+                                            )
                                         },
                                         modifier = Modifier.size(44.dp)
                                     ) {
@@ -381,7 +438,11 @@ fun WallpaperPreviewOverlay(
 
                     // Chips row (compact)
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(id = R.string.gradient_style_title), style = MaterialTheme.typography.titleMedium, color = overlayTextColor())
+                        Text(
+                            stringResource(id = R.string.gradient_style_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = overlayTextColor()
+                        )
                         Spacer(Modifier.height(12.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             GradientTypeItemRect(
@@ -411,14 +472,30 @@ fun WallpaperPreviewOverlay(
 
                         Spacer(Modifier.height(12.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("${gradientAngle.toInt()}°", modifier = Modifier.width(44.dp), color = overlayTextColor())
+                            Text(
+                                "${gradientAngle.toInt()}°",
+                                modifier = Modifier.width(44.dp),
+                                color = overlayTextColor()
+                            )
                             Slider(
                                 value = gradientAngle,
                                 onValueChange = { gradientAngle = it },
                                 valueRange = 0f..360f,
+                                onValueChangeFinished = {
+                                    val checkpoints = listOf(0f, 90f, 180f, 270f)
+                                    val nearest = checkpoints.minByOrNull { kotlin.math.abs(it - gradientAngle) } ?: 0f
+                                    if (kotlin.math.abs(nearest - gradientAngle) <= 8f) {
+                                        gradientAngle = nearest
+                                    }
+                                },
                                 modifier = Modifier.weight(1f)
                             )
-                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
                         }
                     }
                 }
@@ -435,17 +512,29 @@ fun WallpaperPreviewOverlay(
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    EffectChip(stringResource(id = R.string.preview_effect_nothing), overlay, textColor = overlayTextColor(selectedForButton = overlay)) {
+                    EffectChip(
+                        stringResource(id = R.string.preview_effect_nothing),
+                        overlay,
+                        textColor = overlayTextColor(selectedForButton = overlay)
+                    ) {
                         overlay = !overlay
                         if (overlay && overlayAlpha <= 0f) overlayAlpha = DEFAULT_OVERLAY_ALPHA
                         if (!overlay) overlayAlpha = 0f
                     }
-                    EffectChip(stringResource(id = R.string.preview_effect_snow), noise, textColor = overlayTextColor(selectedForButton = noise)) {
+                    EffectChip(
+                        stringResource(id = R.string.preview_effect_snow),
+                        noise,
+                        textColor = overlayTextColor(selectedForButton = noise)
+                    ) {
                         noise = !noise
                         if (noise && noiseAlpha <= 0f) noiseAlpha = DEFAULT_NOISE_ALPHA
                         if (!noise) noiseAlpha = 0f
                     }
-                    EffectChip(stringResource(id = R.string.preview_effect_stripes), stripes, textColor = overlayTextColor(selectedForButton = stripes)) {
+                    EffectChip(
+                        stringResource(id = R.string.preview_effect_stripes),
+                        stripes,
+                        textColor = overlayTextColor(selectedForButton = stripes)
+                    ) {
                         stripes = !stripes
                         if (stripes && stripesAlpha <= 0f) stripesAlpha = DEFAULT_STRIPES_ALPHA
                         if (!stripes) stripesAlpha = 0f
@@ -455,22 +544,37 @@ fun WallpaperPreviewOverlay(
 
             Spacer(Modifier.height(12.dp))
 
-            // Minimal effect sliders (kept compact)
+            // Effect opacity sliders
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                EffectOpacitySlider(stringResource(id = R.string.preview_opacity_nothing), overlayAlpha,
+                EffectOpacitySlider(
+                    stringResource(id = R.string.preview_opacity_nothing),
+                    overlayAlpha,
                     onSliderChange = {
-                        overlayAlpha = it; overlay = it > 0.0001f
-                    }, labelColor = overlayTextColor())
+                        overlayAlpha = it
+                        overlay = it > 0.0001f
+                    },
+                    labelColor = overlayTextColor()
+                )
 
-                EffectOpacitySlider(stringResource(id = R.string.preview_opacity_snow), noiseAlpha,
+                EffectOpacitySlider(
+                    stringResource(id = R.string.preview_opacity_snow),
+                    noiseAlpha,
                     onSliderChange = {
-                        noiseAlpha = it; noise = it > 0.0001f
-                    }, labelColor = overlayTextColor())
+                        noiseAlpha = it
+                        noise = it > 0.0001f
+                    },
+                    labelColor = overlayTextColor()
+                )
 
-                EffectOpacitySlider(stringResource(id = R.string.preview_opacity_stripes), stripesAlpha,
+                EffectOpacitySlider(
+                    stringResource(id = R.string.preview_opacity_stripes),
+                    stripesAlpha,
                     onSliderChange = {
-                        stripesAlpha = it; stripes = it > 0.0001f
-                    }, labelColor = overlayTextColor())
+                        stripesAlpha = it
+                        stripes = it > 0.0001f
+                    },
+                    labelColor = overlayTextColor()
+                )
             }
         }
 
@@ -483,6 +587,9 @@ fun WallpaperPreviewOverlay(
                 addNoise = noise,
                 addStripes = stripes,
                 addOverlay = overlay,
+                noiseAlpha = noiseAlpha,
+                stripesAlpha = stripesAlpha,
+                overlayAlpha = overlayAlpha,
                 isWorking = isBusy,
                 onWorkingChange = { isBusy = it },
                 onDismiss = { showApplyDialog = false },
@@ -502,6 +609,10 @@ private fun PreviewWallpaperRender(
     addNoise: Boolean,
     addStripes: Boolean,
     addOverlay: Boolean,
+    // NEW: alpha inputs from sliders
+    noiseAlpha: Float = 1f,
+    stripesAlpha: Float = 1f,
+    overlayAlpha: Float = 1f,
     modifier: Modifier = Modifier
 ) {
     val cornerRadius = 14.dp
@@ -529,59 +640,81 @@ private fun PreviewWallpaperRender(
                     drawContext.canvas.nativeCanvas.drawRect(0f, 0f, size.width, size.height, paint)
 
                     // noise
-                    if (addNoise) {
+                    if (addNoise && noiseAlpha > 0f) {
                         val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
                         val numNoisePoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
                         repeat(numNoisePoints) {
                             val x = kotlin.random.Random.nextFloat() * size.width
                             val y = kotlin.random.Random.nextFloat() * size.height
-                            val alpha = kotlin.random.Random.nextFloat() * 0.15f
+                            val alpha = (kotlin.random.Random.nextFloat() * 0.15f) * noiseAlpha
                             drawCircle(Color.White.copy(alpha = alpha), radius = noiseSize, center = Offset(x, y))
                         }
                     }
 
                     // stripes
-                    if (addStripes) {
+                    if (addStripes && stripesAlpha > 0f) {
                         val stripeCount = 18
                         val stripeWidth = size.width / (stripeCount * 2f)
                         for (i in 0 until stripeCount) {
                             val left = i * stripeWidth * 2f
-                            drawRect(Color.White.copy(alpha = 0.10f), topLeft = Offset(left, 0f), size = Size(stripeWidth, size.height))
+                            drawRect(
+                                Color.White.copy(alpha = 0.10f * stripesAlpha),
+                                topLeft = Offset(left, 0f),
+                                size = Size(stripeWidth, size.height)
+                            )
                         }
                     }
                 }
 
-                if (addOverlay) {
-                    Image(painter = painterResource(id = R.drawable.overlay_stripes), contentDescription = null, modifier = Modifier.matchParentSize(), contentScale = ContentScale.FillBounds)
+                if (addOverlay && overlayAlpha > 0f) {
+                    Image(
+                        painter = painterResource(id = R.drawable.overlay_stripes),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .matchParentSize()
+                            .graphicsLayer(alpha = overlayAlpha),
+                        contentScale = ContentScale.FillBounds
+                    )
                 }
             } else {
                 Box(modifier = Modifier.matchParentSize().background(brush)) {
-                    if (addNoise) {
+                    if (addNoise && noiseAlpha > 0f) {
                         Canvas(modifier = Modifier.matchParentSize()) {
                             val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
                             val numNoisePoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
                             repeat(numNoisePoints) {
                                 val x = kotlin.random.Random.nextFloat() * size.width
                                 val y = kotlin.random.Random.nextFloat() * size.height
-                                val alpha = kotlin.random.Random.nextFloat() * 0.15f
+                                val alpha = (kotlin.random.Random.nextFloat() * 0.15f) * noiseAlpha
                                 drawCircle(Color.White.copy(alpha = alpha), radius = noiseSize, center = Offset(x, y))
                             }
                         }
                     }
 
-                    if (addStripes) {
+                    if (addStripes && stripesAlpha > 0f) {
                         Canvas(modifier = Modifier.matchParentSize()) {
                             val stripeCount = 18
                             val stripeWidth = size.width / (stripeCount * 2f)
                             for (i in 0 until stripeCount) {
                                 val left = i * stripeWidth * 2f
-                                drawRect(Color.White.copy(alpha = 0.10f), topLeft = Offset(left, 0f), size = Size(stripeWidth, size.height))
+                                drawRect(
+                                    Color.White.copy(alpha = 0.10f * stripesAlpha),
+                                    topLeft = Offset(left, 0f),
+                                    size = Size(stripeWidth, size.height)
+                                )
                             }
                         }
                     }
 
-                    if (addOverlay) {
-                        Image(painter = painterResource(id = R.drawable.overlay_stripes), contentDescription = null, modifier = Modifier.matchParentSize(), contentScale = ContentScale.FillBounds)
+                    if (addOverlay && overlayAlpha > 0f) {
+                        Image(
+                            painter = painterResource(id = R.drawable.overlay_stripes),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .matchParentSize()
+                                .graphicsLayer(alpha = overlayAlpha),
+                            contentScale = ContentScale.FillBounds
+                        )
                     }
                 }
             }
@@ -595,10 +728,18 @@ private fun PreviewWallpaperRender(
                     .padding(horizontal = 10.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = previewType.name.lowercase().replaceFirstChar { it.uppercase() }, color = Color.White)
+                Text(
+                    text = previewType.name.lowercase().replaceFirstChar { it.uppercase() },
+                    color = Color.White
+                )
                 Spacer(Modifier.width(8.dp))
                 wallpaper.colors.forEachIndexed { index, color ->
-                    Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(3.dp)).background(color))
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(color)
+                    )
                     if (index != wallpaper.colors.lastIndex) Spacer(Modifier.width(6.dp))
                 }
             }
@@ -618,8 +759,19 @@ private fun GradientTypeItemFull(label: String, selected: Boolean, textColor: Co
             .fillMaxWidth()
             .clickable { onClick() }
     ) {
-        Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(6.dp)).background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)))
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(
+                        if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                    )
+            )
             Spacer(Modifier.width(12.dp))
             Text(label, color = textColor)
         }
@@ -628,7 +780,10 @@ private fun GradientTypeItemFull(label: String, selected: Boolean, textColor: Co
 
 @Composable
 private fun GradientTypeItemRect(label: String, selected: Boolean, textColor: Color, onClick: () -> Unit) {
-    val bg by animateColorAsState(if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent, tween(220))
+    val bg by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+        tween(220)
+    )
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = bg,
@@ -636,40 +791,96 @@ private fun GradientTypeItemRect(label: String, selected: Boolean, textColor: Co
         border = if (!selected) ButtonDefaults.outlinedButtonBorder else null,
         modifier = Modifier.clickable { onClick() }
     ) {
-        Row(modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(text = label, color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                color = textColor,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1
+            )
         }
     }
 }
 
 @Composable
 private fun EffectChip(label: String, selected: Boolean, textColor: Color, onToggle: () -> Unit) {
-    val unselectedBg = if (MaterialTheme.colorScheme.background.luminance() > 0.5f) MaterialTheme.colorScheme.surface.copy(alpha = 0.06f) else Color.Transparent
+    val unselectedBg =
+        if (MaterialTheme.colorScheme.background.luminance() > 0.5f)
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.06f)
+        else
+            Color.Transparent
     val targetBg = if (selected) MaterialTheme.colorScheme.primaryContainer else unselectedBg
     val bg by animateColorAsState(targetBg, tween(220))
     val elev by androidx.compose.animation.core.animateDpAsState(if (selected) 6.dp else 0.dp)
-    Surface(shape = RoundedCornerShape(999.dp), tonalElevation = elev, color = bg, border = if (!selected) ButtonDefaults.outlinedButtonBorder else null) {
-        Row(modifier = Modifier.clickable { onToggle() }.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        tonalElevation = elev,
+        color = bg,
+        border = if (!selected) ButtonDefaults.outlinedButtonBorder else null
+    ) {
+        Row(
+            modifier = Modifier
+                .clickable { onToggle() }
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(label, color = textColor)
         }
     }
 }
 
 @Composable
-private fun EffectOpacitySlider(label: String, value: Float,
-                                onSliderChange: (Float) -> Unit, labelColor: Color) {
-    Text(label, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium, color = labelColor)
+private fun EffectOpacitySlider(
+    label: String,
+    value: Float,
+    onSliderChange: (Float) -> Unit,
+    labelColor: Color
+) {
+    Text(label, fontWeight = FontWeight.Medium, color = labelColor)
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(stringResource(id = R.string.preview_off), modifier = Modifier.width(40.dp), color = labelColor)
-        Slider(value = value, onValueChange = { onSliderChange(it.coerceIn(0f, 1f)) }, modifier = Modifier.weight(1f), valueRange = 0f..1f)
-        Text(stringResource(id = R.string.preview_high), modifier = Modifier.width(40.dp), color = labelColor)
+        Text(
+            stringResource(id = R.string.preview_off),
+            modifier = Modifier.width(40.dp),
+            color = labelColor
+        )
+        Slider(
+            value = value,
+            onValueChange = { onSliderChange(it.coerceIn(0f, 1f)) },
+            modifier = Modifier.weight(1f),
+            valueRange = 0f..1f
+        )
+        Text(
+            stringResource(id = R.string.preview_high),
+            modifier = Modifier.width(40.dp),
+            color = labelColor
+        )
     }
 }
 
 @Composable
 private fun DeviceFrame(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
-    Box(modifier = modifier.clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surface).border(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.14f), RoundedCornerShape(14.dp))) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.14f),
+                RoundedCornerShape(14.dp)
+            )
+    ) {
         Box(modifier = Modifier.padding(6.dp)) { content() }
-        Box(modifier = Modifier.align(Alignment.TopCenter).padding(top = 6.dp).width(48.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.06f)))
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 6.dp)
+                .width(48.dp)
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.06f))
+        )
     }
 }

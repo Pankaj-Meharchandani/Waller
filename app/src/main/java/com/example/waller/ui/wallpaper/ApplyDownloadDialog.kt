@@ -50,6 +50,9 @@ fun ApplyDownloadDialog(
     addStripes: Boolean,
     addOverlay: Boolean,
     isWorking: Boolean,
+    noiseAlpha: Float = 1f,
+    stripesAlpha: Float = 1f,
+    overlayAlpha: Float = 1f,
     onWorkingChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
@@ -97,7 +100,10 @@ fun ApplyDownloadDialog(
                                 isPortrait,
                                 addNoise,
                                 addStripes,
-                                addOverlay
+                                addOverlay,
+                                noiseAlpha,
+                                stripesAlpha,
+                                overlayAlpha
                             )
                             val flags =
                                 android.app.WallpaperManager.FLAG_SYSTEM or getLockFlag()
@@ -133,7 +139,10 @@ fun ApplyDownloadDialog(
                                 isPortrait,
                                 addNoise,
                                 addStripes,
-                                addOverlay
+                                addOverlay,
+                                noiseAlpha,
+                                stripesAlpha,
+                                overlayAlpha
                             )
                             val success =
                                 tryApplyWallpaper(
@@ -172,7 +181,10 @@ fun ApplyDownloadDialog(
                                 isPortrait,
                                 addNoise,
                                 addStripes,
-                                addOverlay
+                                addOverlay,
+                                noiseAlpha,
+                                stripesAlpha,
+                                overlayAlpha
                             )
                             val flagLock = getLockFlag()
                             val success =
@@ -231,7 +243,10 @@ fun ApplyDownloadDialog(
                                     isPortrait,
                                     addNoise,
                                     addStripes,
-                                    addOverlay
+                                    addOverlay,
+                                    noiseAlpha,
+                                    stripesAlpha,
+                                    overlayAlpha
                                 )
                                 val filename =
                                     "waller_${System.currentTimeMillis()}.png"

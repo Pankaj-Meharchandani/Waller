@@ -206,12 +206,16 @@ fun WallerApp() {
     }
 
     // From Home screen: toggle by wallpaper; snapshot current effects when adding.
-// Matching strategy: try exact match (colors+type+angle), fallback to colors+type (ignore angle)
+    // Matching strategy: try exact match (colors+type+angle), fallback to colors+type (ignore angle)
+    // Replace the existing toggleFavouriteFromHome(...) with this version
     fun toggleFavouriteFromHome(
         wallpaper: Wallpaper,
         addNoise: Boolean,
         addStripes: Boolean,
-        addOverlay: Boolean
+        addOverlay: Boolean,
+        noiseAlpha: Float = 1f,
+        stripesAlpha: Float = 1f,
+        overlayAlpha: Float = 1f
     ) {
         // exact compare (type + angle + color stops)
         fun exactMatch(a: Wallpaper, b: Wallpaper): Boolean =
@@ -232,14 +236,45 @@ fun WallerApp() {
         favouriteWallpapers = when {
             existingExact != null -> favouriteWallpapers - existingExact
             existingIgnoreAngle != null -> favouriteWallpapers - existingIgnoreAngle
-            else -> favouriteWallpapers + FavoriteWallpaper(
-                wallpaper = wallpaper, // keep angle from the given wallpaper
-                addNoise = addNoise,
-                addStripes = addStripes,
-                addOverlay = addOverlay
-            )
+            else -> {
+                // directly append a new FavoriteWallpaper (no external helper)
+                favouriteWallpapers + FavoriteWallpaper(
+                    wallpaper = wallpaper, // keep angle from the given wallpaper
+                    addNoise = addNoise,
+                    addStripes = addStripes,
+                    addOverlay = addOverlay,
+                    noiseAlpha = noiseAlpha,
+                    stripesAlpha = stripesAlpha,
+                    overlayAlpha = overlayAlpha
+                )
+            }
         }
         persistFavourites()
+    }
+
+
+    // Helper builder to create a FavoriteWallpaper with alpha fields
+    fun favoriteWallpapersPlus(
+        wallpaper: Wallpaper,
+        addNoise: Boolean,
+        addStripes: Boolean,
+        addOverlay: Boolean,
+        noiseAlpha: Float,
+        stripesAlpha: Float,
+        overlayAlpha: Float
+    ): List<FavoriteWallpaper> {
+        // Append new FavoriteWallpaper preserving alphas
+        val newFav = FavoriteWallpaper(
+            wallpaper = wallpaper,
+            addNoise = addNoise,
+            addStripes = addStripes,
+            addOverlay = addOverlay,
+            // assume FavoriteWallpaper has these fields in your model
+            noiseAlpha = noiseAlpha,
+            stripesAlpha = stripesAlpha,
+            overlayAlpha = overlayAlpha
+        )
+        return favouriteWallpapers + newFav
     }
 
     // From Favourites screen: remove that exact favourite entry.
@@ -304,9 +339,7 @@ fun WallerApp() {
                 bottomBar = {
                     WallerBottomBar(
                         selectedScreen = selectedForNav,
-                        onScreenSelected = { screen ->
-                            currentScreen = screen
-                        }
+                        onScreenSelected = { screen -> currentScreen = screen }
                     )
                 }
             ) { innerPadding ->
@@ -335,8 +368,9 @@ fun WallerApp() {
                             addOverlay = overlayEffectEnabled,
                             onAddOverlayChange = { overlayEffectEnabled = it },
                             favouriteWallpapers = favouriteWallpapers,
-                            onToggleFavourite = { w, n, s, o ->
-                                toggleFavouriteFromHome(w, n, s, o)
+                            onToggleFavourite = { w, n, s, o, na, sa, oa ->
+                                // forward to root handler (defaults provided at root)
+                                toggleFavouriteFromHome(w, n, s, o, na, sa, oa)
                             },
                             isPortrait = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortrait = it }
@@ -364,11 +398,15 @@ fun WallerApp() {
                             onRemoveFavourite = { fav -> removeFavourite(fav) },
 
                             onAddFavourite = { fav ->
+                                // forward stored alphas when re-adding a favourite
                                 toggleFavouriteFromHome(
                                     fav.wallpaper,
                                     fav.addNoise,
                                     fav.addStripes,
-                                    fav.addOverlay
+                                    fav.addOverlay,
+                                    fav.noiseAlpha,
+                                    fav.stripesAlpha,
+                                    fav.overlayAlpha
                                 )
                             }
                         )
@@ -443,7 +481,10 @@ private fun WallerBottomBar(
 
 /* --------------------------- Favourites encode/decode --------------------------- */
 
-/** Encodes favourites as: type|hex1,hex2,...|flagsCsv|angleInt  (joined by ';' between items) */
+/** Encodes favourites as:
+ * type|hex1,hex2,...|flagsCsv|angleInt|noiseAlpha|stripesAlpha|overlayAlpha
+ * (joined by ';' between items)
+ */
 private fun encodeFavourites(list: List<FavoriteWallpaper>): String =
     list.joinToString(";") { fav ->
         val typeName = fav.wallpaper.type.name
@@ -451,10 +492,13 @@ private fun encodeFavourites(list: List<FavoriteWallpaper>): String =
         val flagsStr = listOf(fav.addNoise, fav.addStripes, fav.addOverlay)
             .joinToString(",") { if (it) "1" else "0" }
         val angleInt = fav.wallpaper.angleDeg.roundToInt()
-        listOf(typeName, colorsStr, flagsStr, angleInt.toString()).joinToString("|")
+        val na = String.format("%.3f", fav.noiseAlpha)
+        val sa = String.format("%.3f", fav.stripesAlpha)
+        val oa = String.format("%.3f", fav.overlayAlpha)
+        listOf(typeName, colorsStr, flagsStr, angleInt.toString(), na, sa, oa).joinToString("|")
     }
 
-/** Decodes both new (4-part) and old (3-part without angle) formats. */
+/** Decodes both new (7-part) and old (4-part without alphas) formats. */
 private fun decodeFavourites(raw: String): List<FavoriteWallpaper> =
     raw.split(";")
         .mapNotNull { item ->
@@ -476,11 +520,17 @@ private fun decodeFavourites(raw: String): List<FavoriteWallpaper> =
             val addOverlay = flagTokens.getOrNull(2) == "1"
 
             val angleDeg = parts.getOrNull(3)?.toFloatOrNull() ?: 0f
+            val noiseAlpha = parts.getOrNull(4)?.toFloatOrNull() ?: 1f
+            val stripesAlpha = parts.getOrNull(5)?.toFloatOrNull() ?: 1f
+            val overlayAlpha = parts.getOrNull(6)?.toFloatOrNull() ?: 1f
 
             FavoriteWallpaper(
                 wallpaper = Wallpaper(colors = colors, type = type, angleDeg = angleDeg),
                 addNoise = addNoise,
                 addStripes = addStripes,
-                addOverlay = addOverlay
+                addOverlay = addOverlay,
+                noiseAlpha = noiseAlpha,
+                stripesAlpha = stripesAlpha,
+                overlayAlpha = overlayAlpha
             )
         }

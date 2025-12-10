@@ -121,8 +121,13 @@ fun FavoritesScreen(
                 addNoise = fav.addNoise,
                 addStripes = fav.addStripes,
                 addOverlay = fav.addOverlay,
+                // pass stored alphas so the card renders with the stored opacity values
+                noiseAlpha = fav.noiseAlpha,
+                stripesAlpha = fav.stripesAlpha,
+                overlayAlpha = fav.overlayAlpha,
                 isFavorite = true,
-                onFavoriteToggle = { w, n, s, o ->
+                onFavoriteToggle = { w, n, s, o, na, sa, oa ->
+                    // clicking heart on a favourite should remove that favourite
                     onRemoveFavourite(fav)
                 },
                 onClick = {
@@ -193,22 +198,24 @@ fun FavoritesScreen(
             wallpaper = fav.wallpaper,
             isPortrait = isPortrait,
             isFavorite = overlayIsFavorite,
-
             globalNoise = fav.addNoise,
             globalStripes = fav.addStripes,
             globalOverlay = fav.addOverlay,
-
-            onFavoriteToggle = { wallpaperSnapshot, n, s, o ->
-                // Toggle UI immediately for responsiveness
+            initialNoiseAlpha = fav.noiseAlpha,
+            initialStripesAlpha = fav.stripesAlpha,
+            initialOverlayAlpha = fav.overlayAlpha,
+            onFavoriteToggle = { wallpaperSnapshot, n, s, o, na, sa, oa ->
                 overlayIsFavorite = !overlayIsFavorite
 
                 if (overlayIsFavorite) {
-                    // ADD: create a new favourite with the exact snapshot (preserves angle)
                     val updatedFav = FavoriteWallpaper(
                         wallpaper = wallpaperSnapshot,
                         addNoise = n,
                         addStripes = s,
-                        addOverlay = o
+                        addOverlay = o,
+                        noiseAlpha = na,
+                        stripesAlpha = sa,
+                        overlayAlpha = oa
                     )
 
                     // Avoid duplicate: if there's already a compatible stored fav, remove it first so we replace.
@@ -249,6 +256,9 @@ fun FavoritesScreen(
         addNoise = pendingClickedWallpaper?.addNoise ?: false,
         addStripes = pendingClickedWallpaper?.addStripes ?: false,
         addOverlay = pendingClickedWallpaper?.addOverlay ?: false,
+        noiseAlpha = pendingClickedWallpaper?.noiseAlpha ?: 1f,
+        stripesAlpha = pendingClickedWallpaper?.stripesAlpha ?: 1f,
+        overlayAlpha = pendingClickedWallpaper?.overlayAlpha ?: 1f,
         isWorking = isWorking,
         onWorkingChange = { isWorking = it },
         onDismiss = {
