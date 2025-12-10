@@ -119,10 +119,13 @@ fun WallpaperItemCard(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .offset(x = 8.dp, y = (-8).dp)
+                    .padding(top = 12.dp, end = 12.dp)
             ) {
                 Surface(
                     shape = RoundedCornerShape(30.dp),
-                    color = Color.Black.copy(alpha = 0.35f)
+                    color = Color.Black.copy(alpha = 0.35f),
+                    tonalElevation = 2.dp,
+                    modifier = Modifier.size(40.dp)
                 ) {
                     IconButton(
                         onClick = { onFavoriteToggle(wallpaper, addNoise, addStripes, addOverlay, noiseAlpha, stripesAlpha, overlayAlpha) },
