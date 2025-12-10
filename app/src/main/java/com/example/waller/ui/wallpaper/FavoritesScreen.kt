@@ -43,8 +43,9 @@ fun FavoritesScreen(
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit,
     onRemoveFavourite: (FavoriteWallpaper) -> Unit,
-    onAddFavourite: (FavoriteWallpaper) -> Unit // callback to add back a favourite
-) {
+    onAddFavourite: (FavoriteWallpaper) -> Unit,
+    interactionMode: com.example.waller.ui.wallpaper.InteractionMode
+    ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
@@ -131,9 +132,19 @@ fun FavoritesScreen(
                     onRemoveFavourite(fav)
                 },
                 onClick = {
-                    pendingClickedWallpaper = fav
-                    showPreview = true
+                    when (interactionMode) {
+                        com.example.waller.ui.wallpaper.InteractionMode.SIMPLE -> {
+                            // in favourites we can use pendingClickedWallpaper & showApplyDialog
+                            pendingClickedWallpaper = fav
+                            showApplyDialog = true
+                        }
+                        com.example.waller.ui.wallpaper.InteractionMode.ADVANCED -> {
+                            pendingClickedWallpaper = fav
+                            showPreview = true
+                        }
+                    }
                 }
+
             )
         }
 

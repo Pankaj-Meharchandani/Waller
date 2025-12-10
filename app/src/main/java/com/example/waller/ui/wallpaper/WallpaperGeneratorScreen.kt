@@ -94,7 +94,9 @@ fun WallpaperGeneratorScreen(
     onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean,
                         noiseAlpha: Float, stripesAlpha: Float, overlayAlpha: Float) -> Unit,
     isPortrait: Boolean,
-    onOrientationChange: (Boolean) -> Unit
+    onOrientationChange: (Boolean) -> Unit,
+    interactionMode: com.example.waller.ui.wallpaper.InteractionMode
+
 ) {
     // ----------- STATE -----------
 
@@ -407,8 +409,18 @@ fun WallpaperGeneratorScreen(
                     onToggleFavourite(w, n, s, o, na, sa, oa)
                 },
                 onClick = {
-                    previewWallpaper = wallpaper
-                    showPreview = true
+                    when (interactionMode) {
+                        com.example.waller.ui.wallpaper.InteractionMode.SIMPLE -> {
+                            // directly show Apply/Download dialog for this wallpaper
+                            pendingClickedWallpaper = wallpaper
+                            showApplyDialog = true
+                        }
+                        com.example.waller.ui.wallpaper.InteractionMode.ADVANCED -> {
+                            // open overlay as before
+                            previewWallpaper = wallpaper
+                            showPreview = true
+                        }
+                    }
                 }
             )
         }

@@ -56,12 +56,14 @@ import com.example.waller.ui.wallpaper.WallpaperGeneratorScreen
 import com.example.waller.ui.wallpaper.colorFromHexOrNull
 import com.example.waller.ui.wallpaper.toHexString
 import androidx.core.content.edit
+import com.example.waller.ui.wallpaper.InteractionMode
 import kotlin.math.roundToInt
 
 // Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
 
 private const val FAVOURITES_KEY = "favourites_v1"
+private const val PREF_KEY_INTERACTION_MODE = "interaction_mode_v1"
 
 @Composable
 fun WallerApp() {
@@ -97,7 +99,18 @@ fun WallerApp() {
         prefs.edit { putBoolean("use_gradient_bg", value)}
     }
 
-    // --- PERSISTED WALLPAPER DEFAULTS ---
+    // --- PERSISTED INTERACTION MODE (Simple / Advanced) ---
+    val initialInteractionMode = remember {
+        when (prefs.getString(PREF_KEY_INTERACTION_MODE, InteractionMode.SIMPLE.name)) {
+            InteractionMode.ADVANCED.name -> InteractionMode.ADVANCED
+            else -> InteractionMode.SIMPLE
+        }
+    }
+    var interactionMode by remember { mutableStateOf(initialInteractionMode) }
+    fun updateInteractionMode(mode: InteractionMode) {
+        interactionMode = mode
+        prefs.edit { putString(PREF_KEY_INTERACTION_MODE, mode.name) }
+    }
 
     // Orientation: AUTO / PORTRAIT / LANDSCAPE
     val initialOrientation = remember {
@@ -349,7 +362,9 @@ fun WallerApp() {
                                 toggleFavouriteFromHome(w, n, s, o, na, sa, oa)
                             },
                             isPortrait = sessionIsPortrait,
-                            onOrientationChange = { sessionIsPortrait = it }
+                            onOrientationChange = { sessionIsPortrait = it },
+                            interactionMode = interactionMode
+
                         )
                     }
 
@@ -384,7 +399,8 @@ fun WallerApp() {
                                     fav.stripesAlpha,
                                     fav.overlayAlpha
                                 )
-                            }
+                            },
+                            interactionMode = interactionMode
                         )
                     }
 
@@ -410,7 +426,9 @@ fun WallerApp() {
                             onDefaultToneModeChange = { updateDefaultToneMode(it) },
                             defaultEnableMulticolor = enableMulticolorByDefault,
                             onDefaultEnableMulticolorChange = { updateEnableMulticolor(it) },
-                            onAboutClick = { currentScreen = RootScreen.ABOUT }
+                            onAboutClick = { currentScreen = RootScreen.ABOUT },
+                            interactionMode = interactionMode,
+                            onInteractionModeChange = { updateInteractionMode(it) }
                         )
                     }
 
