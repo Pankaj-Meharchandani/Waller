@@ -234,7 +234,8 @@ fun WallpaperPreviewOverlay(
                                 noiseAlpha = noiseAlpha,
                                 stripesAlpha = stripesAlpha,
                                 overlayAlpha = overlayAlpha,
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
+                                showTypeLabel = false
                             )
 
                             var localFav by remember { mutableStateOf(isFavorite) } // optimistic UI; parent should update real state
@@ -352,7 +353,6 @@ fun WallpaperPreviewOverlay(
                                 onValueChange = { gradientAngle = it },
                                 valueRange = 0f..360f,
                                 onValueChangeFinished = {
-                                    // snap to 0 / 90 / 180 / 270 if close
                                     val checkpoints = listOf(0f, 90f, 180f, 270f)
                                     val nearest = checkpoints.minByOrNull { kotlin.math.abs(it - gradientAngle) } ?: 0f
                                     if (kotlin.math.abs(nearest - gradientAngle) <= 8f) {
@@ -393,7 +393,8 @@ fun WallpaperPreviewOverlay(
                                 noiseAlpha = noiseAlpha,
                                 stripesAlpha = stripesAlpha,
                                 overlayAlpha = overlayAlpha,
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
+                                showTypeLabel = false
                             )
                             var localFav by remember { mutableStateOf(isFavorite) } // optimistic UI; parent should update real state
                             Box(
@@ -480,7 +481,6 @@ fun WallpaperPreviewOverlay(
                             Slider(
                                 value = gradientAngle,
                                 onValueChange = { gradientAngle = it },
-                                valueRange = 0f..360f,
                                 onValueChangeFinished = {
                                     val checkpoints = listOf(0f, 90f, 180f, 270f)
                                     val nearest = checkpoints.minByOrNull { kotlin.math.abs(it - gradientAngle) } ?: 0f
@@ -613,7 +613,8 @@ private fun PreviewWallpaperRender(
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showTypeLabel: Boolean = true
 ) {
     val cornerRadius = 14.dp
     Box(modifier = modifier.clip(RoundedCornerShape(cornerRadius))) {
@@ -720,6 +721,7 @@ private fun PreviewWallpaperRender(
             }
 
             // bottom tag
+            // bottom tag (type + swatches)
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
@@ -728,18 +730,18 @@ private fun PreviewWallpaperRender(
                     .padding(horizontal = 10.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = previewType.name.lowercase().replaceFirstChar { it.uppercase() },
-                    color = Color.White
-                )
-                Spacer(Modifier.width(8.dp))
-                wallpaper.colors.forEachIndexed { index, color ->
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(color)
+                if (showTypeLabel) {
+                    Text(
+                        text = previewType.name
+                            .lowercase()
+                            .replaceFirstChar { it.uppercase() },
+                        color = Color.White
                     )
+                    Spacer(Modifier.width(8.dp))
+                }
+
+                wallpaper.colors.forEachIndexed { index, color ->
+                    Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(3.dp)).background(color))
                     if (index != wallpaper.colors.lastIndex) Spacer(Modifier.width(6.dp))
                 }
             }

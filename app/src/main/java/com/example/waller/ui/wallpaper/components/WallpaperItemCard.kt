@@ -6,7 +6,7 @@
  * - Optional noise and stripe effects
  * - Optional Nothing-style PNG overlay
  * - Bottom-left tag: gradient type + color swatches
- * - Top-right heart icon visually outside the card to mark/unmark as favourite
+ * - Top-right heart icon visually inside the card to mark/unmark as favourite
  * - Shows saved angle badge when angle != 0
  *
  * Opens the Apply/Download dialog when tapped.
@@ -22,12 +22,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,18 +45,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.Wallpaper
 import kotlin.random.Random
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.graphics.graphicsLayer
@@ -70,7 +66,7 @@ fun WallpaperItemCard(
     addNoise: Boolean,
     addStripes: Boolean,
     addOverlay: Boolean,
-    // NEW: per-effect alpha values to control opacities on cards (defaults for safety)
+    // per-effect alpha values to control opacities on cards (defaults for safety)
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
@@ -114,22 +110,21 @@ fun WallpaperItemCard(
                 overlayAlpha = overlayAlpha
             )
 
-            // Floating fav button placed slightly outside the card bounds (top-right)
+            // Floating fav button placed inside the card bounds near the top-right
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .offset(x = 8.dp, y = (-8).dp)
-                    .padding(top = 12.dp, end = 12.dp)
+                    .padding(top = 8.dp, end = 8.dp)
             ) {
                 Surface(
-                    shape = RoundedCornerShape(30.dp),
-                    color = Color.Black.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(22.dp),
+                    color = Color.Black.copy(alpha = 0.30f),
                     tonalElevation = 2.dp,
                     modifier = Modifier.size(40.dp)
                 ) {
                     IconButton(
                         onClick = { onFavoriteToggle(wallpaper, addNoise, addStripes, addOverlay, noiseAlpha, stripesAlpha, overlayAlpha) },
-                        modifier = Modifier.size(44.dp)
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
                             imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
@@ -205,11 +200,8 @@ fun WallpaperItem(
                     )
                 }
             } else {
-                val brush = when (wallpaper.type) {
-                    GradientType.Linear, GradientType.Diamond -> Brush.linearGradient(wallpaper.colors)
-                    GradientType.Radial -> Brush.radialGradient(wallpaper.colors)
-                    else -> Brush.linearGradient(wallpaper.colors)
-                }
+                // Use our shared helper so linear/diamond/radial respect angleDeg consistently.
+                val brush = createBrushForPreview(wallpaper.colors, wallpaper.type, widthPx, heightPx, wallpaper.angleDeg)
 
                 Box(modifier = Modifier.matchParentSize().background(brush)) {
                     if (addNoise && noiseAlpha > 0f) {
@@ -265,17 +257,17 @@ fun WallpaperItem(
                     color = Color.White
                 )
 
-                Spacer(Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
                 wallpaper.colors.forEachIndexed { index, color ->
-                    Box(
+                    androidx.compose.foundation.layout.Box(
                         modifier = Modifier
                             .size(12.dp)
                             .clip(RoundedCornerShape(3.dp))
                             .background(color)
                     )
                     if (index != wallpaper.colors.lastIndex) {
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                     }
                 }
             }
