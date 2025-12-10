@@ -60,7 +60,6 @@ import com.example.waller.ui.wallpaper.Wallpaper
 import com.example.waller.ui.wallpaper.GradientType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
-import kotlin.math.max
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
@@ -104,7 +103,7 @@ fun WallpaperPreviewOverlay(
         )
     }
 
-    var gradientAngle by remember { mutableFloatStateOf(0f) }
+    var gradientAngle by remember(wallpaper) { mutableFloatStateOf(wallpaper.angleDeg) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isBusy by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current

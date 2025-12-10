@@ -12,7 +12,7 @@
  * Opens the Apply/Download dialog when tapped.
  */
 
-@file:Suppress("DEPRECATION")
+@file:Suppress("DEPRECATION", "COMPOSE_APPLIER_CALL_MISMATCH")
 package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.foundation.Canvas
@@ -20,6 +20,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.offset
@@ -48,15 +49,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.Wallpaper
-import kotlin.random.Random
-import androidx.compose.ui.text.style.TextAlign
 
 /**
  * Changed signature: onFavoriteToggle now gets the Wallpaper and current effect flags
@@ -145,100 +146,137 @@ fun WallpaperItem(
     addNothingStripes: Boolean,
     addOverlay: Boolean
 ) {
-    val brush = when (wallpaper.type) {
-        GradientType.Linear -> Brush.linearGradient(wallpaper.colors)
-        GradientType.Radial -> Brush.radialGradient(wallpaper.colors)
-        GradientType.Angular -> Brush.sweepGradient(wallpaper.colors)
-        GradientType.Diamond -> Brush.linearGradient(wallpaper.colors)
-    }
-
+    // For linear / radial / diamond we can keep Compose Brushes.
+    // For Angular we draw with a native SweepGradient and a rotation matrix
+    // so the wallpaper.angleDeg is respected — same approach as PreviewRenderer.
     Box(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        // 1. Draw gradient
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(brush)
-        )
+        BoxWithConstraints(modifier = Modifier.matchParentSize()) {
+            val widthDp = maxWidth
+            val heightDp = maxHeight
+            val density = LocalDensity.current
+            val widthPx = with(density) { widthDp.toPx() }
+            val heightPx = with(density) { heightDp.toPx() }
 
-        // 2. Noise
-        if (addNoise) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val noiseSize = 1.dp.toPx()
-                val numNoisePoints =
-                    (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
-                repeat(numNoisePoints) {
-                    val x = Random.nextFloat() * size.width
-                    val y = Random.nextFloat() * size.height
-                    val alpha = Random.nextFloat() * 0.15f
-                    drawCircle(
-                        color = Color.White.copy(alpha = alpha),
-                        radius = noiseSize,
-                        center = Offset(x, y)
+            val androidColors = wallpaper.colors.map { it.toArgb() }.toIntArray()
+
+            if (wallpaper.type == GradientType.Angular) {
+                // Draw rotated sweep on native canvas so angle is effective
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    val sweep = createRotatedSweepShader(widthPx, heightPx, androidColors, wallpaper.angleDeg)
+                    val paint = android.graphics.Paint().apply {
+                        isAntiAlias = true
+                        shader = sweep
+                    }
+                    // draw the sweep background
+                    drawContext.canvas.nativeCanvas.drawRect(0f, 0f, size.width, size.height, paint)
+
+                    // noise (same approach as before)
+                    if (addNoise) {
+                        val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
+                        val numNoisePoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                        repeat(numNoisePoints) {
+                            val x = kotlin.random.Random.nextFloat() * size.width
+                            val y = kotlin.random.Random.nextFloat() * size.height
+                            val alpha = kotlin.random.Random.nextFloat() * 0.15f
+                            drawCircle(Color.White.copy(alpha = alpha), radius = noiseSize, center = Offset(x, y))
+                        }
+                    }
+
+                    // stripes
+                    if (addNothingStripes) {
+                        val stripeCount = 18
+                        val stripeWidth = size.width / (stripeCount * 2f)
+                        for (i in 0 until stripeCount) {
+                            val left = i * stripeWidth * 2f
+                            drawRect(Color.White.copy(alpha = 0.10f), topLeft = Offset(left, 0f), size = Size(stripeWidth, size.height))
+                        }
+                    }
+                }
+
+                // overlay PNG if enabled
+                if (addOverlay) {
+                    Image(
+                        painter = painterResource(id = R.drawable.overlay_stripes),
+                        contentDescription = null,
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.FillBounds
                     )
                 }
-            }
-        }
+            } else {
+                // Non-angular: use Compose brushes (linear / radial / diamond fallback)
+                val brush = when (wallpaper.type) {
+                    GradientType.Linear, GradientType.Diamond -> Brush.linearGradient(wallpaper.colors)
+                    GradientType.Radial -> Brush.radialGradient(wallpaper.colors)
+                    else -> Brush.linearGradient(wallpaper.colors)
+                }
 
-        // 3. Generated stripes
-        if (addNothingStripes) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val stripeCount = 18
-                val stripeWidth = size.width / (stripeCount * 2f)
-                for (i in 0 until stripeCount) {
-                    val left = i * stripeWidth * 2f
-                    drawRect(
-                        color = Color.White.copy(alpha = 0.10f),
-                        topLeft = Offset(left, 0f),
-                        size = Size(stripeWidth, size.height)
-                    )
+                Box(modifier = Modifier.matchParentSize().background(brush)) {
+                    if (addNoise) {
+                        Canvas(modifier = Modifier.matchParentSize()) {
+                            val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
+                            val numNoisePoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                            repeat(numNoisePoints) {
+                                val x = kotlin.random.Random.nextFloat() * size.width
+                                val y = kotlin.random.Random.nextFloat() * size.height
+                                val alpha = kotlin.random.Random.nextFloat() * 0.15f
+                                drawCircle(Color.White.copy(alpha = alpha), radius = noiseSize, center = Offset(x, y))
+                            }
+                        }
+                    }
+
+                    if (addNothingStripes) {
+                        Canvas(modifier = Modifier.matchParentSize()) {
+                            val stripeCount = 18
+                            val stripeWidth = size.width / (stripeCount * 2f)
+                            for (i in 0 until stripeCount) {
+                                val left = i * stripeWidth * 2f
+                                drawRect(Color.White.copy(alpha = 0.10f), topLeft = Offset(left, 0f), size = Size(stripeWidth, size.height))
+                            }
+                        }
+                    }
+
+                    if (addOverlay) {
+                        Image(
+                            painter = painterResource(id = R.drawable.overlay_stripes),
+                            contentDescription = null,
+                            modifier = Modifier.matchParentSize(),
+                            contentScale = ContentScale.FillBounds
+                        )
+                    }
                 }
             }
-        }
 
-        // 4. PNG Overlay — ALWAYS LAST
-        if (addOverlay) {
-            Image(
-                painter = painterResource(id = R.drawable.overlay_stripes),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.FillBounds
-            )
-        }
-
-        // 5. Tag at the bottom (supports multi-color)
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(10.dp)
-                .background(
-                    Color.Black.copy(alpha = 0.36f),
-                    shape = RoundedCornerShape(999.dp)
+            // bottom tag (type + swatches) — unchanged from your current code
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(10.dp)
+                    .background(Color.Black.copy(alpha = 0.36f), shape = RoundedCornerShape(999.dp))
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = wallpaper.type.name
+                        .lowercase()
+                        .replaceFirstChar { it.uppercase() },
+                    color = Color.White
                 )
-                .padding(horizontal = 10.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = wallpaper.type.name
-                    .lowercase()
-                    .replaceFirstChar { it.uppercase() },
-                color = Color.White
-            )
 
-            Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(8.dp))
 
-            // Show all color stops (3–6 if multicolor)
-            wallpaper.colors.forEachIndexed { index, color ->
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(color)
-                )
-                if (index != wallpaper.colors.lastIndex) {
-                    Spacer(Modifier.width(6.dp))
+                wallpaper.colors.forEachIndexed { index, color ->
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(color)
+                    )
+                    if (index != wallpaper.colors.lastIndex) {
+                        Spacer(Modifier.width(6.dp))
+                    }
                 }
             }
         }
