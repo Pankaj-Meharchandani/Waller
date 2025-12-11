@@ -1,19 +1,10 @@
-/**
- * Root-level Compose setup for Waller.
- * Handles:
- * - App-wide theme (light / dark / system), persisted
- * - Gradient background toggle, persisted
- * - Wallpaper defaults (orientation, gradient count, effects, tone, multicolor), persisted
- * - Shared favourite wallpapers (snapshot of wallpaper + effects), persisted
- * - Shared effect toggles (snow / stripes / glass) used by Home + Favourites
- * - Shared orientation state (portrait / landscape) for Home + Favourites
- * - Bottom navigation between Home, Favourites, Settings, About
- * - Back button behavior: About -> Settings -> Home/Favourites -> Exit
- */
-
 package com.example.waller.ui
 
+import android.app.Activity
 import android.content.Context
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import android.view.Surface
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -31,6 +22,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -58,11 +50,8 @@ import com.example.waller.ui.wallpaper.toHexString
 import androidx.core.content.edit
 import com.example.waller.ui.wallpaper.InteractionMode
 import kotlin.math.roundToInt
-import android.app.Activity
-import android.content.pm.ActivityInfo
-import android.content.res.Configuration
-import android.view.Surface
-import androidx.compose.runtime.LaunchedEffect
+import android.content.pm.PackageManager
+import com.example.waller.ui.onboarding.ModePickerDialog
 
 // Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
@@ -70,6 +59,9 @@ private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
 private const val FAVOURITES_KEY = "favourites_v1"
 private const val PREF_KEY_INTERACTION_MODE = "interaction_mode_v1"
 private const val PREF_KEY_LOCKED_ORIENTATION = "locked_orientation_v1"
+
+// New: remember which app version we've shown the mode picker for
+private const val PREF_KEY_MODE_PICKER_SHOWN_VERSION = "mode_picker_shown_version_v1"
 
 @Composable
 fun WallerApp() {
@@ -103,7 +95,7 @@ fun WallerApp() {
     var useGradientBackground by remember { mutableStateOf(initialGradientBg) }
     fun updateUseGradientBackground(value: Boolean) {
         useGradientBackground = value
-        prefs.edit { putBoolean("use_gradient_bg", value)}
+        prefs.edit { putBoolean("use_gradient_bg", value) }
     }
 
     // --- PERSISTED INTERACTION MODE (Simple / Advanced) ---
@@ -118,49 +110,92 @@ fun WallerApp() {
         interactionMode = mode
         prefs.edit { putString(PREF_KEY_INTERACTION_MODE, mode.name) }
 
-        // Determine current physical orientation from system configuration (portrait vs landscape)
-        val isCurrentlyPortrait = context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-
         if (mode == InteractionMode.ADVANCED) {
-            // compute lockMode based on current rotation
-            val rotation = try {
-                @Suppress("DEPRECATION")
-                activity.windowManager.defaultDisplay.rotation
-            } catch (_: Exception) {
-                if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) 0 else 1
-            }
+            // compute lockMode based on saved lock or current rotation and persist it
+            val savedLock = prefs.getInt(PREF_KEY_LOCKED_ORIENTATION, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
 
-            val lockMode = when (rotation) {
-                Surface.ROTATION_0 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                Surface.ROTATION_90 -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                Surface.ROTATION_180 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT
-                Surface.ROTATION_270 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
-                else -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            val lockMode = if (savedLock != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
+                // reapply exact saved lock
+                savedLock
+            } else {
+                val rotation = try {
+                    @Suppress("DEPRECATION")
+                    activity.windowManager.defaultDisplay.rotation
+                } catch (_: Exception) {
+                    if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) Surface.ROTATION_0 else Surface.ROTATION_90
+                }
+                val computed = when (rotation) {
+                    Surface.ROTATION_0 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    Surface.ROTATION_90 -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    Surface.ROTATION_180 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT
+                    Surface.ROTATION_270 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+                    else -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                }
+                prefs.edit { putInt(PREF_KEY_LOCKED_ORIENTATION, computed) }
+                computed
             }
 
             activity.requestedOrientation = lockMode
-            // persist the lock so we can reapply the same exact lock on startup
-            prefs.edit { putInt(PREF_KEY_LOCKED_ORIENTATION, lockMode) }
         } else {
-            // SIMPLE mode → restore normal rotation
+            // SIMPLE mode → restore normal rotation and clear saved lock
             activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            prefs.edit { remove(PREF_KEY_LOCKED_ORIENTATION) }
         }
     }
-    // Reapply orientation lock on app startup based on saved mode
+
+    // --- ONE-TIME MODE PICKER DIALOG WIRING ---
+    var showModePickerDialog by remember { mutableStateOf(false) }
+
+    // compute current app versionCode safely (fallback to 1)
+    val currentVersionCode: Int = try {
+        val pi = context.packageManager.getPackageInfo(context.packageName, 0)
+        @Suppress("DEPRECATION")
+        pi.versionCode
+    } catch (e: Exception) {
+        1
+    }
+
+    // decide whether to show dialog (first run or first run after update)
     LaunchedEffect(Unit) {
-        val isPortrait = context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+        val shownFor = prefs.getInt(PREF_KEY_MODE_PICKER_SHOWN_VERSION, -1)
+        if (shownFor != currentVersionCode) {
+            showModePickerDialog = true
+        }
+    }
 
-        if (interactionMode == InteractionMode.ADVANCED) {
-            val lockMode =
-                if (isPortrait) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                else ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+    // Reapply orientation lock on app startup based on saved values.
+    LaunchedEffect(Unit) {
+        val savedModeName = prefs.getString(PREF_KEY_INTERACTION_MODE, InteractionMode.SIMPLE.name)
+        val savedMode = if (savedModeName == InteractionMode.ADVANCED.name) InteractionMode.ADVANCED else InteractionMode.SIMPLE
+        interactionMode = savedMode
 
-            activity.requestedOrientation = lockMode
+        if (savedMode == InteractionMode.ADVANCED) {
+            val savedLock = prefs.getInt(PREF_KEY_LOCKED_ORIENTATION, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
+            if (savedLock != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
+                // reapply the exact saved lock
+                activity.requestedOrientation = savedLock
+            } else {
+                // fallback compute and persist
+                val rotation = try {
+                    @Suppress("DEPRECATION")
+                    activity.windowManager.defaultDisplay.rotation
+                } catch (_: Exception) {
+                    if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) Surface.ROTATION_0 else Surface.ROTATION_90
+                }
+                val computed = when (rotation) {
+                    Surface.ROTATION_0 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    Surface.ROTATION_90 -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    Surface.ROTATION_180 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT
+                    Surface.ROTATION_270 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+                    else -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                }
+                activity.requestedOrientation = computed
+                prefs.edit { putInt(PREF_KEY_LOCKED_ORIENTATION, computed) }
+            }
         } else {
             activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
     }
-
 
     // Orientation: AUTO / PORTRAIT / LANDSCAPE
     val initialOrientation = remember {
@@ -270,7 +305,6 @@ fun WallerApp() {
 
     // From Home screen: toggle by wallpaper; snapshot current effects when adding.
     // Matching strategy: try exact match (colors+type+angle), fallback to colors+type (ignore angle)
-    // Replace the existing toggleFavouriteFromHome(...) with this version
     fun toggleFavouriteFromHome(
         wallpaper: Wallpaper,
         addNoise: Boolean,
@@ -300,9 +334,8 @@ fun WallerApp() {
             existingExact != null -> favouriteWallpapers - existingExact
             existingIgnoreAngle != null -> favouriteWallpapers - existingIgnoreAngle
             else -> {
-                // directly append a new FavoriteWallpaper (no external helper)
                 favouriteWallpapers + FavoriteWallpaper(
-                    wallpaper = wallpaper, // keep angle from the given wallpaper
+                    wallpaper = wallpaper,
                     addNoise = addNoise,
                     addStripes = addStripes,
                     addOverlay = addOverlay,
@@ -314,7 +347,6 @@ fun WallerApp() {
         }
         persistFavourites()
     }
-
 
     // From Favourites screen: remove that exact favourite entry.
     fun removeFavourite(fav: FavoriteWallpaper) {
@@ -408,13 +440,11 @@ fun WallerApp() {
                             onAddOverlayChange = { overlayEffectEnabled = it },
                             favouriteWallpapers = favouriteWallpapers,
                             onToggleFavourite = { w, n, s, o, na, sa, oa ->
-                                // forward to root handler (defaults provided at root)
                                 toggleFavouriteFromHome(w, n, s, o, na, sa, oa)
                             },
                             isPortrait = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortrait = it },
                             interactionMode = interactionMode
-
                         )
                     }
 
@@ -435,11 +465,8 @@ fun WallerApp() {
                             favourites = favouriteWallpapers,
                             isPortrait = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortrait = it },
-
                             onRemoveFavourite = { fav -> removeFavourite(fav) },
-
                             onAddFavourite = { fav ->
-                                // forward stored alphas when re-adding a favourite
                                 toggleFavouriteFromHome(
                                     fav.wallpaper,
                                     fav.addNoise,
@@ -461,7 +488,6 @@ fun WallerApp() {
                             onAppThemeModeChange = { mode -> updateThemeMode(mode) },
                             useGradientBackground = useGradientBackground,
                             onUseGradientBackgroundChange = { updateUseGradientBackground(it) },
-
                             defaultOrientation = defaultOrientation,
                             onDefaultOrientationChange = { updateDefaultOrientation(it) },
                             defaultGradientCount = defaultGradientCount,
@@ -489,6 +515,25 @@ fun WallerApp() {
                         )
                     }
                 }
+            }
+
+            // Render the one-time ModePickerDialog as an overlay when needed
+            if (showModePickerDialog) {
+                ModePickerDialog(
+                    initialSelection = interactionMode,
+                    onChosen = { chosenMode ->
+                        // persist shown-version so we don't show again for the same app version
+                        prefs.edit { putInt(PREF_KEY_MODE_PICKER_SHOWN_VERSION, currentVersionCode) }
+                        // apply chosen mode (this handles orientation lock and persistence)
+                        updateInteractionMode(chosenMode)
+                        showModePickerDialog = false
+                    },
+                    onDismiss = {
+                        // user dismissed -> mark as shown for this version so we won't nag again
+                        prefs.edit { putInt(PREF_KEY_MODE_PICKER_SHOWN_VERSION, currentVersionCode) }
+                        showModePickerDialog = false
+                    }
+                )
             }
         }
     }
