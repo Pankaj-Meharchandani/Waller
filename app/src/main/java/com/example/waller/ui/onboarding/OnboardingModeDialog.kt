@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.example.waller.ui.wallpaper.InteractionMode
 
 @Composable
@@ -37,33 +38,24 @@ fun ModePickerDialog(
 ) {
     var selected by remember { mutableStateOf(initialSelection) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
+    Dialog(onDismissRequest = onDismiss) {
+        Card(shape = RoundedCornerShape(16.dp)) {
+            Column(
+                Modifier.padding(
+                    top = 24.dp,
+                    bottom = 16.dp,
+                    start = 24.dp,
+                    end = 24.dp
+                )
+            ) {
 
-        // Buttons -------------------------------------------------------------------------
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
+                // Title
+                Text(
+                    text = "Choose interaction mode",
+                    style = MaterialTheme.typography.titleLarge
+                )
 
-        confirmButton = {
-            Button(onClick = { onChosen(selected) }) {
-                Text("Confirm")
-            }
-        },
-
-        // Title ----------------------------------------------------------------------------
-        title = {
-            Text(
-                text = "Choose interaction mode",
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-
-        // Body ---------------------------------------------------------------------------
-        text = {
-            Column(Modifier.padding(vertical = 8.dp)) {
+                Spacer(Modifier.height(24.dp))
 
                 // Cards row
                 Row(
@@ -99,9 +91,33 @@ fun ModePickerDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
+
+                Spacer(Modifier.height(18.dp))
+
+                // Custom button row: Cancel left-most, Confirm right-most
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.defaultMinSize(minHeight = 44.dp)
+                    ) {
+                        Text("Cancel")
+                    }
+
+                    Button(
+                        onClick = { onChosen(selected) },
+                        modifier = Modifier.defaultMinSize(minHeight = 44.dp)
+                    ) {
+                        Text("Confirm")
+                    }
+                }
             }
         }
-    )
+    }
 }
 
 @Composable
