@@ -21,7 +21,8 @@ import androidx.compose.ui.graphics.Color
 
 data class Wallpaper(
     val colors: List<Color>,
-    val type: GradientType
+    val type: GradientType,
+    val angleDeg: Float = 0f
 )
 
 enum class GradientType {
@@ -49,5 +50,8 @@ data class FavoriteWallpaper(
     val wallpaper: Wallpaper,
     val addNoise: Boolean,
     val addStripes: Boolean,
-    val addOverlay: Boolean
+    val addOverlay: Boolean,
+    val noiseAlpha: Float = 1f,
+    val stripesAlpha: Float = 1f,
+    val overlayAlpha: Float = 1f
 )

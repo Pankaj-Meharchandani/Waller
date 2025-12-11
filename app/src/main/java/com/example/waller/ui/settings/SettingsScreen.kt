@@ -34,9 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.R
+import com.example.waller.ui.wallpaper.InteractionMode
 import com.example.waller.ui.wallpaper.SectionCard
 import com.example.waller.ui.wallpaper.ToneMode
-
 // App-wide theme modes used by WallerApp and Settings.
 enum class AppThemeMode { LIGHT, DARK, SYSTEM }
 
@@ -64,6 +64,9 @@ fun SettingsScreen(
     onEnableStripesByDefaultChange: (Boolean) -> Unit,
     defaultToneMode: ToneMode,
     onDefaultToneModeChange: (ToneMode) -> Unit,
+    // NEW: interaction mode props
+    interactionMode: InteractionMode,
+    onInteractionModeChange: (InteractionMode) -> Unit,
     onAboutClick: () -> Unit
 ) {
     val scroll = rememberScrollState()
@@ -119,6 +122,61 @@ fun SettingsScreen(
                     checked = useGradientBackground,
                     onCheckedChange = onUseGradientBackgroundChange
                 )
+            }
+        }
+
+        // Interaction Mode (Simple / Advanced) ----------------------------
+        SectionCard {
+            Text(
+                text = stringResource(R.string.interaction_mode_title),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(8.dp))
+
+            // SIMPLE Mode
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onInteractionModeChange(InteractionMode.SIMPLE) }
+            ) {
+                RadioButton(
+                    selected = interactionMode == InteractionMode.SIMPLE,
+                    onClick = { onInteractionModeChange(InteractionMode.SIMPLE) }
+                )
+                Spacer(Modifier.width(8.dp))
+                Column {
+                    Text(stringResource(R.string.interaction_mode_simple))
+                    Text(
+                        stringResource(R.string.interaction_mode_simple_sub),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(6.dp))
+
+            // ADVANCED Mode
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onInteractionModeChange(InteractionMode.ADVANCED) }
+            ) {
+                RadioButton(
+                    selected = interactionMode == InteractionMode.ADVANCED,
+                    onClick = { onInteractionModeChange(InteractionMode.ADVANCED) }
+                )
+                Spacer(Modifier.width(8.dp))
+                Column {
+                    Text(stringResource(R.string.interaction_mode_advanced))
+                    Text(
+                        stringResource(R.string.interaction_mode_advanced_sub),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 

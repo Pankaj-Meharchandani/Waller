@@ -37,9 +37,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import com.example.waller.ui.wallpaper.components.WallpaperPreviewOverlay
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -90,14 +90,19 @@ fun WallpaperGeneratorScreen(
     addOverlay: Boolean,
     onAddOverlayChange: (Boolean) -> Unit,
     favouriteWallpapers: List<FavoriteWallpaper>,
-    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean) -> Unit,
+    // UPDATED: onToggleFavourite now accepts per-effect alpha floats as well
+    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean,
+                        noiseAlpha: Float, stripesAlpha: Float, overlayAlpha: Float) -> Unit,
     isPortrait: Boolean,
-    onOrientationChange: (Boolean) -> Unit
+    onOrientationChange: (Boolean) -> Unit,
+    interactionMode: com.example.waller.ui.wallpaper.InteractionMode
+
 ) {
     // ----------- STATE -----------
 
     var toneMode by remember { mutableStateOf(defaultToneMode) }
-
+    var showPreview by remember { mutableStateOf(false) }
+    var previewWallpaper by remember { mutableStateOf<Wallpaper?>(null) }
     val selectedGradientTypes = remember { mutableStateListOf(GradientType.Linear) }
     val selectedColors = remember { mutableStateListOf<Color>() }
 
@@ -394,13 +399,28 @@ fun WallpaperGeneratorScreen(
                 addNoise = addNoise,
                 addStripes = addStripes,
                 addOverlay = addOverlay,
+                // grid-level cards don't have per-card sliders: use global-enabled -> full alpha (1f) or 0f
+                noiseAlpha = if (addNoise) 1f else 0f,
+                stripesAlpha = if (addStripes) 1f else 0f,
+                overlayAlpha = if (addOverlay) 1f else 0f,
                 isFavorite = isFavourite,
-                onFavoriteToggle = {
-                    onToggleFavourite(wallpaper, addNoise, addStripes, addOverlay)
+                onFavoriteToggle = { w, n, s, o, na, sa, oa ->
+                    // forward the per-item alphas (from card or overlay) to the parent handler
+                    onToggleFavourite(w, n, s, o, na, sa, oa)
                 },
                 onClick = {
-                    pendingClickedWallpaper = wallpaper
-                    showApplyDialog = true
+                    when (interactionMode) {
+                        com.example.waller.ui.wallpaper.InteractionMode.SIMPLE -> {
+                            // directly show Apply/Download dialog for this wallpaper
+                            pendingClickedWallpaper = wallpaper
+                            showApplyDialog = true
+                        }
+                        com.example.waller.ui.wallpaper.InteractionMode.ADVANCED -> {
+                            // open overlay as before
+                            previewWallpaper = wallpaper
+                            showPreview = true
+                        }
+                    }
                 }
             )
         }
@@ -429,7 +449,31 @@ fun WallpaperGeneratorScreen(
         }
     }
 
-    // Apply / Download dialog
+    // Inline preview overlay (opened when user taps a wallpaper)
+    // inside WallpaperGeneratorScreen where you show overlay:
+    if (showPreview && previewWallpaper != null) {
+        val preview = previewWallpaper!!
+        WallpaperPreviewOverlay(
+            wallpaper = preview,
+            isPortrait = isPortrait,
+            initialNoiseAlpha = if (addNoise) 1f else 0f,
+            initialStripesAlpha = if (addStripes) 1f else 0f,
+            initialOverlayAlpha = if (addOverlay) 1f else 0f,
+            isFavorite = favouriteWallpapers.any { it.wallpaper == preview },
+            onFavoriteToggle = { wallpaperToSave, n, s, o, na, sa, oa ->
+                onToggleFavourite(wallpaperToSave, n, s, o, na, sa, oa)
+            },
+            globalNoise = addNoise,
+            globalStripes = addStripes,
+            globalOverlay = addOverlay,
+            onDismiss = { showPreview = false },
+            writePermissionLauncher = writePermissionLauncher,
+            context = context,
+            coroutineScope = coroutineScope
+        )
+    }
+
+    // Apply / Download dialog (legacy — still available if you open it elsewhere)
     ApplyDownloadDialog(
         show = showApplyDialog,
         wallpaper = pendingClickedWallpaper,
@@ -437,10 +481,14 @@ fun WallpaperGeneratorScreen(
         addNoise = addNoise,
         addStripes = addStripes,
         addOverlay = addOverlay,
+        noiseAlpha = if (addNoise) 1f else 0f, // grid-level default: full or 0
+        stripesAlpha = if (addStripes) 1f else 0f,
+        overlayAlpha = if (addOverlay) 1f else 0f,
         isWorking = isWorking,
-        onWorkingChange = {isWorking = it }, //don't dismiss this warning
-        onDismiss = {showApplyDialog = false //don't dismiss this warning
-            pendingClickedWallpaper = null //don't dismiss this warning
+        onWorkingChange = { isWorking = it },
+        onDismiss = {
+            showApplyDialog = false
+            pendingClickedWallpaper = null
         },
         writePermissionLauncher = writePermissionLauncher,
         context = context,

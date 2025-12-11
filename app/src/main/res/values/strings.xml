@@ -115,6 +115,28 @@
     <string name="scroll_to_top">Scroll to top</string>
     <string name="multicolor_label">Multi-color</string>
     <string name="settings_enable_multicolor">Use multicolor gradients by default</string>
+    <string name="preview_done">Done</string>
+    <string name="preview_close">Close</string>
+    <string name="preview_effect_nothing">Nothing</string>
+    <string name="preview_effect_snow">Snow</string>
+    <string name="preview_effect_stripes">Stripes</string>
+    <string name="gradient_style_title">Gradient Style</string>
+    <string name="preview_opacity_nothing">Nothing glass Opacity</string>
+    <string name="preview_opacity_snow">Snow effect Opacity</string>
+    <string name="preview_opacity_stripes">Stripes Opacity</string>
+    <string name="preview_off">Off</string>
+    <string name="preview_high">High</string>
+    <string name="preview_favorite">Favourite</string>
 
+    <string name="interaction_mode_title">Interaction mode</string>
+    <string name="interaction_mode_simple">Simple</string>
+    <string name="interaction_mode_simple_sub">One-tap apply/download wallpapers</string>
+    <string name="interaction_mode_advanced">Advanced</string>
+    <string name="interaction_mode_advanced_sub">Open preview overlay with full controls. \nWarning: App auto rotate locked.</string>
+
+    <string name="confirm">Confirm</string>
+    <string name="interaction_mode_change_note">You can change this anytime from Settings.</string>
+    <string name="interaction_mode_simple_sub_short">Quick apply - skips preview</string>
+    <string name="interaction_mode_advanced_sub_short">Show full preview &amp; controls</string>
 
 </resources>

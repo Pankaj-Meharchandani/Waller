@@ -59,11 +59,18 @@ fun createGradientBitmap(
     isPortrait: Boolean,
     addNoise: Boolean = false,
     addStripes: Boolean = false,
-    addOverlay: Boolean = false
+    addOverlay: Boolean = false,
+    noiseAlpha: Float = 1f,
+    stripesAlpha: Float = 1f,
+    overlayAlpha: Float = 1f
 ): Bitmap {
     val (width, height) = getScreenSizeForBitmap(context, isPortrait)
     val bmp = createBitmap(width, height)
     val canvas = android.graphics.Canvas(bmp)
+
+    // Use angle from model (degrees -> radians)
+    val angleDeg = wallpaper.angleDeg
+    val a = Math.toRadians(angleDeg.toDouble()).toFloat()
 
     val colors = wallpaper.colors.map {
         android.graphics.Color.argb(
@@ -74,10 +81,25 @@ fun createGradientBitmap(
         )
     }.toIntArray()
 
+    // Helper center
+    val cx = width / 2f
+    val cy = height / 2f
+
     when (wallpaper.type) {
+        // Linear & Diamond: use linear shader along rotated angle
         GradientType.Linear, GradientType.Diamond -> {
+            // compute direction vector from angle
+            val dx = kotlin.math.cos(a)
+            val dy = kotlin.math.sin(a)
+            val halfW = width / 2f
+            val halfH = height / 2f
+            val startX = cx - dx * halfW
+            val startY = cy - dy * halfH
+            val endX = cx + dx * halfW
+            val endY = cy + dy * halfH
+
             val shader = LinearGradient(
-                0f, 0f, width.toFloat(), height.toFloat(),
+                startX, startY, endX, endY,
                 colors, null, Shader.TileMode.CLAMP
             )
             val paint = Paint().apply {
@@ -89,8 +111,12 @@ fun createGradientBitmap(
 
         GradientType.Radial -> {
             val radius = max(width, height) * 0.6f
+            val shiftFactor = 0.22f
+            val ox = cx + kotlin.math.cos(a) * radius * shiftFactor
+            val oy = cy + kotlin.math.sin(a) * radius * shiftFactor
+
             val shader = RadialGradient(
-                width / 2f, height / 2f, radius,
+                ox, oy, radius,
                 colors, null, Shader.TileMode.CLAMP
             )
             val paint = Paint().apply {
@@ -100,11 +126,19 @@ fun createGradientBitmap(
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
         }
 
+        // Angular (sweep): create SweepGradient and rotate it using a Matrix
         GradientType.Angular -> {
-            val shader = SweepGradient(width / 2f, height / 2f, colors, null)
+            val sweep = SweepGradient(cx, cy, colors, null)
+            val matrix = android.graphics.Matrix()
+            matrix.setRotate(angleDeg, cx, cy)
+            try {
+                sweep.setLocalMatrix(matrix)
+            } catch (e: Exception) {
+                // Some Android/VM combos may not support setLocalMatrix — ignore
+            }
             val paint = Paint().apply {
                 isAntiAlias = true
-                this.shader = shader
+                shader = sweep
             }
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
         }
@@ -130,7 +164,7 @@ fun createGradientBitmap(
             val x = rnd.nextFloat() * width
             val y = rnd.nextFloat() * height
 
-            val alpha = (rnd.nextFloat() * 0.15f).coerceIn(0f, 1f)
+            val alpha = ((rnd.nextFloat() * 0.15f) * noiseAlpha).coerceIn(0f, 1f)
             val alphaInt = (alpha * 255).roundToInt().coerceIn(0, 255)
             paint.color = android.graphics.Color.argb(alphaInt, 255, 255, 255)
 
@@ -139,7 +173,6 @@ fun createGradientBitmap(
         }
     }
 
-    // stripes on the saved bitmap
     if (addStripes) {
         val paintStripe = Paint().apply { isAntiAlias = true }
         val stripeCount = 18
@@ -148,7 +181,8 @@ fun createGradientBitmap(
         repeat(stripeCount) { i ->
             val left = i * stripeWidth * 2f
             val right = left + stripeWidth
-            val alphaStripe = 0.09f
+            // FIX: The base alpha was hardcoded. Now it's correctly scaled by the stripesAlpha parameter.
+            val alphaStripe = 0.09f * stripesAlpha
             val alphaInt = (alphaStripe * 255).roundToInt().coerceIn(0, 255)
             paintStripe.color = android.graphics.Color.argb(alphaInt, 255, 255, 255)
             canvas.drawRect(left, 0f, right, height.toFloat(), paintStripe)
@@ -162,8 +196,15 @@ fun createGradientBitmap(
                 R.drawable.overlay_stripes
             )
 
+            // FIX: A separate Paint object is now used to apply the overlayAlpha.
+            // The previous implementation drew the bitmap with a null paint, ignoring the alpha.
+            val paint = Paint().apply {
+                isAntiAlias = true
+                alpha = (overlayAlpha.coerceIn(0f, 1f) * 255f).toInt()
+            }
+
             val scaled = overlay.scale(width, height)
-            canvas.drawBitmap(scaled, 0f, 0f, null)
+            canvas.drawBitmap(scaled, 0f, 0f, paint)
         } catch (e: Exception) {
             e.printStackTrace()
         }
