@@ -25,9 +25,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.waller.R
 import com.example.waller.ui.wallpaper.InteractionMode
 
 @Composable
@@ -51,7 +53,7 @@ fun ModePickerDialog(
 
                 // Title
                 Text(
-                    text = "Choose interaction mode",
+                    text = stringResource(R.string.interaction_mode_title),
                     style = MaterialTheme.typography.titleLarge
                 )
 
@@ -64,8 +66,8 @@ fun ModePickerDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     ModeCard(
-                        label = "Simple",
-                        sublabel = "Quick apply — skips preview",
+                        label = stringResource(R.string.interaction_mode_simple),
+                        sublabel = stringResource(R.string.interaction_mode_simple_sub_short),
                         icon = Icons.Filled.Bolt,
                         selected = selected == InteractionMode.SIMPLE,
                         onClick = { selected = InteractionMode.SIMPLE },
@@ -73,8 +75,8 @@ fun ModePickerDialog(
                     )
 
                     ModeCard(
-                        label = "Advanced",
-                        sublabel = "Show full preview & controls",
+                        label = stringResource(R.string.interaction_mode_advanced),
+                        sublabel = stringResource(R.string.interaction_mode_advanced_sub_short),
                         icon = Icons.Filled.Tune,
                         selected = selected == InteractionMode.ADVANCED,
                         onClick = { selected = InteractionMode.ADVANCED },
@@ -86,7 +88,7 @@ fun ModePickerDialog(
 
                 // Footer note
                 Text(
-                    text = "You can change this anytime from Settings.",
+                    text = stringResource(R.string.interaction_mode_change_note),
                     modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
@@ -105,14 +107,14 @@ fun ModePickerDialog(
                         onClick = onDismiss,
                         modifier = Modifier.defaultMinSize(minHeight = 44.dp)
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
 
                     Button(
                         onClick = { onChosen(selected) },
                         modifier = Modifier.defaultMinSize(minHeight = 44.dp)
                     ) {
-                        Text("Confirm")
+                        Text(stringResource(R.string.confirm))
                     }
                 }
             }

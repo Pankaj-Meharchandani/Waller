@@ -134,5 +134,9 @@
     <string name="interaction_mode_advanced">Advanced</string>
     <string name="interaction_mode_advanced_sub">Open preview overlay with full controls. \nWarning: App auto rotate locked.</string>
 
+    <string name="confirm">Confirm</string>
+    <string name="interaction_mode_change_note">You can change this anytime from Settings.</string>
+    <string name="interaction_mode_simple_sub_short">Quick apply - skips preview</string>
+    <string name="interaction_mode_advanced_sub_short">Show full preview &amp; controls</string>
 
 </resources>
