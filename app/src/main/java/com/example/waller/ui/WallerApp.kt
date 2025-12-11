@@ -50,7 +50,6 @@ import com.example.waller.ui.wallpaper.toHexString
 import androidx.core.content.edit
 import com.example.waller.ui.wallpaper.InteractionMode
 import kotlin.math.roundToInt
-import android.content.pm.PackageManager
 import com.example.waller.ui.onboarding.ModePickerDialog
 
 // Which top-level screen is shown.
