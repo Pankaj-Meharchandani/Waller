@@ -1,12 +1,136 @@
 # 🗺️ Waller Roadmap
 
-This document outlines the planned development path for **Waller**, starting from the current stable release **v1.6**.
+This document outlines the planned development path for **Waller**.
 
 The roadmap is structured for fast, clean, incremental development.
 
 ---
 
-## 📍 Current Version — v1.6 (Stable)
+## 📌 Menu
+- [Current Version — v2.0](#-current-version--v20-stable)
+- [Upcoming Versions](#-upcoming-versions)
+  - [v2.1 — Geometric Lines](#v21--geometric-lines)
+  - [v2.2 — Text / Wordart](#v22--text--wordart)
+  - [v2.3 — Share Wallpaper](#v23--share-wallpaper)
+- [Previous Versions](#-previous-versions)
+
+---
+
+## 📍 Current Version — v2.0 (Stable)
+
+### 🎯 Goals  
+Give users control over how they interact with the app.
+
+### Features
+- Two interaction modes:
+  - **Simple Mode**
+    - Existing fast and clean flow
+    - Pick colors, apply effects, apply/download
+  - **Advanced Mode**
+    - Full customization after selecting a wallpaper
+    - Gradient angle control
+    - Effect opacity control
+    - Change gradient type at final stage
+    - Save exact customizations
+- First-launch mode selection for new users
+- Mode switch available anytime from Settings
+
+---
+
+# 🚀 Upcoming Versions
+
+---
+
+## **v2.1 — Geometric Lines**
+
+### 🎯 Goals  
+Add structure without clutter.
+
+### Features
+- Optional geometric line overlays
+- Make sure it complement gradients, not dominate them
+
+---
+
+## **v2.2 — Text / Wordart**
+
+### 🎯 Goals  
+Allow subtle personalization.
+
+### Features
+- Add text layer to wallpapers
+- Text sources:
+  - Predefined words / phrases
+  - Custom user text
+- Controls:
+  - Position
+  - Size
+  - Opacity
+  - Alignment
+- Minimal, clean font set
+
+---
+
+## **v2.3 — Share Wallpaper**
+
+### 🎯 Goals  
+Make sharing effortless.
+
+### Features
+- Share wallpaper as **PNG**
+- System share sheet (Intent chooser)
+- Works from:
+  - Preview
+  - Favorites
+
+---
+
+# ⏪ Previous Versions
+
+---
+
+## **v1.9 — Gradient Expansion**
+
+### 🎯 Goals  
+Increase creative range without adding complexity.
+
+### Features
+- Multi-color gradient support
+- Flexible gradient handling with minimal UI changes
+
+---
+
+## **v1.8 — Live Customization Flow**
+
+### 🎯 Goals  
+Remove friction from wallpaper creation.
+
+### Features
+- Automatic application of changes (no Generate button)
+- Customization options visible at once
+- Added **Neutral tone**
+- **Favorites**
+  - Save wallpaper designs
+  - View saved designs later
+  - Change orientation of favorite wallpapers anytime
+- Refreshed UI to support live interaction
+
+---
+
+## **v1.7 — Structural Readiness**
+
+### 🎯 Goals  
+Prepare the app for future feature expansion.
+
+### Features
+- Clean internal app structure
+- Centralized strings and configuration
+- Readable, maintainable codebase
+
+---
+
+## **v1.6 — Base Foundation**
+
 Foundation complete:
 - Gradient generation (Linear, Radial, Angular, Diamond)
 - Noise, Stripes, and **Nothing-style glass effect**
@@ -18,123 +142,8 @@ Foundation complete:
 
 ---
 
-# 🚀 Upcoming Versions
-
----
-
-## **v1.7 — Settings & About (Next Update)**
-
-### 🎯 Goals
-Introduce missing screens & preference system.
-
-### Features
-- **Settings screen**
-  - Theme toggle (Light/Dark/System)
-  - UI mode selector (Simple / Advanced)
-  - Basic preferences saved using DataStore
-
-- **About screen**
-  - App name, version
-  - GitHub link
-  - License (GPL)
-  - Short description
-
-- **First-run welcome dialog**
-  - “Configure UI in Settings”
-
-This update adds foundation for future UI features but does not change the main screen yet.
-
----
-
-## **v1.8 — UI Modes (Simple vs Advanced)**
-
-### 🎯 Goals  
-Give users control over how much UI they want.
-
-### Features
-- First-run popup (Tasker-style):
-  - **Simple & Clean**  
-  - **Advanced / Technical**
-- Save user mode permanently
-- **Simple Mode**
-  - Most sections collapsed  
-  - Clean, minimal interface
-  - **Nothing-style effect always visible** (signature feature)
-- **Advanced Mode**
-  - All cards open by default
-
----
-
-## **v1.9 — Collapsible Cards Update**
-
-### 🎯 Goals  
-Reduce clutter while keeping power features.
-
-### Features
-- All cards become **collapsible**
-- Smooth animation for expand/collapse
-- “Reset UI layout” in Settings
-- Mode-specific defaults:
-  - **Simple Mode**
-    - Orientation + Tone → expanded  
-    - Others collapsed  
-    - **Effects partially visible so Nothing-style toggle is always shown**
-  - **Advanced Mode**
-    - All expanded
-
----
-
-## **v2.0 — 3-Step Tone Slider**
-
-### 🎯 Goals  
-Enhance control over color brightness.
-
-### Features
-- Replace Light/Dark with:
-  - **Dark • Original • Light**
-- Updated random color generator
-- Updated shade variations
-- Default tone option in Settings
-
----
-
-## **v2.1 — Multi-Color Gradients**
-
-### 🎯 Goals  
-Unlock richer gradients.
-
-### Features
-- Support 2–5 color stops in gradient drawing
-- Compose UI supports multi-stop brushes
-- Android shader supports full stop arrays
-- Shuffle color order button
-
----
-
-## **v2.2 — Favorites & Collections**
-
-### 🎯 Goals  
-Let users save and organize their best creations.
-
-### Features
-- Save wallpapers as presets
-- Favorites screen (grid)
-- Apply / Download / Rename / Delete
-- Optional named Collections (future enhancement)
-
----
-
-## **v2.3 — UX Polish & Enhancements**
-
-### Features
-- Share wallpaper button (Intent chooser)
-- Haptic feedback
-- Default orientation setting
-- Grid size selector (12 / 20 / 30 previews)
-- Optional palette presets (Pastel / Neon / AMOLED)
-
----
-
 ## 📝 Notes
-- Roadmap may evolve based on user feedback.
+- Roadmap includes only planned feature direction
+- Bug fixes, regressions, and maintenance work are excluded
+- Waller remains offline-first by design
 ---
