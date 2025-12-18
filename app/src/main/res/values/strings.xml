@@ -13,12 +13,13 @@
     <string name="delete">Delete</string>
     <string name="effects_title">Effects</string>
     <string name="effects_subtitle">Noise, stripes, and optional Nothing-style overlay.</string>
-    <string name="effects_snow_effect">Snow effect</string>
+    <string name="effects_snow_effect">Snow</string>
     <string name="effects_snow_effect_subtitle">Soft snow texture.</string>
     <string name="effects_stripes_overlay">Stripes overlay</string>
-    <string name="effects_stripes">Add Stripes</string>
+    <string name="effects_stripes">Stripes</string>
+    <string name="effect_geometric">Lines</string>
     <string name="effects_stripes_overlay_subtitle">Vertical translucent stripes.</string>
-    <string name="effects_nothing_style">Nothing Style</string>
+    <string name="effects_nothing_style">Glass</string>
     <string name="effects_nothing_style_subtitle">Add Nothing like glass effect</string>
     <string name="orientation_title">Orientation</string>
     <string name="orientation_portrait">Portrait</string>

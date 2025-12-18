@@ -89,6 +89,8 @@ fun WallpaperGeneratorScreen(
     onAddStripesChange: (Boolean) -> Unit,
     addOverlay: Boolean,
     onAddOverlayChange: (Boolean) -> Unit,
+    addGeometric: Boolean,
+    onAddGeometricChange: (Boolean) -> Unit,
     favouriteWallpapers: List<FavoriteWallpaper>,
     // UPDATED: onToggleFavourite now accepts per-effect alpha floats as well
     onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean,
@@ -302,6 +304,10 @@ fun WallpaperGeneratorScreen(
                     addOverlay = addOverlay,
                     onOverlayToggle = {
                         onAddOverlayChange(!addOverlay)
+                    },
+                            addGeometric = addGeometric,
+                    onGeometricToggle = {
+                        onAddGeometricChange(!addGeometric)
                     }
                 )
             }

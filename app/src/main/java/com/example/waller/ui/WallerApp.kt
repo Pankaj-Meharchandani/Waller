@@ -257,6 +257,7 @@ fun WallerApp() {
         enableStripesByDefault = value
         prefs.edit { putBoolean("default_enable_stripes", value) }
     }
+    var geometricEffectEnabled by remember { mutableStateOf(false) }
 
     // Default tone: DARK / NEUTRAL / LIGHT
     val initialToneMode = remember {
@@ -435,6 +436,8 @@ fun WallerApp() {
                             onAddNoiseChange = { snowEffectEnabled = it },
                             addStripes = stripesEffectEnabled,
                             onAddStripesChange = { stripesEffectEnabled = it },
+                            addGeometric = geometricEffectEnabled,
+                            onAddGeometricChange = { geometricEffectEnabled = it },
                             addOverlay = overlayEffectEnabled,
                             onAddOverlayChange = { overlayEffectEnabled = it },
                             favouriteWallpapers = favouriteWallpapers,

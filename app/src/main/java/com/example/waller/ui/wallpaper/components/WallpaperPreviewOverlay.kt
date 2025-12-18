@@ -99,6 +99,7 @@ fun WallpaperPreviewOverlay(
     var noise by remember { mutableStateOf(globalNoise) }
     var stripes by remember { mutableStateOf(globalStripes) }
     var overlay by remember { mutableStateOf(globalOverlay) }
+    var geometric by remember { mutableStateOf(false) }
 
     // per-effect opacity state (already present, just used more thoroughly now)
     var noiseAlpha by remember { mutableFloatStateOf(initialNoiseAlpha) }
@@ -539,6 +540,13 @@ fun WallpaperPreviewOverlay(
                         stripes = !stripes
                         if (stripes && stripesAlpha <= 0f) stripesAlpha = DEFAULT_STRIPES_ALPHA
                         if (!stripes) stripesAlpha = 0f
+                    }
+                    EffectChip(
+                        stringResource(id = R.string.effect_geometric),
+                        geometric,
+                        textColor = overlayTextColor(selectedForButton = geometric)
+                    ) {
+                        geometric = !geometric
                     }
                 }
             }

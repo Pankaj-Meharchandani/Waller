@@ -51,7 +51,9 @@ fun CompactOptionsPanel(
     addStripes: Boolean,
     onStripesToggle: () -> Unit,
     addOverlay: Boolean,
-    onOverlayToggle: () -> Unit
+    onOverlayToggle: () -> Unit,
+    addGeometric: Boolean,
+    onGeometricToggle: () -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -145,6 +147,12 @@ fun CompactOptionsPanel(
                 selected = addStripes,
                 onClick = onStripesToggle,
                 label = { Text(stringResource(id = R.string.effects_stripes)) },
+                shape = RoundedCornerShape(999.dp)
+            )
+            FilterChip(
+                selected = addGeometric,
+                onClick = onGeometricToggle,
+                label = { Text(stringResource(id = R.string.effect_geometric)) },
                 shape = RoundedCornerShape(999.dp)
             )
         }
