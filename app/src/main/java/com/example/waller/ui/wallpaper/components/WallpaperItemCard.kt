@@ -220,7 +220,7 @@ fun WallpaperItem(
                         painter = painterResource(R.drawable.overlay_geometric),
                         contentDescription = null,
                         modifier = Modifier.matchParentSize(),
-                        contentScale = ContentScale.FillBounds,
+                        contentScale = ContentScale.FillWidth,
                         colorFilter = ColorFilter.tint(geometricTint),
                         alpha = 0.9f
                     )
@@ -253,7 +253,7 @@ fun WallpaperItem(
                             painter = painterResource(R.drawable.overlay_geometric),
                             contentDescription = null,
                             modifier = Modifier.matchParentSize(),
-                            contentScale = ContentScale.FillBounds,
+                            contentScale = ContentScale.FillWidth,
                             colorFilter = ColorFilter.tint(geometricTint),
                             alpha = 0.9f
                         )

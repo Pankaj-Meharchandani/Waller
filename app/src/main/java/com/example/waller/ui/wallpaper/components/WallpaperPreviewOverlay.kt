@@ -697,7 +697,7 @@ private fun PreviewWallpaperRender(
                         painter = painterResource(id = R.drawable.overlay_geometric),
                         contentDescription = null,
                         modifier = Modifier.matchParentSize(),
-                        contentScale = ContentScale.FillBounds
+                        contentScale = ContentScale.FillWidth
                     )
                 }
             } else {
@@ -746,7 +746,7 @@ private fun PreviewWallpaperRender(
                             painter = painterResource(id = R.drawable.overlay_geometric),
                             contentDescription = null,
                             modifier = Modifier.matchParentSize(),
-                            contentScale = ContentScale.FillBounds
+                            contentScale = ContentScale.FillWidth
                         )
                     }
                 }
