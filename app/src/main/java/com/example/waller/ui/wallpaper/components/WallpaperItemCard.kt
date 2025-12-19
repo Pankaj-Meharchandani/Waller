@@ -5,9 +5,9 @@
  * - Gradient background (Compose Brush)
  * - Optional noise and stripe effects
  * - Optional Nothing-style PNG overlay
+ * - Optional geometric overlay (PNG / VectorDrawable)
  * - Bottom-left tag: gradient type + color swatches
  * - Top-right heart icon visually inside the card to mark/unmark as favourite
- * - Shows saved angle badge when angle != 0
  *
  * Opens the Apply/Download dialog when tapped.
  */
@@ -19,26 +19,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.Surface
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,15 +32,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.Wallpaper
 import kotlin.random.Random
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
@@ -66,12 +54,11 @@ fun WallpaperItemCard(
     addNoise: Boolean,
     addStripes: Boolean,
     addOverlay: Boolean,
-    // per-effect alpha values to control opacities on cards (defaults for safety)
+    addGeometric: Boolean,
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
     isFavorite: Boolean,
-    // updated callback includes alphas
     onFavoriteToggle: (Wallpaper, Boolean, Boolean, Boolean, Float, Float, Float) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -99,18 +86,18 @@ fun WallpaperItemCard(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
 
-            // Wallpaper renderer uses alpha values
             WallpaperItem(
                 wallpaper = wallpaper,
                 addNoise = addNoise,
                 addNothingStripes = addStripes,
                 addOverlay = addOverlay,
+                addGeometric = addGeometric,
                 noiseAlpha = noiseAlpha,
                 stripesAlpha = stripesAlpha,
                 overlayAlpha = overlayAlpha
             )
 
-            // Floating fav button placed inside the card bounds near the top-right
+            // Favourite button
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -123,11 +110,24 @@ fun WallpaperItemCard(
                     modifier = Modifier.size(40.dp)
                 ) {
                     IconButton(
-                        onClick = { onFavoriteToggle(wallpaper, addNoise, addStripes, addOverlay, noiseAlpha, stripesAlpha, overlayAlpha) },
+                        onClick = {
+                            onFavoriteToggle(
+                                wallpaper,
+                                addNoise,
+                                addStripes,
+                                addOverlay,
+                                noiseAlpha,
+                                stripesAlpha,
+                                overlayAlpha
+                            )
+                        },
                         modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
-                            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            imageVector = if (isFavorite)
+                                Icons.Filled.Favorite
+                            else
+                                Icons.Outlined.FavoriteBorder,
                             contentDescription = null,
                             tint = if (isFavorite) Color(0xFFFF4D6A) else Color.White
                         )
@@ -144,54 +144,91 @@ fun WallpaperItem(
     addNoise: Boolean,
     addNothingStripes: Boolean,
     addOverlay: Boolean,
+    addGeometric: Boolean, // ✅ NEW
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val widthDp = maxWidth
-            val heightDp = maxHeight
+
             val density = LocalDensity.current
-            val widthPx = with(density) { widthDp.toPx() }
-            val heightPx = with(density) { heightDp.toPx() }
+            val widthPx = with(density) { maxWidth.toPx() }
+            val heightPx = with(density) { maxHeight.toPx() }
 
             val androidColors = wallpaper.colors.map { it.toArgb() }.toIntArray()
 
+            // 🔹 Compute contrast tint for geometric overlay
+            val avgLuminance = wallpaper.colors
+                .map { it.luminance() }
+                .average()
+                .toFloat()
+
+            val geometricTint =
+                if (avgLuminance > 0.5f) Color.Black else Color.White
+
             if (wallpaper.type == GradientType.Angular) {
-                // use native sweep shader so angleDeg rotation works
                 Canvas(modifier = Modifier.matchParentSize()) {
-                    val sweep = createRotatedSweepShader(widthPx, heightPx, androidColors, wallpaper.angleDeg)
+                    val sweep = createRotatedSweepShader(
+                        widthPx,
+                        heightPx,
+                        androidColors,
+                        wallpaper.angleDeg
+                    )
                     val paint = android.graphics.Paint().apply {
                         isAntiAlias = true
                         shader = sweep
                     }
-                    drawContext.canvas.nativeCanvas.drawRect(0f, 0f, size.width, size.height, paint)
+                    drawContext.canvas.nativeCanvas.drawRect(
+                        0f, 0f, size.width, size.height, paint
+                    )
 
                     if (addNoise && noiseAlpha > 0f) {
                         val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
-                        val numNoisePoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                        val numNoisePoints =
+                            (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
                         repeat(numNoisePoints) {
                             val x = Random.nextFloat() * size.width
                             val y = Random.nextFloat() * size.height
-                            val alpha = (Random.nextFloat() * 0.15f).coerceIn(0f, 1f) * noiseAlpha
-                            drawCircle(Color.White.copy(alpha = alpha), radius = noiseSize, center = Offset(x, y))
+                            val alpha =
+                                (Random.nextFloat() * 0.15f).coerceIn(0f, 1f) * noiseAlpha
+                            drawCircle(
+                                Color.White.copy(alpha = alpha),
+                                radius = noiseSize,
+                                center = Offset(x, y)
+                            )
                         }
                     }
 
                     if (addNothingStripes && stripesAlpha > 0f) {
                         val stripeCount = 18
                         val stripeWidth = size.width / (stripeCount * 2f)
-                        for (i in 0 until stripeCount) {
-                            val left = i * stripeWidth * 2f
-                            drawRect(Color.White.copy(alpha = 0.10f * stripesAlpha), topLeft = Offset(left, 0f), size = Size(stripeWidth, size.height))
+                        repeat(stripeCount) {
+                            val left = it * stripeWidth * 2f
+                            drawRect(
+                                Color.White.copy(alpha = 0.10f * stripesAlpha),
+                                topLeft = Offset(left, 0f),
+                                size = Size(stripeWidth, size.height)
+                            )
                         }
                     }
                 }
 
+                // 🔹 GEOMETRIC OVERLAY (NEW)
+                if (addGeometric) {
+                    Image(
+                        painter = painterResource(R.drawable.overlay_geometric),
+                        contentDescription = null,
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.FillBounds,
+                        colorFilter = ColorFilter.tint(geometricTint),
+                        alpha = 0.9f
+                    )
+                }
+
                 if (addOverlay && overlayAlpha > 0f) {
                     Image(
-                        painter = painterResource(id = R.drawable.overlay_stripes),
+                        painter = painterResource(R.drawable.overlay_stripes),
                         contentDescription = null,
                         modifier = Modifier
                             .matchParentSize()
@@ -200,19 +237,43 @@ fun WallpaperItem(
                     )
                 }
             } else {
-                // Use our shared helper so linear/diamond/radial respect angleDeg consistently.
-                val brush = createBrushForPreview(wallpaper.colors, wallpaper.type, widthPx, heightPx, wallpaper.angleDeg)
+                val brush = createBrushForPreview(
+                    wallpaper.colors,
+                    wallpaper.type,
+                    widthPx,
+                    heightPx,
+                    wallpaper.angleDeg
+                )
 
                 Box(modifier = Modifier.matchParentSize().background(brush)) {
+
+                    // 🔹 GEOMETRIC OVERLAY (NEW)
+                    if (addGeometric) {
+                        Image(
+                            painter = painterResource(R.drawable.overlay_geometric),
+                            contentDescription = null,
+                            modifier = Modifier.matchParentSize(),
+                            contentScale = ContentScale.FillBounds,
+                            colorFilter = ColorFilter.tint(geometricTint),
+                            alpha = 0.9f
+                        )
+                    }
+
                     if (addNoise && noiseAlpha > 0f) {
                         Canvas(modifier = Modifier.matchParentSize()) {
                             val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
-                            val numNoisePoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                            val numNoisePoints =
+                                (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
                             repeat(numNoisePoints) {
                                 val x = Random.nextFloat() * size.width
                                 val y = Random.nextFloat() * size.height
-                                val alpha = (Random.nextFloat() * 0.15f).coerceIn(0f, 1f) * noiseAlpha
-                                drawCircle(Color.White.copy(alpha = alpha), radius = noiseSize, center = Offset(x, y))
+                                val alpha =
+                                    (Random.nextFloat() * 0.15f).coerceIn(0f, 1f) * noiseAlpha
+                                drawCircle(
+                                    Color.White.copy(alpha = alpha),
+                                    radius = noiseSize,
+                                    center = Offset(x, y)
+                                )
                             }
                         }
                     }
@@ -221,16 +282,20 @@ fun WallpaperItem(
                         Canvas(modifier = Modifier.matchParentSize()) {
                             val stripeCount = 18
                             val stripeWidth = size.width / (stripeCount * 2f)
-                            for (i in 0 until stripeCount) {
-                                val left = i * stripeWidth * 2f
-                                drawRect(Color.White.copy(alpha = 0.10f * stripesAlpha), topLeft = Offset(left, 0f), size = Size(stripeWidth, size.height))
+                            repeat(stripeCount) {
+                                val left = it * stripeWidth * 2f
+                                drawRect(
+                                    Color.White.copy(alpha = 0.10f * stripesAlpha),
+                                    topLeft = Offset(left, 0f),
+                                    size = Size(stripeWidth, size.height)
+                                )
                             }
                         }
                     }
 
                     if (addOverlay && overlayAlpha > 0f) {
                         Image(
-                            painter = painterResource(id = R.drawable.overlay_stripes),
+                            painter = painterResource(R.drawable.overlay_stripes),
                             contentDescription = null,
                             modifier = Modifier
                                 .matchParentSize()
@@ -241,7 +306,7 @@ fun WallpaperItem(
                 }
             }
 
-            // bottom tag (type + swatches) — unchanged visual
+            // bottom tag (type + swatches)
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
@@ -260,7 +325,7 @@ fun WallpaperItem(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 wallpaper.colors.forEachIndexed { index, color ->
-                    androidx.compose.foundation.layout.Box(
+                    Box(
                         modifier = Modifier
                             .size(12.dp)
                             .clip(RoundedCornerShape(3.dp))

@@ -12,7 +12,7 @@
  *
  * data class FavoriteWallpaper:
  *   - Wraps a Wallpaper + the effect flags used when it was favourited
- *   - Allows favourites screen to recreate the exact look (noise/stripes/glass)
+ *   - Allows favourites screen to recreate the exact look (noise/stripes/glass/geometry)
  */
 
 package com.example.waller.ui.wallpaper
@@ -32,8 +32,7 @@ enum class GradientType {
     Diamond
 }
 
-//Tone mode used for random color generation and shading.
-
+// Tone mode used for random color generation and shading.
 enum class ToneMode {
     DARK,
     NEUTRAL,
@@ -44,13 +43,14 @@ enum class ToneMode {
  * Snapshot of a favourite wallpaper at the time user tapped the heart.
  * We keep:
  * - underlying gradient `wallpaper`
- * - which effects were active: snow, stripes, overlay
+ * - which effects were active: snow, stripes, glass, geometric
  */
 data class FavoriteWallpaper(
     val wallpaper: Wallpaper,
     val addNoise: Boolean,
     val addStripes: Boolean,
     val addOverlay: Boolean,
+    val addGeometric: Boolean = false, // ✅ NEW (backward compatible)
     val noiseAlpha: Float = 1f,
     val stripesAlpha: Float = 1f,
     val overlayAlpha: Float = 1f

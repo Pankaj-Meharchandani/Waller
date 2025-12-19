@@ -404,6 +404,7 @@ fun WallpaperGeneratorScreen(
                 isPortrait = isPortrait,
                 addNoise = addNoise,
                 addStripes = addStripes,
+                addGeometric = addGeometric,
                 addOverlay = addOverlay,
                 // grid-level cards don't have per-card sliders: use global-enabled -> full alpha (1f) or 0f
                 noiseAlpha = if (addNoise) 1f else 0f,
