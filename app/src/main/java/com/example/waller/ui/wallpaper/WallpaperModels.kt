@@ -50,7 +50,7 @@ data class FavoriteWallpaper(
     val addNoise: Boolean,
     val addStripes: Boolean,
     val addOverlay: Boolean,
-    val addGeometric: Boolean = false, // ✅ NEW (backward compatible)
+    val addGeometric: Boolean,
     val noiseAlpha: Float = 1f,
     val stripesAlpha: Float = 1f,
     val overlayAlpha: Float = 1f

@@ -340,6 +340,7 @@ fun WallerApp() {
                     addNoise = addNoise,
                     addStripes = addStripes,
                     addOverlay = addOverlay,
+                    addGeometric = addGeometric,
                     noiseAlpha = noiseAlpha,
                     stripesAlpha = stripesAlpha,
                     overlayAlpha = overlayAlpha
