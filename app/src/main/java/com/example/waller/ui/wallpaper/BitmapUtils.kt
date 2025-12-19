@@ -20,6 +20,7 @@ import android.app.WallpaperManager.FLAG_LOCK
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RadialGradient
@@ -213,22 +214,30 @@ fun createGradientBitmap(
     }
 
     if (addGeometric) {
-        try {
-            val geometricBitmap = android.graphics.BitmapFactory.decodeResource(
-                context.resources,
-                R.drawable.overlay_geometric
-            )
+        val overlay = BitmapFactory.decodeResource(
+            context.resources,
+            R.drawable.overlay_geometric
+        )
 
-            val paintGeometric = Paint().apply {
-                isAntiAlias = true
-                alpha = 230 // slightly softer than full white
-            }
+        val scale = width.toFloat() / overlay.width.toFloat()
+        val scaledWidth = width
+        val scaledHeight = (overlay.height * scale).roundToInt()
 
-            val scaled = geometricBitmap.scale(width, height)
-            canvas.drawBitmap(scaled, 0f, 0f, paintGeometric)
-        } catch (e: Exception) {
-            e.printStackTrace()
+        val scaled = overlay.scale(scaledWidth, scaledHeight)
+
+        val topOffset = ((height - scaledHeight) / 2f).coerceAtMost(0f)
+
+        val paint = Paint().apply {
+            isAntiAlias = true
+            alpha = 230 // slightly softer than 255
         }
+
+        canvas.drawBitmap(
+            scaled,
+            0f,
+            topOffset,
+            paint
+        )
     }
 
     return bmp
