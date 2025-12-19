@@ -473,6 +473,7 @@ fun WallpaperGeneratorScreen(
             globalNoise = addNoise,
             globalStripes = addStripes,
             globalOverlay = addOverlay,
+            globalGeometric = addGeometric,
             onDismiss = { showPreview = false },
             writePermissionLauncher = writePermissionLauncher,
             context = context,
@@ -488,6 +489,7 @@ fun WallpaperGeneratorScreen(
         addNoise = addNoise,
         addStripes = addStripes,
         addOverlay = addOverlay,
+        addGeometric = addGeometric,
         noiseAlpha = if (addNoise) 1f else 0f, // grid-level default: full or 0
         stripesAlpha = if (addStripes) 1f else 0f,
         overlayAlpha = if (addOverlay) 1f else 0f,

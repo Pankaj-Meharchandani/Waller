@@ -30,6 +30,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.view.WindowInsets
 import android.view.WindowManager
+import androidx.compose.ui.text.TextPainter.paint
 import com.example.waller.R
 import androidx.core.graphics.scale
 import kotlin.math.max
@@ -60,6 +61,7 @@ fun createGradientBitmap(
     addNoise: Boolean = false,
     addStripes: Boolean = false,
     addOverlay: Boolean = false,
+    addGeometric: Boolean,
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f
@@ -205,6 +207,25 @@ fun createGradientBitmap(
 
             val scaled = overlay.scale(width, height)
             canvas.drawBitmap(scaled, 0f, 0f, paint)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    if (addGeometric) {
+        try {
+            val geometricBitmap = android.graphics.BitmapFactory.decodeResource(
+                context.resources,
+                R.drawable.overlay_geometric
+            )
+
+            val paintGeometric = Paint().apply {
+                isAntiAlias = true
+                alpha = 230 // slightly softer than full white
+            }
+
+            val scaled = geometricBitmap.scale(width, height)
+            canvas.drawBitmap(scaled, 0f, 0f, paintGeometric)
         } catch (e: Exception) {
             e.printStackTrace()
         }

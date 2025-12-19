@@ -72,6 +72,7 @@ fun WallpaperPreviewOverlay(
     globalNoise: Boolean,
     globalStripes: Boolean,
     globalOverlay: Boolean,
+    globalGeometric: Boolean,
     initialNoiseAlpha: Float = initAlphaFor(globalNoise, DEFAULT_NOISE_ALPHA),
     initialStripesAlpha: Float = initAlphaFor(globalStripes, DEFAULT_STRIPES_ALPHA),
     initialOverlayAlpha: Float = initAlphaFor(globalOverlay, DEFAULT_OVERLAY_ALPHA),
@@ -99,7 +100,7 @@ fun WallpaperPreviewOverlay(
     var noise by remember { mutableStateOf(globalNoise) }
     var stripes by remember { mutableStateOf(globalStripes) }
     var overlay by remember { mutableStateOf(globalOverlay) }
-    var geometric by remember { mutableStateOf(false) }
+    var geometric by remember { mutableStateOf(globalGeometric) }
 
     // per-effect opacity state (already present, just used more thoroughly now)
     var noiseAlpha by remember { mutableFloatStateOf(initialNoiseAlpha) }
@@ -232,6 +233,7 @@ fun WallpaperPreviewOverlay(
                                 addNoise = noise,
                                 addStripes = stripes,
                                 addOverlay = overlay,
+                                addGeometric = geometric,
                                 noiseAlpha = noiseAlpha,
                                 stripesAlpha = stripesAlpha,
                                 overlayAlpha = overlayAlpha,
@@ -391,6 +393,7 @@ fun WallpaperPreviewOverlay(
                                 addNoise = noise,
                                 addStripes = stripes,
                                 addOverlay = overlay,
+                                addGeometric = geometric,
                                 noiseAlpha = noiseAlpha,
                                 stripesAlpha = stripesAlpha,
                                 overlayAlpha = overlayAlpha,
@@ -596,6 +599,7 @@ fun WallpaperPreviewOverlay(
                 addNoise = noise,
                 addStripes = stripes,
                 addOverlay = overlay,
+                addGeometric = geometric,
                 noiseAlpha = noiseAlpha,
                 stripesAlpha = stripesAlpha,
                 overlayAlpha = overlayAlpha,
@@ -618,6 +622,7 @@ private fun PreviewWallpaperRender(
     addNoise: Boolean,
     addStripes: Boolean,
     addOverlay: Boolean,
+    addGeometric: Boolean,
     // NEW: alpha inputs from sliders
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
@@ -686,6 +691,15 @@ private fun PreviewWallpaperRender(
                         contentScale = ContentScale.FillBounds
                     )
                 }
+
+                if (addGeometric) {
+                    Image(
+                        painter = painterResource(id = R.drawable.overlay_geometric),
+                        contentDescription = null,
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.FillBounds
+                    )
+                }
             } else {
                 Box(modifier = Modifier.matchParentSize().background(brush)) {
                     if (addNoise && noiseAlpha > 0f) {
@@ -723,6 +737,15 @@ private fun PreviewWallpaperRender(
                             modifier = Modifier
                                 .matchParentSize()
                                 .graphicsLayer(alpha = overlayAlpha),
+                            contentScale = ContentScale.FillBounds
+                        )
+                    }
+
+                    if (addGeometric) {
+                        Image(
+                            painter = painterResource(id = R.drawable.overlay_geometric),
+                            contentDescription = null,
+                            modifier = Modifier.matchParentSize(),
                             contentScale = ContentScale.FillBounds
                         )
                     }
