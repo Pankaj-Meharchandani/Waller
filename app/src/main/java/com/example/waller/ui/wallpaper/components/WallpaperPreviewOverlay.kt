@@ -131,13 +131,6 @@ fun WallpaperPreviewOverlay(
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val aspectRatio = if (isPortrait) 9f / 16f else 16f / 9f
 
-    // Guard to prevent immediate self-dismiss by the opening tap
-    var justOpened by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) {
-        delay(200L)
-        justOpened = false
-    }
-
     // preview snapshot that reflects current style + angle
     val previewWallpaper = remember(wallpaper, selectedGradient, gradientAngle) {
         wallpaper.copy(type = selectedGradient, angleDeg = gradientAngle)
@@ -149,7 +142,11 @@ fun WallpaperPreviewOverlay(
             modifier = Modifier
                 .matchParentSize()
                 .pointerInput(Unit) {
-                    detectTapGestures { if (!justOpened) onDismiss() }
+                    awaitPointerEventScope {
+                        while (true) {
+                            awaitPointerEvent()
+                        }
+                    }
                 }
                 .background(Color.Black.copy(alpha = 0.75f))
         ) {
