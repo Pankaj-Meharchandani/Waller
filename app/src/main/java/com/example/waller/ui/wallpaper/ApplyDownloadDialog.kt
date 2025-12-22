@@ -49,6 +49,7 @@ fun ApplyDownloadDialog(
     addNoise: Boolean,
     addStripes: Boolean,
     addOverlay: Boolean,
+    addGeometric: Boolean,
     isWorking: Boolean,
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
@@ -101,6 +102,7 @@ fun ApplyDownloadDialog(
                                 addNoise,
                                 addStripes,
                                 addOverlay,
+                                addGeometric,
                                 noiseAlpha,
                                 stripesAlpha,
                                 overlayAlpha
@@ -140,6 +142,7 @@ fun ApplyDownloadDialog(
                                 addNoise,
                                 addStripes,
                                 addOverlay,
+                                addGeometric,
                                 noiseAlpha,
                                 stripesAlpha,
                                 overlayAlpha
@@ -182,6 +185,7 @@ fun ApplyDownloadDialog(
                                 addNoise,
                                 addStripes,
                                 addOverlay,
+                                addGeometric,
                                 noiseAlpha,
                                 stripesAlpha,
                                 overlayAlpha
@@ -244,6 +248,7 @@ fun ApplyDownloadDialog(
                                     addNoise,
                                     addStripes,
                                     addOverlay,
+                                    addGeometric,
                                     noiseAlpha,
                                     stripesAlpha,
                                     overlayAlpha

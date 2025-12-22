@@ -25,7 +25,9 @@ fun EffectsSelector(
     addStripes: Boolean,
     onStripesChange: (Boolean) -> Unit,
     addOverlay: Boolean,
-    onOverlayChange: (Boolean) -> Unit
+    onOverlayChange: (Boolean) -> Unit,
+    addGeometric: Boolean,
+    onGeometricChange: (Boolean) -> Unit
 ) {
     Column {
         Text(
@@ -85,5 +87,22 @@ fun EffectsSelector(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Geometric lines
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = addGeometric, onCheckedChange = onGeometricChange)
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(stringResource(id = R.string.effect_geometric))
+                Text(
+                    text = "Subtle geometric grid lines",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
     }
 }
