@@ -126,6 +126,16 @@ fun WallpaperPreviewOverlay(
     var showApplyDialog by remember { mutableStateOf(false) }
     var isBusy by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
+    LaunchedEffect(Unit) {
+        if (activeEffect == null) {
+            activeEffect = when {
+                overlay -> EffectType.OVERLAY
+                noise -> EffectType.NOISE
+                stripes -> EffectType.STRIPES
+                else -> null
+            }
+        }
+    }
 
     BackHandler { onDismiss() }
 
