@@ -443,8 +443,8 @@ fun WallerApp() {
                             addOverlay = overlayEffectEnabled,
                             onAddOverlayChange = { overlayEffectEnabled = it },
                             favouriteWallpapers = favouriteWallpapers,
-                            onToggleFavourite = { w, n, s, o, na, sa, oa ->
-                                toggleFavouriteFromHome(w, n, s, o, geometricEffectEnabled,na, sa, oa)
+                            onToggleFavourite = { w, n, s, o, g, na, sa, oa ->
+                                toggleFavouriteFromHome(w, n, s, o, g,na, sa, oa)
                             },
                             isPortrait = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortrait = it },

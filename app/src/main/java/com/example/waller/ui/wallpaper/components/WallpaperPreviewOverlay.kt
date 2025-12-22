@@ -81,6 +81,7 @@ fun WallpaperPreviewOverlay(
         noise: Boolean,
         stripes: Boolean,
         overlay: Boolean,
+        geometric: Boolean,
         noiseAlpha: Float,
         stripesAlpha: Float,
         overlayAlpha: Float
@@ -262,6 +263,7 @@ fun WallpaperPreviewOverlay(
                                                 noise,
                                                 stripes,
                                                 overlay,
+                                                geometric,
                                                 noiseAlpha,
                                                 stripesAlpha,
                                                 overlayAlpha
@@ -421,6 +423,7 @@ fun WallpaperPreviewOverlay(
                                                 noise,
                                                 stripes,
                                                 overlay,
+                                                geometric,
                                                 noiseAlpha,
                                                 stripesAlpha,
                                                 overlayAlpha

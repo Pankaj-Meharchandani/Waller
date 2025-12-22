@@ -59,7 +59,7 @@ fun WallpaperItemCard(
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
     isFavorite: Boolean,
-    onFavoriteToggle: (Wallpaper, Boolean, Boolean, Boolean, Float, Float, Float) -> Unit,
+    onFavoriteToggle: (Wallpaper, Boolean, Boolean, Boolean, Boolean, Float, Float, Float) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isPreview: Boolean = false
@@ -116,6 +116,7 @@ fun WallpaperItemCard(
                                 addNoise,
                                 addStripes,
                                 addOverlay,
+                                addGeometric,
                                 noiseAlpha,
                                 stripesAlpha,
                                 overlayAlpha

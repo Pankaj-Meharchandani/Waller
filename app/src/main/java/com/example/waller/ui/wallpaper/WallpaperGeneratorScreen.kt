@@ -93,7 +93,7 @@ fun WallpaperGeneratorScreen(
     onAddGeometricChange: (Boolean) -> Unit,
     favouriteWallpapers: List<FavoriteWallpaper>,
     // UPDATED: onToggleFavourite now accepts per-effect alpha floats as well
-    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean,
+    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean, addGeometric: Boolean,
                         noiseAlpha: Float, stripesAlpha: Float, overlayAlpha: Float) -> Unit,
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit,
@@ -411,9 +411,8 @@ fun WallpaperGeneratorScreen(
                 stripesAlpha = if (addStripes) 1f else 0f,
                 overlayAlpha = if (addOverlay) 1f else 0f,
                 isFavorite = isFavourite,
-                onFavoriteToggle = { w, n, s, o, na, sa, oa ->
-                    // forward the per-item alphas (from card or overlay) to the parent handler
-                    onToggleFavourite(w, n, s, o, na, sa, oa)
+                onFavoriteToggle = { w, n, s, o, g, na, sa, oa ->
+                    onToggleFavourite(w, n, s, o, g, na, sa, oa)
                 },
                 onClick = {
                     when (interactionMode) {
@@ -467,8 +466,8 @@ fun WallpaperGeneratorScreen(
             initialStripesAlpha = if (addStripes) 1f else 0f,
             initialOverlayAlpha = if (addOverlay) 1f else 0f,
             isFavorite = favouriteWallpapers.any { it.wallpaper == preview },
-            onFavoriteToggle = { wallpaperToSave, n, s, o, na, sa, oa ->
-                onToggleFavourite(wallpaperToSave, n, s, o, na, sa, oa)
+            onFavoriteToggle = { wallpaperToSave, n, s, o, g, na, sa, oa ->
+                onToggleFavourite(wallpaperToSave, n, s, o, g, na, sa, oa)
             },
             globalNoise = addNoise,
             globalStripes = addStripes,
