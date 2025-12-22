@@ -516,11 +516,13 @@ fun WallpaperPreviewOverlay(
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.06f))
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()) {
                     EffectChip(
                         stringResource(id = R.string.preview_effect_nothing),
                         overlay,
-                        textColor = overlayTextColor(selectedForButton = overlay)
+                        textColor = overlayTextColor(selectedForButton = overlay),
+                        modifier = Modifier.weight(1f)
                     ) {
                         overlay = !overlay
                         if (overlay && overlayAlpha <= 0f) overlayAlpha = DEFAULT_OVERLAY_ALPHA
@@ -529,7 +531,8 @@ fun WallpaperPreviewOverlay(
                     EffectChip(
                         stringResource(id = R.string.preview_effect_snow),
                         noise,
-                        textColor = overlayTextColor(selectedForButton = noise)
+                        textColor = overlayTextColor(selectedForButton = noise),
+                        modifier = Modifier.weight(1f)
                     ) {
                         noise = !noise
                         if (noise && noiseAlpha <= 0f) noiseAlpha = DEFAULT_NOISE_ALPHA
@@ -538,7 +541,8 @@ fun WallpaperPreviewOverlay(
                     EffectChip(
                         stringResource(id = R.string.preview_effect_stripes),
                         stripes,
-                        textColor = overlayTextColor(selectedForButton = stripes)
+                        textColor = overlayTextColor(selectedForButton = stripes),
+                        modifier = Modifier.weight(1f)
                     ) {
                         stripes = !stripes
                         if (stripes && stripesAlpha <= 0f) stripesAlpha = DEFAULT_STRIPES_ALPHA
@@ -547,7 +551,8 @@ fun WallpaperPreviewOverlay(
                     EffectChip(
                         stringResource(id = R.string.effect_geometric),
                         geometric,
-                        textColor = overlayTextColor(selectedForButton = geometric)
+                        textColor = overlayTextColor(selectedForButton = geometric),
+                        modifier = Modifier.weight(1f)
                     ) {
                         geometric = !geometric
                     }
@@ -839,7 +844,7 @@ private fun GradientTypeItemRect(label: String, selected: Boolean, textColor: Co
 }
 
 @Composable
-private fun EffectChip(label: String, selected: Boolean, textColor: Color, onToggle: () -> Unit) {
+private fun EffectChip(label: String, selected: Boolean, textColor: Color, modifier: Modifier = Modifier, onToggle: () -> Unit) {
     val unselectedBg =
         if (MaterialTheme.colorScheme.background.luminance() > 0.5f)
             MaterialTheme.colorScheme.surface.copy(alpha = 0.06f)
@@ -852,15 +857,21 @@ private fun EffectChip(label: String, selected: Boolean, textColor: Color, onTog
         shape = RoundedCornerShape(999.dp),
         tonalElevation = elev,
         color = bg,
-        border = if (!selected) ButtonDefaults.outlinedButtonBorder else null
+        border = if (!selected) ButtonDefaults.outlinedButtonBorder else null,
+        modifier = modifier
     ) {
-        Row(
+        Box(
             modifier = Modifier
+                .fillMaxWidth()
                 .clickable { onToggle() }
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Text(label, color = textColor)
+            Text(
+                text = label,
+                color = textColor,
+                maxLines = 1
+            )
         }
     }
 }
