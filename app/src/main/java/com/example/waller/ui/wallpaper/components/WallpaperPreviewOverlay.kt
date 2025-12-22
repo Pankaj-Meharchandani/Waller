@@ -61,7 +61,8 @@ import com.example.waller.ui.wallpaper.ApplyDownloadDialog
 import com.example.waller.ui.wallpaper.Wallpaper
 import com.example.waller.ui.wallpaper.GradientType
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
+
+private enum class EffectType { OVERLAY, NOISE, STRIPES, GEOMETRIC }
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
@@ -102,6 +103,7 @@ fun WallpaperPreviewOverlay(
     var stripes by remember { mutableStateOf(globalStripes) }
     var overlay by remember { mutableStateOf(globalOverlay) }
     var geometric by remember { mutableStateOf(globalGeometric) }
+    var activeEffect by remember { mutableStateOf<EffectType?>(null) }
 
     // per-effect opacity state (already present, just used more thoroughly now)
     var noiseAlpha by remember { mutableFloatStateOf(initialNoiseAlpha) }
@@ -516,82 +518,147 @@ fun WallpaperPreviewOverlay(
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.06f))
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+
                     EffectChip(
-                        stringResource(id = R.string.preview_effect_nothing),
-                        overlay,
+                        label = stringResource(id = R.string.preview_effect_nothing),
+                        selected = overlay,
+                        fillProgress = overlayAlpha,
+                        isActive = activeEffect == EffectType.OVERLAY,
                         textColor = overlayTextColor(selectedForButton = overlay),
                         modifier = Modifier.weight(1f)
                     ) {
-                        overlay = !overlay
-                        if (overlay && overlayAlpha <= 0f) overlayAlpha = DEFAULT_OVERLAY_ALPHA
-                        if (!overlay) overlayAlpha = 0f
+                        when {
+                            !overlay -> {
+                                overlay = true
+                                if (overlayAlpha <= 0f) overlayAlpha = DEFAULT_OVERLAY_ALPHA
+                                activeEffect = EffectType.OVERLAY
+                            }
+
+                            activeEffect != EffectType.OVERLAY -> {
+                                activeEffect = EffectType.OVERLAY
+                            }
+
+                            else -> {
+                                overlay = false
+                                overlayAlpha = 0f
+                                activeEffect = null
+                            }
+                        }
                     }
                     EffectChip(
-                        stringResource(id = R.string.preview_effect_snow),
-                        noise,
+                        label = stringResource(id = R.string.preview_effect_snow),
+                        selected = noise,
+                        fillProgress = noiseAlpha,
+                        isActive = activeEffect == EffectType.NOISE,
                         textColor = overlayTextColor(selectedForButton = noise),
                         modifier = Modifier.weight(1f)
                     ) {
-                        noise = !noise
-                        if (noise && noiseAlpha <= 0f) noiseAlpha = DEFAULT_NOISE_ALPHA
-                        if (!noise) noiseAlpha = 0f
+                        when {
+                            !noise -> {
+                                noise = true
+                                if (noiseAlpha <= 0f) noiseAlpha = DEFAULT_NOISE_ALPHA
+                                activeEffect = EffectType.NOISE
+                            }
+
+                            activeEffect != EffectType.NOISE -> {
+                                activeEffect = EffectType.NOISE
+                            }
+
+                            else -> {
+                                noise = false
+                                noiseAlpha = 0f
+                                activeEffect = null
+                            }
+                        }
                     }
+
                     EffectChip(
-                        stringResource(id = R.string.preview_effect_stripes),
-                        stripes,
+                        label = stringResource(id = R.string.preview_effect_stripes),
+                        selected = stripes,
+                        fillProgress = stripesAlpha,
+                        isActive = activeEffect == EffectType.STRIPES,
                         textColor = overlayTextColor(selectedForButton = stripes),
                         modifier = Modifier.weight(1f)
                     ) {
-                        stripes = !stripes
-                        if (stripes && stripesAlpha <= 0f) stripesAlpha = DEFAULT_STRIPES_ALPHA
-                        if (!stripes) stripesAlpha = 0f
+                        when {
+                            !stripes -> {
+                                stripes = true
+                                if (stripesAlpha <= 0f) stripesAlpha = DEFAULT_STRIPES_ALPHA
+                                activeEffect = EffectType.STRIPES
+                            }
+
+                            activeEffect != EffectType.STRIPES -> {
+                                activeEffect = EffectType.STRIPES
+                            }
+
+                            else -> {
+                                stripes = false
+                                stripesAlpha = 0f
+                                activeEffect = null
+                            }
+                        }
                     }
+
                     EffectChip(
-                        stringResource(id = R.string.effect_geometric),
-                        geometric,
+                        label = stringResource(id = R.string.effect_geometric),
+                        selected = geometric,
+                        fillProgress = if (geometric) 1f else 0f,
+                        isActive = false,
                         textColor = overlayTextColor(selectedForButton = geometric),
                         modifier = Modifier.weight(1f)
                     ) {
                         geometric = !geometric
+                        activeEffect = null
                     }
                 }
             }
 
             Spacer(Modifier.height(12.dp))
 
-            // Effect opacity sliders
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                EffectOpacitySlider(
-                    stringResource(id = R.string.preview_opacity_nothing),
-                    overlayAlpha,
-                    onSliderChange = {
-                        overlayAlpha = it
-                        overlay = it > 0.0001f
-                    },
-                    labelColor = overlayTextColor()
-                )
+// Active effect slider (only ONE at a time)
+            when (activeEffect) {
 
-                EffectOpacitySlider(
-                    stringResource(id = R.string.preview_opacity_snow),
-                    noiseAlpha,
-                    onSliderChange = {
-                        noiseAlpha = it
-                        noise = it > 0.0001f
-                    },
-                    labelColor = overlayTextColor()
-                )
+                EffectType.OVERLAY -> {
+                    EffectOpacitySlider(
+                        label = stringResource(id = R.string.preview_opacity_nothing),
+                        value = overlayAlpha,
+                        onSliderChange = {
+                            overlayAlpha = it
+                            overlay = it > 0.001f
+                        },
+                        labelColor = overlayTextColor()
+                    )
+                }
 
-                EffectOpacitySlider(
-                    stringResource(id = R.string.preview_opacity_stripes),
-                    stripesAlpha,
-                    onSliderChange = {
-                        stripesAlpha = it
-                        stripes = it > 0.0001f
-                    },
-                    labelColor = overlayTextColor()
-                )
+                EffectType.NOISE -> {
+                    EffectOpacitySlider(
+                        label = stringResource(id = R.string.preview_opacity_snow),
+                        value = noiseAlpha,
+                        onSliderChange = {
+                            noiseAlpha = it
+                            noise = it > 0.001f
+                        },
+                        labelColor = overlayTextColor()
+                    )
+                }
+
+                EffectType.STRIPES -> {
+                    EffectOpacitySlider(
+                        label = stringResource(id = R.string.preview_opacity_stripes),
+                        value = stripesAlpha,
+                        onSliderChange = {
+                            stripesAlpha = it
+                            stripes = it > 0.001f
+                        },
+                        labelColor = overlayTextColor()
+                    )
+                }
+
+                else -> Unit
             }
         }
 
@@ -844,18 +911,26 @@ private fun GradientTypeItemRect(label: String, selected: Boolean, textColor: Co
 }
 
 @Composable
-private fun EffectChip(label: String, selected: Boolean, textColor: Color, modifier: Modifier = Modifier, onToggle: () -> Unit) {
-    val unselectedBg =
-        if (MaterialTheme.colorScheme.background.luminance() > 0.5f)
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.06f)
+private fun EffectChip(
+    label: String,
+    selected: Boolean,
+    fillProgress: Float,
+    isActive: Boolean,
+    textColor: Color,
+    modifier: Modifier = Modifier,
+    onToggle: () -> Unit
+) {
+    val bg by animateColorAsState(
+        if (selected && isActive)
+            MaterialTheme.colorScheme.primaryContainer
         else
-            Color.Transparent
-    val targetBg = if (selected) MaterialTheme.colorScheme.primaryContainer else unselectedBg
-    val bg by animateColorAsState(targetBg, tween(220))
-    val elev by androidx.compose.animation.core.animateDpAsState(if (selected) 6.dp else 0.dp)
+            Color.Transparent,
+        tween(200)
+    )
+
     Surface(
         shape = RoundedCornerShape(999.dp),
-        tonalElevation = elev,
+        tonalElevation = if (selected) 6.dp else 0.dp,
         color = bg,
         border = if (!selected) ButtonDefaults.outlinedButtonBorder else null,
         modifier = modifier
@@ -863,15 +938,33 @@ private fun EffectChip(label: String, selected: Boolean, textColor: Color, modif
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(44.dp)
                 .clickable { onToggle() }
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center
+                .clip(RoundedCornerShape(999.dp))
         ) {
-            Text(
-                text = label,
-                color = textColor,
-                maxLines = 1
-            )
+
+            // 🔵 Passive fill indicator (ONLY when inactive)
+            if (selected && !isActive && fillProgress > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(fillProgress.coerceIn(0.1f, 0.9f))
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        )
+                )
+            }
+
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = label,
+                    color = textColor,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
