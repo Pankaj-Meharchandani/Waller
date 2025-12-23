@@ -58,8 +58,9 @@ fun WallpaperItemCard(
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
+    geometricAlpha: Float = 1f,
     isFavorite: Boolean,
-    onFavoriteToggle: (Wallpaper, Boolean, Boolean, Boolean, Boolean, Float, Float, Float) -> Unit,
+    onFavoriteToggle: (Wallpaper, Boolean, Boolean, Boolean, Boolean, Float, Float, Float, Float) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isPreview: Boolean = false
@@ -94,7 +95,8 @@ fun WallpaperItemCard(
                 addGeometric = addGeometric,
                 noiseAlpha = noiseAlpha,
                 stripesAlpha = stripesAlpha,
-                overlayAlpha = overlayAlpha
+                overlayAlpha = overlayAlpha,
+                geometricAlpha=geometricAlpha
             )
 
             // Favourite button
@@ -119,7 +121,8 @@ fun WallpaperItemCard(
                                 addGeometric,
                                 noiseAlpha,
                                 stripesAlpha,
-                                overlayAlpha
+                                overlayAlpha,
+                                geometricAlpha
                             )
                         },
                         modifier = Modifier.size(40.dp)
@@ -148,7 +151,8 @@ fun WallpaperItem(
     addGeometric: Boolean, // ✅ NEW
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
-    overlayAlpha: Float = 1f
+    overlayAlpha: Float = 1f,
+    geometricAlpha: Float = 1f
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -216,14 +220,15 @@ fun WallpaperItem(
                 }
 
                 // 🔹 GEOMETRIC OVERLAY (NEW)
-                if (addGeometric) {
+                if (addGeometric && geometricAlpha > 0f) {
                     Image(
                         painter = painterResource(R.drawable.overlay_geometric),
                         contentDescription = null,
-                        modifier = Modifier.matchParentSize(),
+                        modifier = Modifier
+                            .matchParentSize()
+                            .graphicsLayer(alpha = geometricAlpha),
                         contentScale = ContentScale.FillWidth,
-                        colorFilter = ColorFilter.tint(geometricTint),
-                        alpha = 0.9f
+                        colorFilter = ColorFilter.tint(geometricTint)
                     )
                 }
 
@@ -247,18 +252,6 @@ fun WallpaperItem(
                 )
 
                 Box(modifier = Modifier.matchParentSize().background(brush)) {
-
-                    // 🔹 GEOMETRIC OVERLAY (NEW)
-                    if (addGeometric) {
-                        Image(
-                            painter = painterResource(R.drawable.overlay_geometric),
-                            contentDescription = null,
-                            modifier = Modifier.matchParentSize(),
-                            contentScale = ContentScale.FillWidth,
-                            colorFilter = ColorFilter.tint(geometricTint),
-                            alpha = 0.9f
-                        )
-                    }
 
                     if (addNoise && noiseAlpha > 0f) {
                         Canvas(modifier = Modifier.matchParentSize()) {
@@ -302,6 +295,17 @@ fun WallpaperItem(
                                 .matchParentSize()
                                 .graphicsLayer(alpha = overlayAlpha),
                             contentScale = ContentScale.FillBounds
+                        )
+                    }
+                    if (addGeometric && geometricAlpha > 0f) {
+                        Image(
+                            painter = painterResource(R.drawable.overlay_geometric),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .matchParentSize()
+                                .graphicsLayer(alpha = geometricAlpha),
+                            contentScale = ContentScale.FillWidth,
+                            colorFilter = ColorFilter.tint(geometricTint)
                         )
                     }
                 }

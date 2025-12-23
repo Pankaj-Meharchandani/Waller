@@ -139,5 +139,6 @@
     <string name="interaction_mode_change_note">You can change this anytime from Settings.</string>
     <string name="interaction_mode_simple_sub_short">Quick apply - skips preview</string>
     <string name="interaction_mode_advanced_sub_short">Show full preview &amp; controls</string>
+    <string name="preview_opacity_geometric">Geometric Lines Opacity</string>
 
 </resources>

@@ -11,4 +11,6 @@ const val DEFAULT_NOISE_ALPHA = 1f
 const val DEFAULT_STRIPES_ALPHA = 1f
 const val DEFAULT_OVERLAY_ALPHA = 1f
 
+const val DEFAULT_GEOMETRIC_ALPHA = 1f
+
 fun initAlphaFor(enabled: Boolean, default: Float) = if (enabled) default else 0f
