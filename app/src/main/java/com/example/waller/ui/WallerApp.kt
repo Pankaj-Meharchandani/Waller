@@ -51,6 +51,8 @@ import androidx.core.content.edit
 import com.example.waller.ui.wallpaper.InteractionMode
 import kotlin.math.roundToInt
 import com.example.waller.ui.onboarding.ModePickerDialog
+import com.example.waller.ui.onboarding.UpdateAvailableDialog
+import com.example.waller.ui.onboarding.UpdateChecker
 
 // Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
@@ -67,6 +69,17 @@ fun WallerApp() {
     val systemIsDark = isSystemInDarkTheme()
     val context = LocalContext.current
     val activity = context as Activity
+
+    // --- APP VERSION (read once per app launch) ---
+    val appVersion = remember {
+        try {
+            context.packageManager
+                .getPackageInfo(context.packageName, 0)
+                .versionName ?: "-"
+        } catch (_: Exception) {
+            "-"
+        }
+    }
 
     // --- SharedPreferences handle ---
     val prefs = remember {
@@ -144,6 +157,22 @@ fun WallerApp() {
 
     // --- ONE-TIME MODE PICKER DIALOG WIRING ---
     var showModePickerDialog by remember { mutableStateOf(false) }
+
+    // --- UPDATE CHECK RESULT ---
+    var updateInfo by remember {
+        mutableStateOf<Pair<String, String>?>(null)
+    }
+
+    // --- CHECK FOR APP UPDATES (runs once per launch) ---
+    LaunchedEffect(Unit) {
+        UpdateChecker.check(
+            currentVersion = appVersion,
+            repoOwner = "Pankaj-Meharchandani",
+            repoName = "Waller"
+        ) { latestVersion, releaseUrl ->
+            updateInfo = latestVersion to releaseUrl
+        }
+    }
 
     // compute current app versionCode safely (fallback to 1)
     val currentVersionCode: Int = try {
@@ -543,6 +572,17 @@ fun WallerApp() {
                     }
                 )
             }
+            // --- UPDATE AVAILABLE DIALOG ---
+            if (!showModePickerDialog) {
+                updateInfo?.let { (version, url) ->
+                    UpdateAvailableDialog(
+                        latestVersion = version,
+                        releaseUrl = url,
+                        onDismiss = { updateInfo = null }
+                    )
+                }
+            }
+
         }
     }
 }
