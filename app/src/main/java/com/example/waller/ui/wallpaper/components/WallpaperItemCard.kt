@@ -228,9 +228,7 @@ fun WallpaperItem(
                             .matchParentSize()
                             .graphicsLayer(alpha = geometricAlpha),
                         contentScale = ContentScale.FillWidth,
-                        //TODO: check changes and can be similar to overlay
-                        colorFilter = ColorFilter.tint(geometricTint),
-                        alpha = 0.9f
+                        colorFilter = ColorFilter.tint(geometricTint)
                     )
                 }
 
@@ -307,9 +305,7 @@ fun WallpaperItem(
                                 .matchParentSize()
                                 .graphicsLayer(alpha = geometricAlpha),
                             contentScale = ContentScale.FillWidth,
-                            //TODO: check below values are removeable or not
-                            colorFilter = ColorFilter.tint(geometricTint),
-                            alpha = 0.9f
+                            colorFilter = ColorFilter.tint(geometricTint)
                         )
                     }
                 }
