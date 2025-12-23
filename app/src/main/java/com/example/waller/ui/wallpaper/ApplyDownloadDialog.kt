@@ -54,6 +54,7 @@ fun ApplyDownloadDialog(
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
+    geometricAlpha: Float = 1f,
     onWorkingChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
@@ -105,7 +106,8 @@ fun ApplyDownloadDialog(
                                 addGeometric,
                                 noiseAlpha,
                                 stripesAlpha,
-                                overlayAlpha
+                                overlayAlpha,
+                                geometricAlpha
                             )
                             val flags =
                                 android.app.WallpaperManager.FLAG_SYSTEM or getLockFlag()
@@ -145,7 +147,8 @@ fun ApplyDownloadDialog(
                                 addGeometric,
                                 noiseAlpha,
                                 stripesAlpha,
-                                overlayAlpha
+                                overlayAlpha,
+                                geometricAlpha
                             )
                             val success =
                                 tryApplyWallpaper(
@@ -188,7 +191,8 @@ fun ApplyDownloadDialog(
                                 addGeometric,
                                 noiseAlpha,
                                 stripesAlpha,
-                                overlayAlpha
+                                overlayAlpha,
+                                geometricAlpha
                             )
                             val flagLock = getLockFlag()
                             val success =
@@ -251,7 +255,8 @@ fun ApplyDownloadDialog(
                                     addGeometric,
                                     noiseAlpha,
                                     stripesAlpha,
-                                    overlayAlpha
+                                    overlayAlpha,
+                                    geometricAlpha
                                 )
                                 val filename =
                                     "waller_${System.currentTimeMillis()}.png"

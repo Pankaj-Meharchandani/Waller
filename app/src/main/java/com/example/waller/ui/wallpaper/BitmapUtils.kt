@@ -62,10 +62,11 @@ fun createGradientBitmap(
     addNoise: Boolean = false,
     addStripes: Boolean = false,
     addOverlay: Boolean = false,
-    addGeometric: Boolean,
+    addGeometric: Boolean = false,
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
-    overlayAlpha: Float = 1f
+    overlayAlpha: Float = 1f,
+    geometricAlpha: Float = 1f
 ): Bitmap {
     val (width, height) = getScreenSizeForBitmap(context, isPortrait)
     val bmp = createBitmap(width, height)
@@ -214,30 +215,26 @@ fun createGradientBitmap(
     }
 
     if (addGeometric) {
-        val overlay = BitmapFactory.decodeResource(
-            context.resources,
-            R.drawable.overlay_geometric
-        )
+        try {
+            val overlay = android.graphics.BitmapFactory.decodeResource(
+                context.resources,
+                R.drawable.overlay_geometric
+            )
+            val scale = width.toFloat() / overlay.width.toFloat()
+            val scaledWidth = width
+            val scaledHeight = (overlay.height * scale).roundToInt()
+            val scaled = overlay.scale(scaledWidth, scaledHeight)
+            val topOffset = ((height - scaledHeight) / 2f).coerceAtMost(0f)
 
-        val scale = width.toFloat() / overlay.width.toFloat()
-        val scaledWidth = width
-        val scaledHeight = (overlay.height * scale).roundToInt()
+            val paint = Paint().apply {
+                isAntiAlias = true
+                alpha = (geometricAlpha.coerceIn(0f, 1f) * 255f).roundToInt()
+            }
 
-        val scaled = overlay.scale(scaledWidth, scaledHeight)
-
-        val topOffset = ((height - scaledHeight) / 2f).coerceAtMost(0f)
-
-        val paint = Paint().apply {
-            isAntiAlias = true
-            alpha = 230 // slightly softer than 255
+            canvas.drawBitmap(scaled, 0f, topOffset, paint)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-
-        canvas.drawBitmap(
-            scaled,
-            0f,
-            topOffset,
-            paint
-        )
     }
 
     return bmp

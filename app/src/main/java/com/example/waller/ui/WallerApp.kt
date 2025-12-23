@@ -313,7 +313,8 @@ fun WallerApp() {
         addGeometric: Boolean,
         noiseAlpha: Float = 1f,
         stripesAlpha: Float = 1f,
-        overlayAlpha: Float = 1f
+        overlayAlpha: Float = 1f,
+        geometricAlpha: Float = 1f
     ) {
         // exact compare (type + angle + color stops)
         fun exactMatch(a: Wallpaper, b: Wallpaper): Boolean =
@@ -343,7 +344,8 @@ fun WallerApp() {
                     addGeometric = addGeometric,
                     noiseAlpha = noiseAlpha,
                     stripesAlpha = stripesAlpha,
-                    overlayAlpha = overlayAlpha
+                    overlayAlpha = overlayAlpha,
+                    geometricAlpha = geometricAlpha
                 )
             }
         }
@@ -443,8 +445,8 @@ fun WallerApp() {
                             addOverlay = overlayEffectEnabled,
                             onAddOverlayChange = { overlayEffectEnabled = it },
                             favouriteWallpapers = favouriteWallpapers,
-                            onToggleFavourite = { w, n, s, o, g, na, sa, oa ->
-                                toggleFavouriteFromHome(w, n, s, o, g,na, sa, oa)
+                            onToggleFavourite = { w, n, s, o, g, na, sa, oa, ga ->
+                                toggleFavouriteFromHome(w, n, s, o, g,na, sa, oa, ga)
                             },
                             isPortrait = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortrait = it },
@@ -479,7 +481,8 @@ fun WallerApp() {
                                     fav.addGeometric,
                                     fav.noiseAlpha,
                                     fav.stripesAlpha,
-                                    fav.overlayAlpha
+                                    fav.overlayAlpha,
+                                    fav.geometricAlpha
                                 )
                             },
                             interactionMode = interactionMode
@@ -589,7 +592,8 @@ private fun encodeFavourites(list: List<FavoriteWallpaper>): String =
         val na = String.format("%.3f", fav.noiseAlpha)
         val sa = String.format("%.3f", fav.stripesAlpha)
         val oa = String.format("%.3f", fav.overlayAlpha)
-        listOf(typeName, colorsStr, flagsStr, angleInt.toString(), na, sa, oa).joinToString("|")
+        val ga = String.format("%.3f", fav.geometricAlpha)
+        listOf(typeName, colorsStr, flagsStr, angleInt.toString(), na, sa, oa, ga).joinToString("|")
     }
 
 /** Decodes both new (7-part) and old (4-part without alphas) formats. */
@@ -620,6 +624,7 @@ private fun decodeFavourites(raw: String): List<FavoriteWallpaper> =
             val noiseAlpha = parts.getOrNull(4)?.toFloatOrNull() ?: 1f
             val stripesAlpha = parts.getOrNull(5)?.toFloatOrNull() ?: 1f
             val overlayAlpha = parts.getOrNull(6)?.toFloatOrNull() ?: 1f
+            val geometricAlpha = parts.getOrNull(7)?.toFloatOrNull() ?: 1f
 
             FavoriteWallpaper(
                 wallpaper = Wallpaper(colors = colors, type = type, angleDeg = angleDeg),
@@ -629,6 +634,7 @@ private fun decodeFavourites(raw: String): List<FavoriteWallpaper> =
                 addGeometric = addGeometric,
                 noiseAlpha = noiseAlpha,
                 stripesAlpha = stripesAlpha,
-                overlayAlpha = overlayAlpha
+                overlayAlpha = overlayAlpha,
+                geometricAlpha = geometricAlpha
             )
         }

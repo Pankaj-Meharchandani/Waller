@@ -115,12 +115,13 @@ fun FavoritesScreen(
                 addNoise = fav.addNoise,
                 addStripes = fav.addStripes,
                 addOverlay = fav.addOverlay,
-                addGeometric = fav.addGeometric, // ✅ FIXED
+                addGeometric = fav.addGeometric,
                 noiseAlpha = fav.noiseAlpha,
                 stripesAlpha = fav.stripesAlpha,
                 overlayAlpha = fav.overlayAlpha,
+                geometricAlpha = fav.geometricAlpha,
                 isFavorite = true,
-                onFavoriteToggle = { _, _, _, _, _, _, _, _ ->
+                onFavoriteToggle = { _, _, _, _, _, _, _, _, _ ->
                     onRemoveFavourite(fav)
                 },
                 onClick = {
@@ -175,7 +176,8 @@ fun FavoritesScreen(
             initialNoiseAlpha = fav.noiseAlpha,
             initialStripesAlpha = fav.stripesAlpha,
             initialOverlayAlpha = fav.overlayAlpha,
-            onFavoriteToggle = { snapshot, n, s, o, g, na, sa, oa ->
+            initialGeometricAlpha = fav.geometricAlpha,
+            onFavoriteToggle = { snapshot, n, s, o, g, na, sa, oa, ga ->
                 val updatedFav = FavoriteWallpaper(
                     wallpaper = snapshot,
                     addNoise = n,
@@ -184,7 +186,8 @@ fun FavoritesScreen(
                     addGeometric = g,
                     noiseAlpha = na,
                     stripesAlpha = sa,
-                    overlayAlpha = oa
+                    overlayAlpha = oa,
+                    geometricAlpha = ga
                 )
 
                 onRemoveFavourite(fav)
@@ -212,6 +215,7 @@ fun FavoritesScreen(
         noiseAlpha = pendingClickedWallpaper?.noiseAlpha ?: 1f,
         stripesAlpha = pendingClickedWallpaper?.stripesAlpha ?: 1f,
         overlayAlpha = pendingClickedWallpaper?.overlayAlpha ?: 1f,
+        geometricAlpha = pendingClickedWallpaper?.geometricAlpha ?: 1f,
         isWorking = isWorking,
         onWorkingChange = { isWorking = it },
         onDismiss = {

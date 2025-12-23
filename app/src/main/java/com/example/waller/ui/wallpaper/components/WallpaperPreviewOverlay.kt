@@ -77,6 +77,7 @@ fun WallpaperPreviewOverlay(
     initialNoiseAlpha: Float = initAlphaFor(globalNoise, DEFAULT_NOISE_ALPHA),
     initialStripesAlpha: Float = initAlphaFor(globalStripes, DEFAULT_STRIPES_ALPHA),
     initialOverlayAlpha: Float = initAlphaFor(globalOverlay, DEFAULT_OVERLAY_ALPHA),
+    initialGeometricAlpha: Float = initAlphaFor(globalGeometric, DEFAULT_GEOMETRIC_ALPHA),
     onFavoriteToggle: (
         wallpaper: Wallpaper,
         noise: Boolean,
@@ -85,7 +86,8 @@ fun WallpaperPreviewOverlay(
         geometric: Boolean,
         noiseAlpha: Float,
         stripesAlpha: Float,
-        overlayAlpha: Float
+        overlayAlpha: Float,
+        geometricAlpha: Float
     ) -> Unit,
     onDismiss: () -> Unit,
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
@@ -109,6 +111,8 @@ fun WallpaperPreviewOverlay(
     var noiseAlpha by remember { mutableFloatStateOf(initialNoiseAlpha) }
     var stripesAlpha by remember { mutableFloatStateOf(initialStripesAlpha) }
     var overlayAlpha by remember { mutableFloatStateOf(initialOverlayAlpha) }
+    var geometricAlpha by remember { mutableFloatStateOf(initialGeometricAlpha) }
+
 
     var selectedGradient by remember(wallpaper) {
         mutableStateOf(
@@ -132,6 +136,7 @@ fun WallpaperPreviewOverlay(
                 overlay -> EffectType.OVERLAY
                 noise -> EffectType.NOISE
                 stripes -> EffectType.STRIPES
+                geometric -> EffectType.GEOMETRIC
                 else -> null
             }
         }
@@ -247,6 +252,7 @@ fun WallpaperPreviewOverlay(
                                 noiseAlpha = noiseAlpha,
                                 stripesAlpha = stripesAlpha,
                                 overlayAlpha = overlayAlpha,
+                                geometricAlpha = geometricAlpha,
                                 modifier = Modifier.fillMaxSize(),
                                 showTypeLabel = false
                             )
@@ -275,7 +281,8 @@ fun WallpaperPreviewOverlay(
                                                 geometric,
                                                 noiseAlpha,
                                                 stripesAlpha,
-                                                overlayAlpha
+                                                overlayAlpha,
+                                                geometricAlpha
                                             )
                                         },
                                         modifier = Modifier.size(44.dp)
@@ -408,6 +415,7 @@ fun WallpaperPreviewOverlay(
                                 noiseAlpha = noiseAlpha,
                                 stripesAlpha = stripesAlpha,
                                 overlayAlpha = overlayAlpha,
+                                geometricAlpha = geometricAlpha,
                                 modifier = Modifier.fillMaxSize(),
                                 showTypeLabel = false
                             )
@@ -435,7 +443,8 @@ fun WallpaperPreviewOverlay(
                                                 geometric,
                                                 noiseAlpha,
                                                 stripesAlpha,
-                                                overlayAlpha
+                                                overlayAlpha,
+                                                geometricAlpha
                                             )
                                         },
                                         modifier = Modifier.size(44.dp)
@@ -616,13 +625,28 @@ fun WallpaperPreviewOverlay(
                     EffectChip(
                         label = stringResource(id = R.string.effect_geometric),
                         selected = geometric,
-                        fillProgress = if (geometric) 1f else 0f,
-                        isActive = false,
+                        fillProgress = geometricAlpha,
+                        isActive = activeEffect == EffectType.GEOMETRIC,
                         textColor = overlayTextColor(selectedForButton = geometric),
                         modifier = Modifier.weight(1f)
                     ) {
-                        geometric = !geometric
-                        activeEffect = null
+                        when {
+                            !geometric -> {
+                                geometric = true
+                                if (geometricAlpha <= 0f) geometricAlpha = DEFAULT_GEOMETRIC_ALPHA
+                                activeEffect = EffectType.GEOMETRIC
+                            }
+
+                            activeEffect != EffectType.GEOMETRIC -> {
+                                activeEffect = EffectType.GEOMETRIC
+                            }
+
+                            else -> {
+                                geometric = false
+                                geometricAlpha = 0f
+                                activeEffect = null
+                            }
+                        }
                     }
                 }
             }
@@ -668,6 +692,18 @@ fun WallpaperPreviewOverlay(
                     )
                 }
 
+                EffectType.GEOMETRIC -> {
+                    EffectOpacitySlider(
+                        label = stringResource(id = R.string.preview_opacity_geometric),
+                        value = geometricAlpha,
+                        onSliderChange = {
+                            geometricAlpha = it
+                            geometric = it > 0.001f
+                        },
+                        labelColor = overlayTextColor()
+                    )
+                }
+
                 else -> Unit
             }
         }
@@ -685,6 +721,7 @@ fun WallpaperPreviewOverlay(
                 noiseAlpha = noiseAlpha,
                 stripesAlpha = stripesAlpha,
                 overlayAlpha = overlayAlpha,
+                geometricAlpha = geometricAlpha,
                 isWorking = isBusy,
                 onWorkingChange = { isBusy = it },
                 onDismiss = { showApplyDialog = false },
@@ -709,6 +746,7 @@ private fun PreviewWallpaperRender(
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
+    geometricAlpha: Float = 1f,
     modifier: Modifier = Modifier,
     showTypeLabel: Boolean = true
 ) {
@@ -774,11 +812,13 @@ private fun PreviewWallpaperRender(
                     )
                 }
 
-                if (addGeometric) {
+                if (addGeometric && geometricAlpha > 0f) {
                     Image(
                         painter = painterResource(id = R.drawable.overlay_geometric),
                         contentDescription = null,
-                        modifier = Modifier.matchParentSize(),
+                        modifier = Modifier
+                            .matchParentSize()
+                            .graphicsLayer(alpha = geometricAlpha),
                         contentScale = ContentScale.FillWidth
                     )
                 }
@@ -823,11 +863,13 @@ private fun PreviewWallpaperRender(
                         )
                     }
 
-                    if (addGeometric) {
+                    if (addGeometric && geometricAlpha > 0f) {
                         Image(
                             painter = painterResource(id = R.drawable.overlay_geometric),
                             contentDescription = null,
-                            modifier = Modifier.matchParentSize(),
+                            modifier = Modifier
+                                .matchParentSize()
+                                .graphicsLayer(alpha = geometricAlpha),
                             contentScale = ContentScale.FillWidth
                         )
                     }
