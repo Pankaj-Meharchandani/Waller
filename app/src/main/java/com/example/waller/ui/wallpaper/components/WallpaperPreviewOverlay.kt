@@ -924,57 +924,62 @@ private fun GradientTypeItemRect(label: String, selected: Boolean, textColor: Co
 private fun EffectChip(
     label: String,
     selected: Boolean,
-    fillProgress: Float,
+    fillProgress: Float,      // 0f..1f
     isActive: Boolean,
     textColor: Color,
     modifier: Modifier = Modifier,
     onToggle: () -> Unit
 ) {
-    val bg by animateColorAsState(
-        if (selected && isActive)
-            MaterialTheme.colorScheme.primaryContainer
-        else
-            Color.Transparent,
-        tween(200)
-    )
+    val shape = RoundedCornerShape(999.dp)
 
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        tonalElevation = if (selected) 6.dp else 0.dp,
-        color = bg,
-        border = if (!selected) ButtonDefaults.outlinedButtonBorder else null,
+    Box(
         modifier = modifier
+            .height(44.dp)
+            .clip(shape)
+            .clickable { onToggle() }
+            .border(
+                1.dp,
+                if (selected)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                shape
+            )
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp)
-                .clickable { onToggle() }
-                .clip(RoundedCornerShape(999.dp))
-        ) {
-
-            // 🔵 Passive fill indicator (ONLY when inactive)
-            if (selected && !isActive && fillProgress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(fillProgress.coerceIn(0.1f, 0.9f))
-                        .background(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        )
-                )
-            }
-
+        // Active background (stronger)
+        if (isActive) {
             Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = label,
-                    color = textColor,
-                    maxLines = 1
-                )
-            }
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f)
+                    )
+            )
+        }
+
+        // 🔹 Variable fill (ONLY when selected & inactive)
+        if (selected && !isActive && fillProgress > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fillProgress.coerceIn(0f, 1f))
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                    )
+            )
+        }
+
+        // 🔹 Centered label (always above fill)
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label,
+                color = textColor,
+                maxLines = 1,
+                style = MaterialTheme.typography.labelMedium
+            )
         }
     }
 }
