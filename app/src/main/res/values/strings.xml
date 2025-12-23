@@ -140,5 +140,9 @@
     <string name="interaction_mode_simple_sub_short">Quick apply - skips preview</string>
     <string name="interaction_mode_advanced_sub_short">Show full preview &amp; controls</string>
     <string name="preview_opacity_geometric">Geometric Lines Opacity</string>
+    <string name="update">Update</string>
+    <string name="later">Later</string>
+    <string name="update_available_title">New update available</string>
+    <string name="update_available_message">Update the app to the latest version</string>
 
 </resources>
