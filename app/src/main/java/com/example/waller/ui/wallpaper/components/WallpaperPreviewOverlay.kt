@@ -553,7 +553,6 @@ fun WallpaperPreviewOverlay(
                         when {
                             !overlay -> {
                                 overlay = true
-                                if (overlayAlpha <= 0f) overlayAlpha = DEFAULT_OVERLAY_ALPHA
                                 activeEffect = EffectType.OVERLAY
                             }
 
@@ -579,7 +578,6 @@ fun WallpaperPreviewOverlay(
                         when {
                             !noise -> {
                                 noise = true
-                                if (noiseAlpha <= 0f) noiseAlpha = DEFAULT_NOISE_ALPHA
                                 activeEffect = EffectType.NOISE
                             }
 
@@ -606,7 +604,6 @@ fun WallpaperPreviewOverlay(
                         when {
                             !stripes -> {
                                 stripes = true
-                                if (stripesAlpha <= 0f) stripesAlpha = DEFAULT_STRIPES_ALPHA
                                 activeEffect = EffectType.STRIPES
                             }
 
@@ -633,7 +630,6 @@ fun WallpaperPreviewOverlay(
                         when {
                             !geometric -> {
                                 geometric = true
-                                if (geometricAlpha <= 0f) geometricAlpha = DEFAULT_GEOMETRIC_ALPHA
                                 activeEffect = EffectType.GEOMETRIC
                             }
 
