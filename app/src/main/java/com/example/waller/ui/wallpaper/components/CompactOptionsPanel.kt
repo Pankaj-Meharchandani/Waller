@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.GradientType
@@ -102,23 +103,27 @@ fun CompactOptionsPanel(
         }
 
         /* ---------------- Row 2: Gradient type chips ---------------- */
-
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             GradientType.entries.forEach { type ->
-                val label = when (type) {
-                    GradientType.Linear -> R.string.gradient_style_linear
-                    GradientType.Radial -> R.string.gradient_style_radial
-                    GradientType.Angular -> R.string.gradient_style_angular
-                    GradientType.Diamond -> R.string.gradient_style_diamond
-                }
                 FilterChip(
+                    modifier = Modifier.weight(1f),
                     selected = type in selectedGradientTypes,
                     onClick = { onGradientToggle(type) },
-                    label = { Text(stringResource(id = label)) },
+                    label = {
+                        ChipText(
+                            text = stringResource(
+                                id = when (type) {
+                                    GradientType.Linear -> R.string.gradient_style_linear
+                                    GradientType.Radial -> R.string.gradient_style_radial
+                                    GradientType.Angular -> R.string.gradient_style_angular
+                                    GradientType.Diamond -> R.string.gradient_style_diamond
+                                }
+                            )
+                        )
+                    },
                     shape = RoundedCornerShape(999.dp)
                 )
             }
@@ -127,33 +132,32 @@ fun CompactOptionsPanel(
         /* ---------------- Row 3: Effects chips ---------------- */
 
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             FilterChip(
+                modifier = Modifier.weight(1f),
                 selected = addOverlay,
                 onClick = onOverlayToggle,
-                label = { Text(stringResource(id = R.string.effects_nothing_style)) },
-                shape = RoundedCornerShape(999.dp)
+                label = { ChipText(stringResource(R.string.effects_nothing_style)) }
             )
             FilterChip(
+                modifier = Modifier.weight(1f),
                 selected = addNoise,
                 onClick = onNoiseToggle,
-                label = { Text(stringResource(id = R.string.effects_snow_effect)) },
-                shape = RoundedCornerShape(999.dp)
+                label = { ChipText(stringResource(R.string.effects_snow_effect)) }
             )
             FilterChip(
+                modifier = Modifier.weight(1f),
                 selected = addStripes,
                 onClick = onStripesToggle,
-                label = { Text(stringResource(id = R.string.effects_stripes)) },
-                shape = RoundedCornerShape(999.dp)
+                label = { ChipText(stringResource(R.string.effects_stripes)) }
             )
             FilterChip(
+                modifier = Modifier.weight(1f),
                 selected = addGeometric,
                 onClick = onGeometricToggle,
-                label = { Text(stringResource(id = R.string.effect_geometric)) },
-                shape = RoundedCornerShape(999.dp)
+                label = { ChipText(stringResource(R.string.effect_geometric)) }
             )
         }
 
@@ -166,6 +170,21 @@ fun CompactOptionsPanel(
     }
 }
 
+@Composable
+private fun ChipText(text: String) {
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            maxLines = 1,
+            softWrap = false,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.labelMedium
+        )
+    }
+}
 /* ----------------------------- Tone slider row ----------------------------- */
 
 @Composable
