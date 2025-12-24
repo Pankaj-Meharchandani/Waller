@@ -1012,9 +1012,14 @@ private fun EffectChip(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
+            val chipTextColor =
+                if (isActive)
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                else
+                    Color.White
             Text(
                 text = label,
-                color = textColor,
+                color = chipTextColor,
                 maxLines = 1,
                 style = MaterialTheme.typography.labelMedium
             )
