@@ -91,12 +91,12 @@ fun createGradientBitmap(
 
     when (wallpaper.type) {
         // Linear & Diamond: use linear shader along rotated angle
-        GradientType.Linear, GradientType.Diamond -> {
-            // compute direction vector from angle
+        GradientType.Linear -> {
             val dx = kotlin.math.cos(a)
             val dy = kotlin.math.sin(a)
             val halfW = width / 2f
             val halfH = height / 2f
+
             val startX = cx - dx * halfW
             val startY = cy - dy * halfH
             val endX = cx + dx * halfW
@@ -106,10 +106,35 @@ fun createGradientBitmap(
                 startX, startY, endX, endY,
                 colors, null, Shader.TileMode.CLAMP
             )
+
             val paint = Paint().apply {
                 isAntiAlias = true
                 this.shader = shader
             }
+
+            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        }
+
+        GradientType.Diamond -> {
+            // Diamond = fixed 45° rotated linear gradient
+            val halfW = width / 2f
+            val halfH = height / 2f
+
+            val shader = LinearGradient(
+                cx, cy - halfH,
+                cx, cy + halfH,
+                colors, null, Shader.TileMode.CLAMP
+            )
+
+            val matrix = android.graphics.Matrix()
+            matrix.setRotate(-45f + angleDeg, cx, cy)
+            shader.setLocalMatrix(matrix)
+
+            val paint = Paint().apply {
+                isAntiAlias = true
+                this.shader = shader
+            }
+
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
         }
 
