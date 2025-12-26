@@ -58,6 +58,15 @@ import kotlinx.coroutines.CoroutineScope
 
 private enum class EffectType { OVERLAY, NOISE, STRIPES, GEOMETRIC }
 
+private data class EffectConfig(
+    val type: EffectType,
+    val labelRes: Int,
+    val isEnabled: () -> Boolean,
+    val setEnabled: (Boolean) -> Unit,
+    val alpha: () -> Float,
+    val setAlpha: (Float) -> Unit
+)
+
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun WallpaperPreviewOverlay(
@@ -106,6 +115,41 @@ fun WallpaperPreviewOverlay(
     var stripesAlpha by remember { mutableFloatStateOf(initialStripesAlpha) }
     var overlayAlpha by remember { mutableFloatStateOf(initialOverlayAlpha) }
     var geometricAlpha by remember { mutableFloatStateOf(initialGeometricAlpha) }
+
+    val effects = listOf(
+        EffectConfig(
+            type = EffectType.OVERLAY,
+            labelRes = R.string.preview_effect_nothing,
+            isEnabled = { overlay },
+            setEnabled = { overlay = it },
+            alpha = { overlayAlpha },
+            setAlpha = { overlayAlpha = it }
+        ),
+        EffectConfig(
+            type = EffectType.NOISE,
+            labelRes = R.string.preview_effect_snow,
+            isEnabled = { noise },
+            setEnabled = { noise = it },
+            alpha = { noiseAlpha },
+            setAlpha = { noiseAlpha = it }
+        ),
+        EffectConfig(
+            type = EffectType.STRIPES,
+            labelRes = R.string.preview_effect_stripes,
+            isEnabled = { stripes },
+            setEnabled = { stripes = it },
+            alpha = { stripesAlpha },
+            setAlpha = { stripesAlpha = it }
+        ),
+        EffectConfig(
+            type = EffectType.GEOMETRIC,
+            labelRes = R.string.effect_geometric,
+            isEnabled = { geometric },
+            setEnabled = { geometric = it },
+            alpha = { geometricAlpha },
+            setAlpha = { geometricAlpha = it }
+        )
+    )
 
 
     var selectedGradient by remember(wallpaper) {
@@ -535,109 +579,32 @@ fun WallpaperPreviewOverlay(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-
-                    EffectChip(
-                        label = stringResource(id = R.string.preview_effect_nothing),
-                        selected = overlay,
-                        fillProgress = overlayAlpha,
-                        isActive = activeEffect == EffectType.OVERLAY,
-                        textColor = overlayTextColor(selectedForButton = overlay),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        when {
-                            !overlay -> {
-                                overlay = true
-                                activeEffect = EffectType.OVERLAY
-                            }
-
-                            activeEffect != EffectType.OVERLAY -> {
-                                activeEffect = EffectType.OVERLAY
-                            }
-
-                            else -> {
-                                overlay = false
-                                overlayAlpha = 0f
-                                activeEffect = null
-                            }
-                        }
-                    }
-                    EffectChip(
-                        label = stringResource(id = R.string.preview_effect_snow),
-                        selected = noise,
-                        fillProgress = noiseAlpha,
-                        isActive = activeEffect == EffectType.NOISE,
-                        textColor = overlayTextColor(selectedForButton = noise),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        when {
-                            !noise -> {
-                                noise = true
-                                activeEffect = EffectType.NOISE
-                            }
-
-                            activeEffect != EffectType.NOISE -> {
-                                activeEffect = EffectType.NOISE
-                            }
-
-                            else -> {
-                                noise = false
-                                noiseAlpha = 0f
-                                activeEffect = null
+                    effects.forEach { effect ->
+                        EffectChip(
+                            label = stringResource(effect.labelRes),
+                            selected = effect.isEnabled(),
+                            fillProgress = effect.alpha(),
+                            isActive = activeEffect == effect.type,
+                            textColor = overlayTextColor(selectedForButton = effect.isEnabled()),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            when {
+                                !effect.isEnabled() -> {
+                                    effect.setEnabled(true)
+                                    activeEffect = effect.type
+                                }
+                                activeEffect != effect.type -> {
+                                    activeEffect = effect.type
+                                }
+                                else -> {
+                                    effect.setEnabled(false)
+                                    effect.setAlpha(0f)
+                                    activeEffect = null
+                                }
                             }
                         }
                     }
 
-                    EffectChip(
-                        label = stringResource(id = R.string.preview_effect_stripes),
-                        selected = stripes,
-                        fillProgress = stripesAlpha,
-                        isActive = activeEffect == EffectType.STRIPES,
-                        textColor = overlayTextColor(selectedForButton = stripes),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        when {
-                            !stripes -> {
-                                stripes = true
-                                activeEffect = EffectType.STRIPES
-                            }
-
-                            activeEffect != EffectType.STRIPES -> {
-                                activeEffect = EffectType.STRIPES
-                            }
-
-                            else -> {
-                                stripes = false
-                                stripesAlpha = 0f
-                                activeEffect = null
-                            }
-                        }
-                    }
-
-                    EffectChip(
-                        label = stringResource(id = R.string.effect_geometric),
-                        selected = geometric,
-                        fillProgress = geometricAlpha,
-                        isActive = activeEffect == EffectType.GEOMETRIC,
-                        textColor = overlayTextColor(selectedForButton = geometric),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        when {
-                            !geometric -> {
-                                geometric = true
-                                activeEffect = EffectType.GEOMETRIC
-                            }
-
-                            activeEffect != EffectType.GEOMETRIC -> {
-                                activeEffect = EffectType.GEOMETRIC
-                            }
-
-                            else -> {
-                                geometric = false
-                                geometricAlpha = 0f
-                                activeEffect = null
-                            }
-                        }
-                    }
                 }
             }
 
