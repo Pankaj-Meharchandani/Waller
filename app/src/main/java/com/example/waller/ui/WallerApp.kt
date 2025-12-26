@@ -69,6 +69,7 @@ import kotlin.math.roundToInt
 import com.example.waller.ui.onboarding.ModePickerDialog
 import com.example.waller.ui.onboarding.UpdateAvailableDialog
 import com.example.waller.ui.onboarding.UpdateChecker
+import java.util.Locale
 import androidx.compose.ui.platform.LocalConfiguration
 
 // Which top-level screen is shown.
@@ -196,7 +197,7 @@ fun WallerApp() {
         val pi = context.packageManager.getPackageInfo(context.packageName, 0)
         @Suppress("DEPRECATION")
         pi.versionCode
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         1
     }
 
@@ -652,10 +653,10 @@ private fun encodeFavourites(list: List<FavoriteWallpaper>): String =
         val flagsStr = listOf(fav.addNoise, fav.addStripes, fav.addOverlay, fav.addGeometric)
             .joinToString(",") { if (it) "1" else "0" }
         val angleInt = fav.wallpaper.angleDeg.roundToInt()
-        val na = String.format("%.3f", fav.noiseAlpha)
-        val sa = String.format("%.3f", fav.stripesAlpha)
-        val oa = String.format("%.3f", fav.overlayAlpha)
-        val ga = String.format("%.3f", fav.geometricAlpha)
+        val na = String.format(Locale.US, "%.3f", fav.noiseAlpha)
+        val sa = String.format(Locale.US, "%.3f", fav.stripesAlpha)
+        val oa = String.format(Locale.US, "%.3f", fav.overlayAlpha)
+        val ga = String.format(Locale.US, "%.3f", fav.geometricAlpha)
         listOf(typeName, colorsStr, flagsStr, angleInt.toString(), na, sa, oa, ga).joinToString("|")
     }
 
