@@ -1,10 +1,14 @@
 /**
  * PreviewState.kt
- * Small, focused constants and tiny state helpers used by WallpaperPreviewOverlay.
- * - Default effect alpha values and a small init helper.
+ *
+ * Small constants and helper functions used by the preview feature.
+ *
+ * Responsibilities:
+ * - Defines default alpha values for preview effects
+ * - Provides lightweight helpers for initializing effect state
  */
 
-package com.example.waller.ui.wallpaper.components
+package com.example.waller.ui.wallpaper.components.previewOverlay
 
 // default alpha presets when enabling an effect
 const val DEFAULT_NOISE_ALPHA = 1f

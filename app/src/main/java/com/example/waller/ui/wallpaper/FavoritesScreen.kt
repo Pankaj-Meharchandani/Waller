@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
-import com.example.waller.ui.wallpaper.components.WallpaperPreviewOverlay
+import com.example.waller.ui.wallpaper.components.previewOverlay.WallpaperPreviewOverlay
 import kotlinx.coroutines.launch
 
 @SuppressLint("LocalContextGetResourceValueCall")

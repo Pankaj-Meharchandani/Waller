@@ -1,17 +1,17 @@
 /**
  * PreviewControlsComponents.kt
  *
- * Stateless UI components used by the wallpaper preview overlay.
- * - Gradient type selectors (full + compact)
- * - Effect chips with progress fill
- * - Effect opacity slider
- * - Device frame wrapper for preview content
+ * Reusable UI components used inside the wallpaper preview.
  *
- * These composables contain NO state and NO business logic.
- * They are safe to reuse across preview variants and future features.
+ * Responsibilities:
+ * - Effect chips and opacity sliders
+ * - Gradient selection items
+ * - Shared preview UI elements such as the device frame
+ *
+ * These components are UI-only and contain no screen-level state.
  */
 
-package com.example.waller.ui.wallpaper.components
+package com.example.waller.ui.wallpaper.components.previewOverlay
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -19,7 +19,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable

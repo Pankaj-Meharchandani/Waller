@@ -1,14 +1,18 @@
 /**
  * PreviewRenderer.kt
- * Pure rendering helpers for wallpaper preview:
- * - createBrushForPreview(...) returns Compose Brush for linear/radial/diamond
- * - createRotatedSweepShader(...) returns a configured SweepGradient for ANGULAR
  *
- * This file contains no composables — safe to test independently.
+ * Pure rendering helpers for wallpaper preview.
+ *
+ * Responsibilities:
+ * - Creates Compose Brushes for linear, radial, and diamond gradients
+ * - Creates rotated SweepGradient shaders for angular gradients
+ *
+ * This file contains no composables and no UI state.
  */
 
 @file:Suppress("unused")
-package com.example.waller.ui.wallpaper.components
+
+package com.example.waller.ui.wallpaper.components.previewOverlay
 
 import android.graphics.Matrix
 import android.graphics.SweepGradient
@@ -23,14 +27,6 @@ import kotlin.math.sin
 // Use the app's GradientType (defined in WallpaperModels.kt: com.example.waller.ui.wallpaper.GradientType)
 import com.example.waller.ui.wallpaper.GradientType
 
-/**
- * Create a Brush used for preview rendering.
- *
- * - Linear: rotated according to angleDeg and stretched to cover the whole rect (uses half-diagonal).
- * - Radial: small offset from center based on angle (gives a bit of directional feel).
- * - Diamond: implemented as a rotated linear (angle + 45deg) so it visibly responds to rotation.
- * - Angular: fallback Compose sweep gradient (native SweepGradient used during Canvas drawing).
- */
 fun createBrushForPreview(
     colors: List<Color>,
     type: GradientType,
