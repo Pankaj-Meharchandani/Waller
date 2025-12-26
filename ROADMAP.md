@@ -52,7 +52,19 @@ Add structure without clutter.
 
 ---
 
-## **v2.2 — Text / Wordart**
+## **v2.2 — Useability & Stability**
+
+### 🎯 Goals  
+Allow user to keep users customization while navigiting screens
+
+### Features
+- stability fixes
+- keep customizations while navigiting
+- Responsive UI for smaller screens
+
+---
+
+## **v2.3 — Text / Wordart**
 
 ### 🎯 Goals  
 Allow subtle personalization.
