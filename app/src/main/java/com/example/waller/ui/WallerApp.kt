@@ -1,3 +1,19 @@
+/**
+ * WallerApp.kt
+ *
+ * Root application composable and global state holder for Waller.
+ *
+ * Responsibilities:
+ * - Owns app-wide state (theme, interaction mode, orientation, defaults)
+ * - Resolves wallpaper orientation (AUTO / PORTRAIT / LANDSCAPE) at session start
+ * - Manages navigation between Home, Favourites, Settings, and About
+ * - Persists and restores user preferences via SharedPreferences
+ * - Handles one-time onboarding dialogs and update checks
+ *
+ * This file acts as the single orchestration layer for the app and
+ * intentionally contains no low-level UI or rendering logic.
+ */
+
 package com.example.waller.ui
 
 import android.app.Activity
@@ -53,6 +69,8 @@ import kotlin.math.roundToInt
 import com.example.waller.ui.onboarding.ModePickerDialog
 import com.example.waller.ui.onboarding.UpdateAvailableDialog
 import com.example.waller.ui.onboarding.UpdateChecker
+import java.util.Locale
+import androidx.compose.ui.platform.LocalConfiguration
 
 // Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
@@ -179,7 +197,7 @@ fun WallerApp() {
         val pi = context.packageManager.getPackageInfo(context.packageName, 0)
         @Suppress("DEPRECATION")
         pi.versionCode
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         1
     }
 
@@ -240,13 +258,19 @@ fun WallerApp() {
     }
 
     // Session orientation shared between Home + Favourites
-    val initialSessionPortrait = remember {
+    val configuration = LocalConfiguration.current
+    val resolvedIsPortrait = remember(defaultOrientation, configuration) {
         when (defaultOrientation) {
+            DefaultOrientation.PORTRAIT -> true
             DefaultOrientation.LANDSCAPE -> false
-            DefaultOrientation.AUTO, DefaultOrientation.PORTRAIT -> true
+            DefaultOrientation.AUTO -> {
+                // Phones stay portrait, tablets go landscape
+                configuration.smallestScreenWidthDp < 600
+            }
         }
     }
-    var sessionIsPortrait by remember { mutableStateOf(initialSessionPortrait) }
+
+    var sessionIsPortrait by remember { mutableStateOf(resolvedIsPortrait) }
 
     // Gradient count: 12, 16, 20
     val initialGradientCount = remember {
@@ -629,10 +653,10 @@ private fun encodeFavourites(list: List<FavoriteWallpaper>): String =
         val flagsStr = listOf(fav.addNoise, fav.addStripes, fav.addOverlay, fav.addGeometric)
             .joinToString(",") { if (it) "1" else "0" }
         val angleInt = fav.wallpaper.angleDeg.roundToInt()
-        val na = String.format("%.3f", fav.noiseAlpha)
-        val sa = String.format("%.3f", fav.stripesAlpha)
-        val oa = String.format("%.3f", fav.overlayAlpha)
-        val ga = String.format("%.3f", fav.geometricAlpha)
+        val na = String.format(Locale.US, "%.3f", fav.noiseAlpha)
+        val sa = String.format(Locale.US, "%.3f", fav.stripesAlpha)
+        val oa = String.format(Locale.US, "%.3f", fav.overlayAlpha)
+        val ga = String.format(Locale.US, "%.3f", fav.geometricAlpha)
         listOf(typeName, colorsStr, flagsStr, angleInt.toString(), na, sa, oa, ga).joinToString("|")
     }
 

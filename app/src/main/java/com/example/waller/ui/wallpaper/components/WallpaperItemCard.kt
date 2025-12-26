@@ -46,6 +46,8 @@ import kotlin.random.Random
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
+import com.example.waller.ui.wallpaper.components.previewOverlay.createBrushForPreview
+import com.example.waller.ui.wallpaper.components.previewOverlay.createRotatedSweepShader
 
 @Composable
 fun WallpaperItemCard(
