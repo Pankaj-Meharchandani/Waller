@@ -1,3 +1,19 @@
+/**
+ * WallerApp.kt
+ *
+ * Root application composable and global state holder for Waller.
+ *
+ * Responsibilities:
+ * - Owns app-wide state (theme, interaction mode, orientation, defaults)
+ * - Resolves wallpaper orientation (AUTO / PORTRAIT / LANDSCAPE) at session start
+ * - Manages navigation between Home, Favourites, Settings, and About
+ * - Persists and restores user preferences via SharedPreferences
+ * - Handles one-time onboarding dialogs and update checks
+ *
+ * This file acts as the single orchestration layer for the app and
+ * intentionally contains no low-level UI or rendering logic.
+ */
+
 package com.example.waller.ui
 
 import android.app.Activity
@@ -53,6 +69,7 @@ import kotlin.math.roundToInt
 import com.example.waller.ui.onboarding.ModePickerDialog
 import com.example.waller.ui.onboarding.UpdateAvailableDialog
 import com.example.waller.ui.onboarding.UpdateChecker
+import androidx.compose.ui.platform.LocalConfiguration
 
 // Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
@@ -240,13 +257,19 @@ fun WallerApp() {
     }
 
     // Session orientation shared between Home + Favourites
-    val initialSessionPortrait = remember {
+    val configuration = LocalConfiguration.current
+    val resolvedIsPortrait = remember(defaultOrientation, configuration) {
         when (defaultOrientation) {
+            DefaultOrientation.PORTRAIT -> true
             DefaultOrientation.LANDSCAPE -> false
-            DefaultOrientation.AUTO, DefaultOrientation.PORTRAIT -> true
+            DefaultOrientation.AUTO -> {
+                // Phones stay portrait, tablets go landscape
+                configuration.smallestScreenWidthDp < 600
+            }
         }
     }
-    var sessionIsPortrait by remember { mutableStateOf(initialSessionPortrait) }
+
+    var sessionIsPortrait by remember { mutableStateOf(resolvedIsPortrait) }
 
     // Gradient count: 12, 16, 20
     val initialGradientCount = remember {
