@@ -53,12 +53,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,11 +76,13 @@ import com.example.waller.R
 import com.example.waller.ui.wallpaper.components.CompactOptionsPanel
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 @Composable
 fun WallpaperGeneratorScreen(
     modifier: Modifier = Modifier,
+    sessionState: WallpaperSessionState,
     isAppDarkMode: Boolean,
     onThemeChange: () -> Unit,
     defaultGradientCount: Int,
@@ -98,22 +102,31 @@ fun WallpaperGeneratorScreen(
                         noiseAlpha: Float, stripesAlpha: Float, overlayAlpha: Float, geometricAlpha: Float) -> Unit,
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit,
-    interactionMode: com.example.waller.ui.wallpaper.InteractionMode
+    interactionMode: InteractionMode
 
 ) {
     // ----------- STATE -----------
-
-    var toneMode by remember { mutableStateOf(defaultToneMode) }
+    var toneMode by remember { mutableStateOf(sessionState.toneMode) }
     var showPreview by remember { mutableStateOf(false) }
     var previewWallpaper by remember { mutableStateOf<Wallpaper?>(null) }
-    val selectedGradientTypes = remember { mutableStateListOf(GradientType.Linear) }
-    val selectedColors = remember { mutableStateListOf<Color>() }
+    val selectedColors = remember(sessionState) {
+        mutableStateListOf<Color>().apply {
+            addAll(sessionState.selectedColors)
+        }
+    }
+    val selectedGradientTypes = remember(sessionState) {
+        mutableStateListOf<GradientType>().apply {
+            addAll(sessionState.selectedGradientTypes)
+        }
+    }
 
     // multicolor state, initial from settings
-    var isMultiColor by remember { mutableStateOf(defaultEnableMulticolor) }
+    var isMultiColor by remember { mutableStateOf(sessionState.isMulticolor) }
 
     val coroutineScope = rememberCoroutineScope()
-    val gridState = rememberLazyGridState()
+    val gridState = rememberLazyGridState(
+        initialFirstVisibleItemIndex = sessionState.scrollIndex
+    )
     val context = LocalContext.current
     val storagePermissionDeniedMessage = stringResource(id = R.string.storage_permission_denied)
 
@@ -214,7 +227,21 @@ fun WallpaperGeneratorScreen(
         return wallpapers
     }
 
-    var wallpapers by remember { mutableStateOf(generateWallpapers()) }
+    var wallpapers by remember { mutableStateOf(sessionState.wallpapers) }
+
+    LaunchedEffect(
+        toneMode,
+        isMultiColor,
+        selectedColors.size,
+        selectedGradientTypes.size
+    ) {
+        if (wallpapers.isEmpty()) {
+            val generated = generateWallpapers()
+            wallpapers = generated
+            sessionState.wallpapers = generated
+        }
+    }
+
 
     // ----------- DIALOG STATE -----------
 
@@ -223,6 +250,14 @@ fun WallpaperGeneratorScreen(
     var isWorking by remember { mutableStateOf(false) }
 
     // ----------- LAYOUT -----------
+
+    LaunchedEffect(Unit) {
+        snapshotFlow { gridState.firstVisibleItemIndex }
+            .distinctUntilChanged()
+            .collect { index ->
+                sessionState.scrollIndex = index
+            }
+    }
 
     LazyVerticalGrid(
         columns = columns,
@@ -251,7 +286,9 @@ fun WallpaperGeneratorScreen(
                     toneMode = toneMode,
                     onToneChange = { newMode ->
                         toneMode = newMode
+                        sessionState.toneMode = newMode
                         wallpapers = generateWallpapers()
+                        sessionState.wallpapers = wallpapers
                     },
                     selectedColors = selectedColors,
                     onAddColor = {
@@ -260,7 +297,9 @@ fun WallpaperGeneratorScreen(
                             activity.openColorDialog(null) { pickedInt ->
                                 if (pickedInt != null && selectedColors.size < 5) {
                                     selectedColors.add(pickedInt.toComposeColor())
+                                    sessionState.selectedColors = selectedColors.toList()
                                     wallpapers = generateWallpapers()
+                                    sessionState.wallpapers = wallpapers
                                 }
                             }
                         }
@@ -268,13 +307,17 @@ fun WallpaperGeneratorScreen(
                     onRemoveColor = { idx ->
                         if (idx in selectedColors.indices) {
                             selectedColors.removeAt(idx)
+                            sessionState.selectedColors = selectedColors.toList()
                             wallpapers = generateWallpapers()
+                            sessionState.wallpapers = wallpapers
                         }
                     },
                     isMultiColor = isMultiColor,
                     onMultiColorChange = { newValue ->
                         isMultiColor = newValue
+                        sessionState.isMulticolor = newValue
                         wallpapers = generateWallpapers()
+                        sessionState.wallpapers = wallpapers
                     },
                     selectedGradientTypes = selectedGradientTypes,
                     onGradientToggle = { type ->
@@ -287,11 +330,15 @@ fun WallpaperGeneratorScreen(
                                 ).show()
                             } else {
                                 selectedGradientTypes.remove(type)
+                                sessionState.selectedGradientTypes = selectedGradientTypes.toList()
                                 wallpapers = generateWallpapers()
+                                sessionState.wallpapers = wallpapers
                             }
                         } else {
                             selectedGradientTypes.add(type)
+                            sessionState.selectedGradientTypes = selectedGradientTypes.toList()
                             wallpapers = generateWallpapers()
+                            sessionState.wallpapers = wallpapers
                         }
                     },
                     addNoise = addNoise,
@@ -377,6 +424,7 @@ fun WallpaperGeneratorScreen(
                                 )
                                 // regenerate wallpapers after animation
                                 wallpapers = generateWallpapers()
+                                sessionState.wallpapers = wallpapers
                             }
                         }
                         .clip(RoundedCornerShape(999.dp))
@@ -420,12 +468,12 @@ fun WallpaperGeneratorScreen(
                 },
                 onClick = {
                     when (interactionMode) {
-                        com.example.waller.ui.wallpaper.InteractionMode.SIMPLE -> {
+                        InteractionMode.SIMPLE -> {
                             // directly show Apply/Download dialog for this wallpaper
                             pendingClickedWallpaper = wallpaper
                             showApplyDialog = true
                         }
-                        com.example.waller.ui.wallpaper.InteractionMode.ADVANCED -> {
+                        InteractionMode.ADVANCED -> {
                             // open overlay as before
                             previewWallpaper = wallpaper
                             showPreview = true
@@ -446,6 +494,7 @@ fun WallpaperGeneratorScreen(
                 OutlinedButton(
                     onClick = {
                         wallpapers = generateWallpapers()
+                        sessionState.wallpapers = wallpapers
                         coroutineScope.launch { gridState.animateScrollToItem(2) }
                     },
                     modifier = Modifier

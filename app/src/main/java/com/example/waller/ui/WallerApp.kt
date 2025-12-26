@@ -71,6 +71,7 @@ import com.example.waller.ui.onboarding.UpdateAvailableDialog
 import com.example.waller.ui.onboarding.UpdateChecker
 import java.util.Locale
 import androidx.compose.ui.platform.LocalConfiguration
+import com.example.waller.ui.wallpaper.WallpaperSessionState
 
 // Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
@@ -341,6 +342,14 @@ fun WallerApp() {
     var stripesEffectEnabled by remember { mutableStateOf(enableStripesByDefault) }
     var overlayEffectEnabled by remember { mutableStateOf(enableNothingByDefault) }
 
+    // --- HOME SESSION STATE (kept while app is alive) ---
+    val homeSessionState = remember {
+        WallpaperSessionState(
+            toneMode = defaultToneMode,
+            isMulticolor = enableMulticolorByDefault
+        )
+    }
+
     // --- SHARED FAVOURITES (snapshot of wallpaper + effects), PERSISTED ---
     var favouriteWallpapers by remember {
         mutableStateOf(
@@ -475,6 +484,7 @@ fun WallerApp() {
                     RootScreen.HOME -> {
                         WallpaperGeneratorScreen(
                             modifier = Modifier.padding(innerPadding),
+                            sessionState = homeSessionState,
                             isAppDarkMode = isDarkTheme,
                             onThemeChange = {
                                 val next = when (appThemeMode) {
