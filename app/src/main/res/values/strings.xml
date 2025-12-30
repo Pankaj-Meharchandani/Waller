@@ -73,7 +73,7 @@
     <string name="settings_orientation_landscape">Landscape</string>
 
     <string name="settings_wallpaper_count">Default gradient count</string>
-    <string name="settings_enable_nothing">Enable Nothing Glass effect by default</string>
+    <string name="settings_enable_nothing">Enable Glass effect by default</string>
     <string name="settings_enable_snow">Enable Snow effect by default</string>
     <string name="settings_enable_stripes">Enable Stripes by default</string>
 
@@ -118,11 +118,11 @@
     <string name="settings_enable_multicolor">Use multicolor gradients by default</string>
     <string name="preview_done">Done</string>
     <string name="preview_close">Close</string>
-    <string name="preview_effect_nothing">Nothing</string>
+    <string name="preview_effect_nothing">Glass</string>
     <string name="preview_effect_snow">Snow</string>
     <string name="preview_effect_stripes">Stripes</string>
     <string name="gradient_style_title">Gradient Style</string>
-    <string name="preview_opacity_nothing">Nothing glass Opacity</string>
+    <string name="preview_opacity_nothing">Glass Effect Opacity</string>
     <string name="preview_opacity_snow">Snow effect Opacity</string>
     <string name="preview_opacity_stripes">Stripes Opacity</string>
     <string name="preview_off">Off</string>
