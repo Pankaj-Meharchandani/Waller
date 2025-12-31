@@ -40,6 +40,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.Alignment
 
 @Composable
 fun ApplyDownloadDialog(
@@ -76,16 +84,58 @@ fun ApplyDownloadDialog(
                 .fillMaxWidth()
                 .padding(18.dp)) {
 
-                Text(
-                    stringResource(id = R.string.apply_download_title),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    stringResource(id = R.string.apply_download_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)   // 🔥 THIS IS THE FIX
+                    ) {
+                        Text(
+                            stringResource(id = R.string.apply_download_title),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            stringResource(id = R.string.apply_download_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            onWorkingChange(true)
+                            coroutineScope.launch(Dispatchers.IO) {
+                                val bmp = createGradientBitmap(
+                                    context,
+                                    wallpaper,
+                                    isPortrait,
+                                    addNoise,
+                                    addStripes,
+                                    addOverlay,
+                                    addGeometric,
+                                    noiseAlpha,
+                                    stripesAlpha,
+                                    overlayAlpha,
+                                    geometricAlpha
+                                )
+                                withContext(Dispatchers.Main) {
+                                    onWorkingChange(false)
+                                    shareBitmapAsPng(context, bmp)
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Share",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // Both screens
