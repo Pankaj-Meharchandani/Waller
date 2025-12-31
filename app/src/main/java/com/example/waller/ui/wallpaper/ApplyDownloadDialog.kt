@@ -12,9 +12,11 @@
 
 package com.example.waller.ui.wallpaper
 
-import android.Manifest
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,7 +36,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.core.content.ContextCompat
 import com.example.waller.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +45,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Alignment
 
 @Composable
@@ -69,39 +75,140 @@ fun ApplyDownloadDialog(
 ) {
     if (!show || wallpaper == null) return
 
-    Dialog(onDismissRequest = { onDismiss() }) {
+    Dialog(onDismissRequest = onDismiss) {
         Card(
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+            modifier = Modifier.fillMaxWidth(0.9f),
+            shape = RoundedCornerShape(26.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
-            ),
-            modifier = Modifier.fillMaxWidth(0.9f)
+            )
         ) {
-            Column(modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp)) {
-
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 22.dp, vertical = 20.dp)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        modifier = Modifier.weight(1f)   // 🔥 THIS IS THE FIX
-                    ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            stringResource(id = R.string.apply_download_title),
+                            text = stringResource(R.string.apply_download_title),
                             style = MaterialTheme.typography.titleMedium
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            stringResource(id = R.string.apply_download_subtitle),
+                            text = stringResource(R.string.apply_download_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    IconButton(
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        tonalElevation = 2.dp,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable {
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        val bmp = createGradientBitmap(
+                                            context,
+                                            wallpaper,
+                                            isPortrait,
+                                            addNoise,
+                                            addStripes,
+                                            addOverlay,
+                                            addGeometric,
+                                            noiseAlpha,
+                                            stripesAlpha,
+                                            overlayAlpha,
+                                            geometricAlpha
+                                        )
+                                        withContext(Dispatchers.Main) {
+                                            shareBitmapAsPng(context, bmp)
+                                        }
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Share",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                /* ───────── Primary action ───────── */
+
+                Button(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+//                    shape = RoundedCornerShape(22.dp),
+                    onClick = {
+                        onWorkingChange(true)
+                        coroutineScope.launch(Dispatchers.IO) {
+                            val bmp = createGradientBitmap(
+                                context,
+                                wallpaper,
+                                isPortrait,
+                                addNoise,
+                                addStripes,
+                                addOverlay,
+                                addGeometric,
+                                noiseAlpha,
+                                stripesAlpha,
+                                overlayAlpha,
+                                geometricAlpha
+                            )
+                            val success = tryApplyWallpaper(
+                                context,
+                                bmp,
+                                android.app.WallpaperManager.FLAG_SYSTEM or getLockFlag()
+                            )
+                            withContext(Dispatchers.Main) {
+                                onWorkingChange(false)
+                                Toast.makeText(
+                                    context,
+                                    if (success)
+                                        context.getString(R.string.apply_success_both)
+                                    else
+                                        context.getString(R.string.apply_failed),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                onDismiss()
+                            }
+                        }
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.apply_both_screens),
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                /* ───────── Secondary actions ───────── */
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+                    FilledTonalButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp),
+//                        shape = RoundedCornerShape(20.dp),
                         onClick = {
                             onWorkingChange(true)
                             coroutineScope.launch(Dispatchers.IO) {
@@ -118,179 +225,35 @@ fun ApplyDownloadDialog(
                                     overlayAlpha,
                                     geometricAlpha
                                 )
+                                val success = tryApplyWallpaper(
+                                    context,
+                                    bmp,
+                                    android.app.WallpaperManager.FLAG_SYSTEM
+                                )
                                 withContext(Dispatchers.Main) {
                                     onWorkingChange(false)
-                                    shareBitmapAsPng(context, bmp)
+                                    Toast.makeText(
+                                        context,
+                                        if (success)
+                                            context.getString(R.string.apply_success_home)
+                                        else
+                                            context.getString(R.string.apply_failed),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    onDismiss()
                                 }
                             }
                         }
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Share",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+                        Text(stringResource(R.string.apply_home_screen))
                     }
-                }
 
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Both screens
-                Button(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    onClick = {
-                        onWorkingChange(true)
-                        coroutineScope.launch(Dispatchers.IO) {
-                            val bmp = createGradientBitmap(
-                                context,
-                                wallpaper,
-                                isPortrait,
-                                addNoise,
-                                addStripes,
-                                addOverlay,
-                                addGeometric,
-                                noiseAlpha,
-                                stripesAlpha,
-                                overlayAlpha,
-                                geometricAlpha
-                            )
-                            val flags =
-                                android.app.WallpaperManager.FLAG_SYSTEM or getLockFlag()
-                            val success = tryApplyWallpaper(context, bmp, flags)
-                            withContext(Dispatchers.Main) {
-                                onWorkingChange(false)
-                                Toast.makeText(
-                                    context,
-                                    if (success) context.getString(R.string.apply_success_both) else context.getString(R.string.apply_failed),
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                onDismiss()
-                            }
-                        }
-                    }
-                ) {
-                    Text(stringResource(id = R.string.apply_both_screens))
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Home only
-                Button(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    onClick = {
-                        onWorkingChange(true)
-                        coroutineScope.launch(Dispatchers.IO) {
-                            val bmp = createGradientBitmap(
-                                context,
-                                wallpaper,
-                                isPortrait,
-                                addNoise,
-                                addStripes,
-                                addOverlay,
-                                addGeometric,
-                                noiseAlpha,
-                                stripesAlpha,
-                                overlayAlpha,
-                                geometricAlpha
-                            )
-                            val success =
-                                tryApplyWallpaper(
-                                    context,
-                                    bmp,
-                                    android.app.WallpaperManager.FLAG_SYSTEM
-                                )
-                            withContext(Dispatchers.Main) {
-                                onWorkingChange(false)
-                                Toast.makeText(
-                                    context,
-                                    if (success) context.getString(R.string.apply_success_home) else context.getString(R.string.apply_failed),
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                onDismiss()
-                            }
-                        }
-                    }
-                ) {
-                    Text(stringResource(id = R.string.apply_home_screen))
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Lock only (or fallback)
-                Button(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    onClick = {
-                        onWorkingChange(true)
-                        coroutineScope.launch(Dispatchers.IO) {
-                            val bmp = createGradientBitmap(
-                                context,
-                                wallpaper,
-                                isPortrait,
-                                addNoise,
-                                addStripes,
-                                addOverlay,
-                                addGeometric,
-                                noiseAlpha,
-                                stripesAlpha,
-                                overlayAlpha,
-                                geometricAlpha
-                            )
-                            val flagLock = getLockFlag()
-                            val success =
-                                if (flagLock != 0) tryApplyWallpaper(
-                                    context,
-                                    bmp,
-                                    flagLock
-                                ) else tryApplyWallpaper(
-                                    context,
-                                    bmp,
-                                    android.app.WallpaperManager.FLAG_SYSTEM
-                                )
-                            withContext(Dispatchers.Main) {
-                                onWorkingChange(false)
-                                Toast.makeText(
-                                    context,
-                                    if (success) context.getString(R.string.apply_success_lock) else context.getString(R.string.apply_failed),
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                onDismiss()
-                            }
-                        }
-                    }
-                ) {
-                    Text(stringResource(id = R.string.apply_lock_screen))
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Download
-                OutlinedButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp),
-                    onClick = {
-                        val sdkTooOld =
-                            false
-                        if (sdkTooOld &&
-                            ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE
-                            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-                        ) {
-                            writePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.grant_storage_permission),
-                                Toast.LENGTH_LONG
-                            ).show()
-                        } else {
+                    FilledTonalButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp),
+//                        shape = RoundedCornerShape(20.dp),
+                        onClick = {
                             onWorkingChange(true)
                             coroutineScope.launch(Dispatchers.IO) {
                                 val bmp = createGradientBitmap(
@@ -306,41 +269,100 @@ fun ApplyDownloadDialog(
                                     overlayAlpha,
                                     geometricAlpha
                                 )
-                                val filename =
-                                    "waller_${System.currentTimeMillis()}.png"
-                                val saved =
-                                    saveBitmapToMediaStore(context, bmp, filename)
+                                val flagLock = getLockFlag()
+                                val success =
+                                    if (flagLock != 0)
+                                        tryApplyWallpaper(context, bmp, flagLock)
+                                    else
+                                        tryApplyWallpaper(
+                                            context,
+                                            bmp,
+                                            android.app.WallpaperManager.FLAG_SYSTEM
+                                        )
+
                                 withContext(Dispatchers.Main) {
                                     onWorkingChange(false)
                                     Toast.makeText(
                                         context,
-                                        if (saved) context.getString(R.string.save_success) else context.getString(R.string.save_failed),
+                                        if (success)
+                                            context.getString(R.string.apply_success_lock)
+                                        else
+                                            context.getString(R.string.apply_failed),
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     onDismiss()
                                 }
                             }
                         }
+                    ) {
+                        Text(stringResource(R.string.apply_lock_screen))
                     }
-                ) {
-                    Text(stringResource(id = R.string.download))
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(18.dp))
+
+                /* ───────── Utility actions ───────── */
+
+                OutlinedButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp),
+//                    shape = RoundedCornerShape(20.dp),
+                    onClick = {
+                        onWorkingChange(true)
+                        coroutineScope.launch(Dispatchers.IO) {
+                            val bmp = createGradientBitmap(
+                                context,
+                                wallpaper,
+                                isPortrait,
+                                addNoise,
+                                addStripes,
+                                addOverlay,
+                                addGeometric,
+                                noiseAlpha,
+                                stripesAlpha,
+                                overlayAlpha,
+                                geometricAlpha
+                            )
+                            val saved = saveBitmapToMediaStore(
+                                context,
+                                bmp,
+                                "waller_${System.currentTimeMillis()}.png"
+                            )
+                            withContext(Dispatchers.Main) {
+                                onWorkingChange(false)
+                                Toast.makeText(
+                                    context,
+                                    if (saved)
+                                        context.getString(R.string.save_success)
+                                    else
+                                        context.getString(R.string.save_failed),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                onDismiss()
+                            }
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.download))
+                }
+
                 TextButton(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { onDismiss() }
                 ) {
-                    Text(stringResource(id = R.string.cancel))
+                    Text(text = stringResource(R.string.cancel))
                 }
 
+                /* ───────── Progress ───────── */
+
                 if (isWorking) {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     LinearProgressIndicator(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(999.dp))
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(999.dp))
                     )
                 }
             }
