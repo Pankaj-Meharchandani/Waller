@@ -135,6 +135,10 @@ fun FavoritesScreen(
                             showPreview = true
                         }
                     }
+                },
+                onLongClick = {
+                    pendingClickedWallpaper = fav
+                    showApplyDialog = true
                 }
             )
         }

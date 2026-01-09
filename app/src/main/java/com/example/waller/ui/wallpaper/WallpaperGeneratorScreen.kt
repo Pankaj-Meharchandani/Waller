@@ -457,7 +457,6 @@ fun WallpaperGeneratorScreen(
                 addStripes = addStripes,
                 addGeometric = addGeometric,
                 addOverlay = addOverlay,
-                // grid-level cards don't have per-card sliders: use global-enabled -> full alpha (1f) or 0f
                 noiseAlpha = if (addNoise) 1f else 0f,
                 stripesAlpha = if (addStripes) 1f else 0f,
                 overlayAlpha = if (addOverlay) 1f else 0f,
@@ -469,16 +468,19 @@ fun WallpaperGeneratorScreen(
                 onClick = {
                     when (interactionMode) {
                         InteractionMode.SIMPLE -> {
-                            // directly show Apply/Download dialog for this wallpaper
                             pendingClickedWallpaper = wallpaper
                             showApplyDialog = true
                         }
                         InteractionMode.ADVANCED -> {
-                            // open overlay as before
                             previewWallpaper = wallpaper
                             showPreview = true
                         }
                     }
+                },
+
+                onLongClick = {
+                    pendingClickedWallpaper = wallpaper
+                    showApplyDialog = true
                 }
             )
         }
