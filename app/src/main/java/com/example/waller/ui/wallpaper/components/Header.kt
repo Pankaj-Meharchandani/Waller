@@ -38,6 +38,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.waller.R
+import androidx.compose.ui.platform.LocalView
+import com.example.waller.ui.wallpaper.Haptics
 
 @Composable
 fun Header(
@@ -49,6 +51,7 @@ fun Header(
 ) {
     val chipSize = 42.dp
     val chipShape = RoundedCornerShape(14.dp)
+    val view = LocalView.current
 
     Row(
         modifier = Modifier
@@ -106,6 +109,7 @@ fun Header(
                         pillShape
                     )
                     .clickable {
+                        Haptics.confirm(view)
                         onOrientationChange(!isPortrait)
                     }
                     .padding(horizontal = 12.dp, vertical = 6.dp),

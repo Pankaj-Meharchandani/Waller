@@ -41,10 +41,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -54,6 +52,8 @@ import com.example.waller.ui.wallpaper.Wallpaper
 import com.example.waller.ui.wallpaper.GradientType
 import kotlinx.coroutines.CoroutineScope
 import kotlin.math.abs
+import androidx.compose.ui.platform.LocalView
+import com.example.waller.ui.wallpaper.Haptics
 
 private enum class EffectType { OVERLAY, NOISE, STRIPES, GEOMETRIC }
 
@@ -102,7 +102,7 @@ fun WallpaperPreviewOverlay(
         val isLightTheme = MaterialTheme.colorScheme.background.luminance() > 0.5f
         return if (isLightTheme && selectedForButton) Color.Black else Color.White
     }
-
+    val view = LocalView.current
     var noise by remember { mutableStateOf(globalNoise) }
     var stripes by remember { mutableStateOf(globalStripes) }
     var overlay by remember { mutableStateOf(globalOverlay) }
@@ -164,9 +164,9 @@ fun WallpaperPreviewOverlay(
 
     // angle initialized from wallpaper (so overlay respects stored angle)
     var gradientAngle by remember(wallpaper) { mutableFloatStateOf(wallpaper.angleDeg) }
+    var lastAngleCheckpoint by remember { mutableStateOf<Int?>(null) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isBusy by remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
     LaunchedEffect(Unit) {
         if (activeEffect == null) {
             activeEffect = when {
@@ -327,7 +327,7 @@ fun WallpaperPreviewOverlay(
                                 textColor = overlayTextColor(selectedForButton = selectedGradient == GradientType.Linear)
                             ) {
                                 selectedGradient = GradientType.Linear
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                Haptics.light(view)
                             }
 
                             GradientTypeItemFull(
@@ -336,7 +336,7 @@ fun WallpaperPreviewOverlay(
                                 textColor = overlayTextColor(selectedForButton = selectedGradient == GradientType.Radial)
                             ) {
                                 selectedGradient = GradientType.Radial
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                Haptics.light(view)
                             }
 
                             GradientTypeItemFull(
@@ -345,7 +345,7 @@ fun WallpaperPreviewOverlay(
                                 textColor = overlayTextColor(selectedForButton = selectedGradient == GradientType.Angular)
                             ) {
                                 selectedGradient = GradientType.Angular
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                Haptics.light(view)
                             }
 
                             GradientTypeItemFull(
@@ -354,7 +354,7 @@ fun WallpaperPreviewOverlay(
                                 textColor = overlayTextColor(selectedForButton = selectedGradient == GradientType.Diamond)
                             ) {
                                 selectedGradient = GradientType.Diamond
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                Haptics.light(view)
                             }
                         }
 
@@ -368,15 +368,36 @@ fun WallpaperPreviewOverlay(
                             )
                             Slider(
                                 value = gradientAngle,
-                                onValueChange = { gradientAngle = it },
-                                valueRange = 0f..360f,
-                                onValueChangeFinished = {
-                                    val checkpoints = listOf(0f, 90f, 180f, 270f)
-                                    val nearest = checkpoints.minByOrNull { abs(it - gradientAngle) } ?: 0f
-                                    if (abs(nearest - gradientAngle) <= 8f) {
-                                        gradientAngle = nearest
+                                onValueChange = { value ->
+                                    gradientAngle = value
+
+                                    // 🔹 HAPTIC WHILE DRAGGING
+                                    val checkpoints = listOf(0, 90, 180, 270, 360)
+                                    val crossed = checkpoints.firstOrNull { cp ->
+                                        abs(cp - value) <= 3f
+                                    }
+
+                                    if (crossed != null && crossed != lastAngleCheckpoint) {
+                                        lastAngleCheckpoint = crossed
+                                        Haptics.light(view)
                                     }
                                 },
+                                onValueChangeFinished = {
+                                    // 🔹 SNAP ON RELEASE (+ optional haptic)
+                                    val checkpoints = listOf(0f, 90f, 180f, 270f, 360f)
+                                    val nearest = checkpoints.minByOrNull {
+                                        abs(it - gradientAngle)
+                                    } ?: return@Slider
+
+                                    if (abs(nearest - gradientAngle) <= 8f) {
+                                        gradientAngle = nearest
+                                        Haptics.light(view) // allowed double haptic
+                                    }
+
+                                    // reset so next drag can trigger again
+                                    lastAngleCheckpoint = null
+                                },
+                                valueRange = 0f..360f,
                                 modifier = Modifier.weight(1f)
                             )
                             Box(
@@ -475,17 +496,39 @@ fun WallpaperPreviewOverlay(
                             )
                             Slider(
                                 value = gradientAngle,
-                                onValueChange = { gradientAngle = it },
-                                valueRange = 0f..360f,
-                                onValueChangeFinished = {
-                                    val checkpoints = listOf(0f, 90f, 180f, 270f)
-                                    val nearest = checkpoints.minByOrNull { abs(it - gradientAngle) } ?: 0f
-                                    if (abs(nearest - gradientAngle) <= 8f) {
-                                        gradientAngle = nearest
+                                onValueChange = { value ->
+                                    gradientAngle = value
+
+                                    // 🔹 HAPTIC WHILE DRAGGING
+                                    val checkpoints = listOf(0, 90, 180, 270, 360)
+                                    val crossed = checkpoints.firstOrNull { cp ->
+                                        abs(cp - value) <= 3f
+                                    }
+
+                                    if (crossed != null && crossed != lastAngleCheckpoint) {
+                                        lastAngleCheckpoint = crossed
+                                        Haptics.light(view)
                                     }
                                 },
+                                onValueChangeFinished = {
+                                    // 🔹 SNAP ON RELEASE (+ optional haptic)
+                                    val checkpoints = listOf(0f, 90f, 180f, 270f, 360f)
+                                    val nearest = checkpoints.minByOrNull {
+                                        abs(it - gradientAngle)
+                                    } ?: return@Slider
+
+                                    if (abs(nearest - gradientAngle) <= 8f) {
+                                        gradientAngle = nearest
+                                        Haptics.light(view) // allowed double haptic
+                                    }
+
+                                    // reset so next drag can trigger again
+                                    lastAngleCheckpoint = null
+                                },
+                                valueRange = 0f..360f,
                                 modifier = Modifier.weight(1f)
                             )
+
                             Box(
                                 modifier = Modifier
                                     .size(10.dp)
@@ -659,6 +702,7 @@ private fun PreviewFrame(
         )
 
         var localFav by remember { mutableStateOf(isFavorite) }
+        val view = LocalView.current
 
         Box(
             modifier = Modifier
@@ -671,6 +715,7 @@ private fun PreviewFrame(
                 modifier = Modifier.size(44.dp)
             ) {
                 IconButton(onClick = {
+                    Haptics.confirm(view)
                     localFav = !localFav
                     onFavoriteToggle()
                 }) {

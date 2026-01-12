@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.ToneMode
+import androidx.compose.ui.platform.LocalView
+import com.example.waller.ui.wallpaper.Haptics
 
 @Composable
 fun CompactOptionsPanel(
@@ -56,6 +58,7 @@ fun CompactOptionsPanel(
     addGeometric: Boolean,
     onGeometricToggle: () -> Unit
 ) {
+    val view = LocalView.current
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxWidth()
@@ -98,7 +101,14 @@ fun CompactOptionsPanel(
 
             MultiColorToggleChip(
                 isMultiColor = isMultiColor,
-                onToggle = { onMultiColorChange(!isMultiColor) }
+                onToggle = {
+                    if (!isMultiColor) {
+                        Haptics.confirm(view)
+                    } else {
+                        Haptics.light(view)
+                    }
+                    onMultiColorChange(!isMultiColor)
+                }
             )
         }
 
@@ -111,7 +121,10 @@ fun CompactOptionsPanel(
                 FilterChip(
                     modifier = Modifier.weight(1f),
                     selected = type in selectedGradientTypes,
-                    onClick = { onGradientToggle(type) },
+                    onClick = {
+                        Haptics.light(view)
+                        onGradientToggle(type)
+                    },
                     label = {
                         ChipText(
                             text = stringResource(

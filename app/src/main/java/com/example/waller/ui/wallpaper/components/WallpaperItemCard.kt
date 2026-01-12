@@ -48,6 +48,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import com.example.waller.ui.wallpaper.components.previewOverlay.createBrushForPreview
 import com.example.waller.ui.wallpaper.components.previewOverlay.createRotatedSweepShader
+import androidx.compose.ui.platform.LocalView
+import com.example.waller.ui.wallpaper.Haptics
 
 @Composable
 fun WallpaperItemCard(
@@ -68,12 +70,16 @@ fun WallpaperItemCard(
     modifier: Modifier = Modifier,
     isPreview: Boolean = false
 ) {
+    val view = LocalView.current
     val cardModifier = if (isPreview) {
         modifier
             .fillMaxWidth()
             .height(if (isPortrait) 600.dp else 420.dp)
             .combinedClickable(
-                onClick = onClick,
+                onClick = {
+                    Haptics.light(view)
+                    onClick()
+                },
                 onLongClick = onLongClick
             )
     } else {
@@ -81,7 +87,10 @@ fun WallpaperItemCard(
             .aspectRatio(if (isPortrait) 9f / 16f else 16f / 9f)
             .fillMaxWidth()
             .combinedClickable(
-                onClick = onClick,
+                onClick = {
+                    Haptics.light(view)
+                    onClick()
+                },
                 onLongClick = onLongClick
             )
     }
@@ -122,6 +131,7 @@ fun WallpaperItemCard(
                 ) {
                     IconButton(
                         onClick = {
+                            Haptics.confirm(view)
                             onFavoriteToggle(
                                 wallpaper,
                                 addNoise,

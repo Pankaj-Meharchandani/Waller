@@ -78,6 +78,8 @@ import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalView
+import com.example.waller.ui.wallpaper.Haptics
 
 @Composable
 fun WallpaperGeneratorScreen(
@@ -105,6 +107,7 @@ fun WallpaperGeneratorScreen(
     interactionMode: InteractionMode
 
 ) {
+    val view = LocalView.current
     // ----------- STATE -----------
     var toneMode by remember { mutableStateOf(sessionState.toneMode) }
     var showPreview by remember { mutableStateOf(false) }
@@ -415,6 +418,7 @@ fun WallpaperGeneratorScreen(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
                         .clickable {
+                            Haptics.light(view)
                             refreshScope.launch {
                                 val start = refreshRotation.value
                                 val target = start + 360f
@@ -495,6 +499,7 @@ fun WallpaperGeneratorScreen(
             ) {
                 OutlinedButton(
                     onClick = {
+                        Haptics.longPress(view)
                         wallpapers = generateWallpapers()
                         sessionState.wallpapers = wallpapers
                         coroutineScope.launch { gridState.animateScrollToItem(2) }
