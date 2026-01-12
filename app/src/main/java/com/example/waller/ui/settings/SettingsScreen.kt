@@ -31,13 +31,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.InteractionMode
 import com.example.waller.ui.wallpaper.SectionCard
 import com.example.waller.ui.wallpaper.ToneMode
-import androidx.compose.ui.platform.LocalView
 import com.example.waller.ui.wallpaper.Haptics
 
 // App-wide theme modes used by WallerApp and Settings.
@@ -266,6 +266,11 @@ fun SettingsScreen(
             )
 
             Spacer(Modifier.height(12.dp))
+            Text(
+                text = stringResource(id = R.string.settings_wallpaper_count),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(Modifier.height(6.dp))
 
             GradientCountRow(
                 current = defaultGradientCount,
@@ -276,6 +281,11 @@ fun SettingsScreen(
             )
 
             Spacer(Modifier.height(12.dp))
+            Text(
+                text = stringResource(id = R.string.settings_default_wallpaper_tone),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(Modifier.height(6.dp))
 
             ThemeOptionRow(
                 label = stringResource(id = R.string.wallpaper_theme_dark_tones),
@@ -371,6 +381,7 @@ fun SettingsScreen(
         }
     }
 }
+
 @Composable
 private fun ThemeOptionRow(
     label: String,
@@ -381,10 +392,7 @@ private fun ThemeOptionRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        RadioButton(
-            selected = selected,
-            onClick = onClick
-        )
+        RadioButton(selected = selected, onClick = onClick)
         Text(text = label)
     }
 }
@@ -399,10 +407,7 @@ private fun OrientationOptionRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        RadioButton(
-            selected = selected,
-            onClick = onClick
-        )
+        RadioButton(selected = selected, onClick = onClick)
         Text(text = label)
     }
 }
@@ -418,9 +423,7 @@ private fun GradientCountRow(
         modifier = Modifier.fillMaxWidth()
     ) {
         listOf(12, 16, 20).forEach { value ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
                     selected = current == value,
                     onClick = { onChange(value) }
