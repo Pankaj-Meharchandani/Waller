@@ -72,6 +72,7 @@ import com.example.waller.ui.onboarding.UpdateChecker
 import java.util.Locale
 import androidx.compose.ui.platform.LocalConfiguration
 import com.example.waller.ui.wallpaper.WallpaperSessionState
+import com.example.waller.ui.wallpaper.Haptics
 
 // Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
@@ -79,6 +80,7 @@ private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
 private const val FAVOURITES_KEY = "favourites_v1"
 private const val PREF_KEY_INTERACTION_MODE = "interaction_mode_v1"
 private const val PREF_KEY_LOCKED_ORIENTATION = "locked_orientation_v1"
+private const val PREF_KEY_HAPTICS_ENABLED = "haptics_enabled_v1"
 
 // New: remember which app version we've shown the mode picker for
 private const val PREF_KEY_MODE_PICKER_SHOWN_VERSION = "mode_picker_shown_version_v1"
@@ -103,6 +105,15 @@ fun WallerApp() {
     // --- SharedPreferences handle ---
     val prefs = remember {
         context.getSharedPreferences("waller_prefs", Context.MODE_PRIVATE)
+    }
+// --- PERSISTED HAPTICS ENABLED ---
+    val initialHapticsEnabled = remember {
+        prefs.getBoolean(PREF_KEY_HAPTICS_ENABLED, true)
+    }
+    var hapticsEnabled by remember { mutableStateOf(initialHapticsEnabled) }
+
+    LaunchedEffect(Unit) {
+        Haptics.enabled = hapticsEnabled
     }
 
     // --- PERSISTED THEME ---
@@ -172,6 +183,12 @@ fun WallerApp() {
             activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             prefs.edit { remove(PREF_KEY_LOCKED_ORIENTATION) }
         }
+    }
+
+    fun updateHapticsEnabled(value: Boolean) {
+        hapticsEnabled = value
+        Haptics.enabled = value              // 🔴 GLOBAL EFFECT
+        prefs.edit { putBoolean(PREF_KEY_HAPTICS_ENABLED, value) }
     }
 
     // --- ONE-TIME MODE PICKER DIALOG WIRING ---
@@ -575,8 +592,10 @@ fun WallerApp() {
                             onDefaultEnableMulticolorChange = { updateEnableMulticolor(it) },
                             onAboutClick = { currentScreen = RootScreen.ABOUT },
                             interactionMode = interactionMode,
-                            onInteractionModeChange = { updateInteractionMode(it) }
-                        )
+                            onInteractionModeChange = { updateInteractionMode(it) },
+                            hapticsEnabled = hapticsEnabled,
+                            onHapticsEnabledChange = { updateHapticsEnabled(it) }
+                            )
                     }
 
                     RootScreen.ABOUT -> {

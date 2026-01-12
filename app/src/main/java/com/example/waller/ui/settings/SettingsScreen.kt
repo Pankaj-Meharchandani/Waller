@@ -37,6 +37,9 @@ import com.example.waller.R
 import com.example.waller.ui.wallpaper.InteractionMode
 import com.example.waller.ui.wallpaper.SectionCard
 import com.example.waller.ui.wallpaper.ToneMode
+import androidx.compose.ui.platform.LocalView
+import com.example.waller.ui.wallpaper.Haptics
+
 // App-wide theme modes used by WallerApp and Settings.
 enum class AppThemeMode { LIGHT, DARK, SYSTEM }
 
@@ -54,8 +57,8 @@ fun SettingsScreen(
     onDefaultOrientationChange: (DefaultOrientation) -> Unit,
     defaultGradientCount: Int,
     onDefaultGradientCountChange: (Int) -> Unit,
-    defaultEnableMulticolor: Boolean,                      // ← NEW
-    onDefaultEnableMulticolorChange: (Boolean) -> Unit,    // ← NEW
+    defaultEnableMulticolor: Boolean,
+    onDefaultEnableMulticolorChange: (Boolean) -> Unit,
     enableNothingByDefault: Boolean,
     onEnableNothingByDefaultChange: (Boolean) -> Unit,
     enableSnowByDefault: Boolean,
@@ -64,12 +67,14 @@ fun SettingsScreen(
     onEnableStripesByDefaultChange: (Boolean) -> Unit,
     defaultToneMode: ToneMode,
     onDefaultToneModeChange: (ToneMode) -> Unit,
-    // NEW: interaction mode props
     interactionMode: InteractionMode,
     onInteractionModeChange: (InteractionMode) -> Unit,
+    hapticsEnabled: Boolean,
+    onHapticsEnabledChange: (Boolean) -> Unit,
     onAboutClick: () -> Unit
 ) {
     val scroll = rememberScrollState()
+    val view = LocalView.current
 
     Column(
         modifier = modifier
@@ -96,17 +101,26 @@ fun SettingsScreen(
             ThemeOptionRow(
                 label = stringResource(id = R.string.settings_theme_system),
                 selected = appThemeMode == AppThemeMode.SYSTEM,
-                onClick = { onAppThemeModeChange(AppThemeMode.SYSTEM) }
+                onClick = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onAppThemeModeChange(AppThemeMode.SYSTEM)
+                }
             )
             ThemeOptionRow(
                 label = stringResource(id = R.string.settings_theme_light),
                 selected = appThemeMode == AppThemeMode.LIGHT,
-                onClick = { onAppThemeModeChange(AppThemeMode.LIGHT) }
+                onClick = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onAppThemeModeChange(AppThemeMode.LIGHT)
+                }
             )
             ThemeOptionRow(
                 label = stringResource(id = R.string.settings_theme_dark),
                 selected = appThemeMode == AppThemeMode.DARK,
-                onClick = { onAppThemeModeChange(AppThemeMode.DARK) }
+                onClick = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onAppThemeModeChange(AppThemeMode.DARK)
+                }
             )
 
             Spacer(Modifier.height(12.dp))
@@ -120,7 +134,29 @@ fun SettingsScreen(
                 )
                 Switch(
                     checked = useGradientBackground,
-                    onCheckedChange = onUseGradientBackgroundChange
+                    onCheckedChange = {
+                        if (hapticsEnabled) Haptics.light(view)
+                        onUseGradientBackgroundChange(it)
+                    }
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(id = R.string.settings_enable_haptics),
+                    modifier = Modifier.weight(1f)
+                )
+                Switch(
+                    checked = hapticsEnabled,
+                    onCheckedChange = {
+                        if (it) Haptics.confirm(view)
+                        Haptics.enabled = it
+                        onHapticsEnabledChange(it)
+                    }
                 )
             }
         }
@@ -133,16 +169,21 @@ fun SettingsScreen(
             )
             Spacer(Modifier.height(8.dp))
 
-            // SIMPLE Mode
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onInteractionModeChange(InteractionMode.SIMPLE) }
+                    .clickable {
+                        if (hapticsEnabled) Haptics.light(view)
+                        onInteractionModeChange(InteractionMode.SIMPLE)
+                    }
             ) {
                 RadioButton(
                     selected = interactionMode == InteractionMode.SIMPLE,
-                    onClick = { onInteractionModeChange(InteractionMode.SIMPLE) }
+                    onClick = {
+                        if (hapticsEnabled) Haptics.light(view)
+                        onInteractionModeChange(InteractionMode.SIMPLE)
+                    }
                 )
                 Spacer(Modifier.width(8.dp))
                 Column {
@@ -157,16 +198,21 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(6.dp))
 
-            // ADVANCED Mode
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onInteractionModeChange(InteractionMode.ADVANCED) }
+                    .clickable {
+                        if (hapticsEnabled) Haptics.light(view)
+                        onInteractionModeChange(InteractionMode.ADVANCED)
+                    }
             ) {
                 RadioButton(
                     selected = interactionMode == InteractionMode.ADVANCED,
-                    onClick = { onInteractionModeChange(InteractionMode.ADVANCED) }
+                    onClick = {
+                        if (hapticsEnabled) Haptics.light(view)
+                        onInteractionModeChange(InteractionMode.ADVANCED)
+                    }
                 )
                 Spacer(Modifier.width(8.dp))
                 Column {
@@ -197,78 +243,98 @@ fun SettingsScreen(
             OrientationOptionRow(
                 label = stringResource(id = R.string.settings_orientation_auto),
                 selected = defaultOrientation == DefaultOrientation.AUTO,
-                onClick = { onDefaultOrientationChange(DefaultOrientation.AUTO) }
+                onClick = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onDefaultOrientationChange(DefaultOrientation.AUTO)
+                }
             )
             OrientationOptionRow(
                 label = stringResource(id = R.string.settings_orientation_portrait),
                 selected = defaultOrientation == DefaultOrientation.PORTRAIT,
-                onClick = { onDefaultOrientationChange(DefaultOrientation.PORTRAIT) }
+                onClick = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onDefaultOrientationChange(DefaultOrientation.PORTRAIT)
+                }
             )
             OrientationOptionRow(
                 label = stringResource(id = R.string.settings_orientation_landscape),
                 selected = defaultOrientation == DefaultOrientation.LANDSCAPE,
-                onClick = { onDefaultOrientationChange(DefaultOrientation.LANDSCAPE) }
+                onClick = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onDefaultOrientationChange(DefaultOrientation.LANDSCAPE)
+                }
             )
 
             Spacer(Modifier.height(12.dp))
 
-            Text(
-                text = stringResource(id = R.string.settings_wallpaper_count),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(Modifier.height(6.dp))
             GradientCountRow(
                 current = defaultGradientCount,
-                onChange = onDefaultGradientCountChange
+                onChange = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onDefaultGradientCountChange(it)
+                }
             )
 
             Spacer(Modifier.height(12.dp))
-
-            // Default wallpaper tone (Dark / Neutral / Light)
-            Text(
-                text = stringResource(id = R.string.settings_default_wallpaper_tone),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(Modifier.height(6.dp))
 
             ThemeOptionRow(
                 label = stringResource(id = R.string.wallpaper_theme_dark_tones),
                 selected = defaultToneMode == ToneMode.DARK,
-                onClick = { onDefaultToneModeChange(ToneMode.DARK) }
+                onClick = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onDefaultToneModeChange(ToneMode.DARK)
+                }
             )
             ThemeOptionRow(
                 label = stringResource(id = R.string.wallpaper_theme_neutral_tones),
                 selected = defaultToneMode == ToneMode.NEUTRAL,
-                onClick = { onDefaultToneModeChange(ToneMode.NEUTRAL) }
+                onClick = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onDefaultToneModeChange(ToneMode.NEUTRAL)
+                }
             )
             ThemeOptionRow(
                 label = stringResource(id = R.string.wallpaper_theme_light_tones),
                 selected = defaultToneMode == ToneMode.LIGHT,
-                onClick = { onDefaultToneModeChange(ToneMode.LIGHT) }
+                onClick = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onDefaultToneModeChange(ToneMode.LIGHT)
+                }
             )
 
             Spacer(Modifier.height(12.dp))
 
-            // Multicolor Gradient Default Toggle
             ToggleRow(
                 label = stringResource(id = R.string.settings_enable_multicolor),
                 checked = defaultEnableMulticolor,
-                onCheckedChange = onDefaultEnableMulticolorChange
+                onCheckedChange = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onDefaultEnableMulticolorChange(it)
+                }
             )
             ToggleRow(
                 label = stringResource(id = R.string.settings_enable_nothing),
                 checked = enableNothingByDefault,
-                onCheckedChange = onEnableNothingByDefaultChange
+                onCheckedChange = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onEnableNothingByDefaultChange(it)
+                }
             )
             ToggleRow(
                 label = stringResource(id = R.string.settings_enable_snow),
                 checked = enableSnowByDefault,
-                onCheckedChange = onEnableSnowByDefaultChange
+                onCheckedChange = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onEnableSnowByDefaultChange(it)
+                }
             )
             ToggleRow(
                 label = stringResource(id = R.string.settings_enable_stripes),
                 checked = enableStripesByDefault,
-                onCheckedChange = onEnableStripesByDefaultChange
+                onCheckedChange = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onEnableStripesByDefaultChange(it)
+                }
             )
         }
 
@@ -277,7 +343,10 @@ fun SettingsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onAboutClick)
+                    .clickable {
+                        if (hapticsEnabled) Haptics.confirm(view)
+                        onAboutClick()
+                    }
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -302,7 +371,6 @@ fun SettingsScreen(
         }
     }
 }
-
 @Composable
 private fun ThemeOptionRow(
     label: String,
@@ -313,7 +381,10 @@ private fun ThemeOptionRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        RadioButton(selected = selected, onClick = onClick)
+        RadioButton(
+            selected = selected,
+            onClick = onClick
+        )
         Text(text = label)
     }
 }
@@ -328,7 +399,10 @@ private fun OrientationOptionRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        RadioButton(selected = selected, onClick = onClick)
+        RadioButton(
+            selected = selected,
+            onClick = onClick
+        )
         Text(text = label)
     }
 }
@@ -344,7 +418,9 @@ private fun GradientCountRow(
         modifier = Modifier.fillMaxWidth()
     ) {
         listOf(12, 16, 20).forEach { value ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 RadioButton(
                     selected = current == value,
                     onClick = { onChange(value) }
@@ -365,7 +441,13 @@ private fun ToggleRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(text = label, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Text(
+            text = label,
+            modifier = Modifier.weight(1f)
+        )
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
     }
 }
