@@ -199,7 +199,7 @@ fun AboutScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
                     text = stringResource(id = R.string.about_legal_title),
@@ -215,24 +215,33 @@ fun AboutScreen(
                     Text(text = stringResource(id = R.string.about_rate_app))
                 }
 
-                TextButton(
-                    onClick = {
-                        // TODO: Replace with your Privacy Policy URL
-                        // openUrl("https://your-privacy-policy-url")
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = stringResource(id = R.string.about_privacy_policy))
-                }
+                    TextButton(
+                        onClick = {
+                            // TODO: openUrl("https://your-privacy-policy-url")
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.about_privacy_policy)
+                        )
+                    }
 
-                TextButton(
-                    onClick = {
-                        // TODO: Replace with your Terms URL
-                        // openUrl("https://your-terms-url")
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = stringResource(id = R.string.about_terms))
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    TextButton(
+                        onClick = {
+                            // TODO: openUrl("https://your-terms-url")
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.about_terms)
+                        )
+                    }
                 }
             }
         }
