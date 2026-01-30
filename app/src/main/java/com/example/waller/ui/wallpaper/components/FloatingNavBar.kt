@@ -8,6 +8,7 @@
 
 package com.example.waller.ui.wallpaper.components
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -41,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalView
+import com.example.waller.ui.wallpaper.Haptics
 
 enum class FloatingNavItem {
     HOME, FAVOURITES, SETTINGS
@@ -54,6 +57,7 @@ fun FloatingNavBar(
     visible: Boolean = true
 ) {
     if (!visible) return
+    val view = LocalView.current
     val shape = RoundedCornerShape(26.dp)
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
@@ -87,24 +91,28 @@ fun FloatingNavBar(
                 label = "Home",
                 icon = Icons.Default.Home,
                 selected = selectedItem == FloatingNavItem.HOME,
-                onClick = { onItemSelected(FloatingNavItem.HOME) }
+                onClick = { onItemSelected(FloatingNavItem.HOME)
+                    Haptics.confirm(view)}
             )
             NavItem(
                 label = "Favourites",
                 icon = Icons.Default.Favorite,
                 selected = selectedItem == FloatingNavItem.FAVOURITES,
-                onClick = { onItemSelected(FloatingNavItem.FAVOURITES) }
+                onClick = { onItemSelected(FloatingNavItem.FAVOURITES)
+                    Haptics.confirm(view)}
             )
             NavItem(
                 label = "Settings",
                 icon = Icons.Default.Settings,
                 selected = selectedItem == FloatingNavItem.SETTINGS,
-                onClick = { onItemSelected(FloatingNavItem.SETTINGS) }
+                onClick = { onItemSelected(FloatingNavItem.SETTINGS)
+                    Haptics.confirm(view)}
             )
         }
     }
 }
 
+@SuppressLint("RememberInComposition")
 @Composable
 private fun NavItem(
     label: String,
