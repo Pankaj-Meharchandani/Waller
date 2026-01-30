@@ -90,8 +90,15 @@ fun FloatingNavBar(
                     radius = 22.dp,
                     edgeTreatment = BlurredEdgeTreatment.Unbounded
                 )
+                .drawBehind {
+                    // Ultra-subtle glass grain (kills banding)
+                    drawRect(
+                        color = Color.White.copy(alpha = 0.015f),
+                        blendMode = BlendMode.Overlay
+                    )
+                }
                 .background(
-                    Brush.linearGradient(
+                    Brush.verticalGradient(
                         colors = if (isDark)
                             listOf(
                                 Color.White.copy(alpha = 0.70f),
@@ -99,8 +106,8 @@ fun FloatingNavBar(
                             )
                         else
                             listOf(
-                                Color.White.copy(alpha = 0.42f),
-                                Color.White.copy(alpha = 0.24f)
+                                Color.White.copy(alpha = 0.70f),
+                                Color.White.copy(alpha = 0.42f)
                             )
                     ),
                     shape
