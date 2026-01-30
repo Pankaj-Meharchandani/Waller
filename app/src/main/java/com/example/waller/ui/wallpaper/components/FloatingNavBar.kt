@@ -2,8 +2,13 @@
  * FloatingNavBar.kt
  *
  * Theme-aware floating bottom navigation for Waller.
- * Plain surface with a single, light-refracting border
- * (glass illusion via edge only — no blur, no gradients).
+ * True glassmorphism navbar using backdrop blur + soft light diffusion,
+ * paired with a single refractive border for edge definition.
+ *
+ * - Real blur behind the surface (not on content)
+ * - Crisp icons & text
+ * - Theme-aware (dark / light)
+ * - Haptic feedback on selection
  */
 
 package com.example.waller.ui.wallpaper.components
@@ -29,20 +34,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalView
 import com.example.waller.ui.wallpaper.Haptics
 
 enum class FloatingNavItem {
@@ -61,52 +65,89 @@ fun FloatingNavBar(
     val shape = RoundedCornerShape(26.dp)
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    val surfaceColor =
+    val contentSurface =
         if (isDark)
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
         else
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
 
     Box(
         modifier = modifier
-            .pointerInput(Unit){}
+            .pointerInput(Unit) {}
             .shadow(
                 elevation = 26.dp,
                 shape = shape,
                 ambientColor = Color.Black.copy(alpha = if (isDark) 0.45f else 0.18f),
                 spotColor = Color.Black.copy(alpha = if (isDark) 0.65f else 0.25f)
             )
-            .background(surfaceColor, shape)
-            .singleRefractiveBorder(
-                cornerRadius = 26.dp,
-                isDark = isDark
-            )
-            .padding(horizontal = 18.dp, vertical = 12.dp)
     ) {
+
+        // Glass backdrop
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .blur(
+                    radius = 22.dp,
+                    edgeTreatment = BlurredEdgeTreatment.Unbounded
+                )
+                .background(
+                    Brush.linearGradient(
+                        colors = if (isDark)
+                            listOf(
+                                Color.White.copy(alpha = 0.70f),
+                                Color.White.copy(alpha = 0.42f)
+                            )
+                        else
+                            listOf(
+                                Color.White.copy(alpha = 0.42f),
+                                Color.White.copy(alpha = 0.24f)
+                            )
+                    ),
+                    shape
+                )
+        )
+
+        // Content layer
         Row(
+            modifier = Modifier
+                .background(contentSurface, shape)
+                .singleRefractiveBorder(
+                    cornerRadius = 26.dp,
+                    isDark = isDark
+                )
+                .padding(horizontal = 18.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(22.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             NavItem(
                 label = "Home",
                 icon = Icons.Default.Home,
                 selected = selectedItem == FloatingNavItem.HOME,
-                onClick = { onItemSelected(FloatingNavItem.HOME)
-                    Haptics.confirm(view)}
+                onClick = {
+                    onItemSelected(FloatingNavItem.HOME)
+                    Haptics.confirm(view)
+                }
             )
+
             NavItem(
                 label = "Favourites",
                 icon = Icons.Default.Favorite,
                 selected = selectedItem == FloatingNavItem.FAVOURITES,
-                onClick = { onItemSelected(FloatingNavItem.FAVOURITES)
-                    Haptics.confirm(view)}
+                onClick = {
+                    onItemSelected(FloatingNavItem.FAVOURITES)
+                    Haptics.confirm(view)
+                }
             )
+
             NavItem(
                 label = "Settings",
                 icon = Icons.Default.Settings,
                 selected = selectedItem == FloatingNavItem.SETTINGS,
-                onClick = { onItemSelected(FloatingNavItem.SETTINGS)
-                    Haptics.confirm(view)}
+                onClick = {
+                    onItemSelected(FloatingNavItem.SETTINGS)
+                    Haptics.confirm(view)
+                }
             )
         }
     }
@@ -185,7 +226,6 @@ private fun Modifier.singleRefractiveBorder(
 
     val radius = cornerRadius.toPx()
 
-    // 🔑 ONE COLOR ONLY (theme-inverted)
     val borderColor =
         if (isDark)
             Color.White.copy(alpha = 0.28f)
