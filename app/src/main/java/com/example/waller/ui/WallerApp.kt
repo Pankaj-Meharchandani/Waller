@@ -27,16 +27,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,8 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import com.example.waller.R
 import com.example.waller.ui.settings.AboutScreen
 import com.example.waller.ui.settings.AppThemeMode
 import com.example.waller.ui.settings.DefaultOrientation
@@ -75,8 +65,8 @@ import com.example.waller.ui.wallpaper.WallpaperSessionState
 import com.example.waller.ui.wallpaper.Haptics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
-import com.example.waller.ui.components.FloatingNavBar
-import com.example.waller.ui.components.FloatingNavItem
+import com.example.waller.ui.wallpaper.components.FloatingNavBar
+import com.example.waller.ui.wallpaper.components.FloatingNavItem
 
 // Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }

@@ -1,22 +1,17 @@
 /**
  * FloatingNavBar.kt
  *
- * Theme-aware liquid-glass floating bottom navigation for Waller.
- *
- * Design goals:
- * - Proper glass illusion in BOTH light and dark themes
- * - No content visibility issues
- * - No clipping, no milky overlays, no hacks
- * - Calm, intentional animation
+ * Theme-aware floating bottom navigation for Waller.
+ * Plain surface with a single, light-refracting border
+ * (glass illusion via edge only — no blur, no gradients).
  */
 
-package com.example.waller.ui.components
+package com.example.waller.ui.wallpaper.components
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -29,15 +24,20 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -52,51 +52,26 @@ fun FloatingNavBar(
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(26.dp)
-
-    // 🔑 THEME-AWARE GLASS
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    val glassBrush = if (isDark) {
-        // Dark theme → deep, classy glass
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.06f),
-                Color.Black.copy(alpha = 0.55f),
-                Color.Black.copy(alpha = 0.70f)
-            )
-        )
-    } else {
-        // Light theme → airy glass
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.30f),
-                Color(0xFFF1F3F6).copy(alpha = 0.82f),
-                Color(0xFFE9ECF1).copy(alpha = 0.88f)
-            )
-        )
-    }
+    val surfaceColor =
+        if (isDark)
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+        else
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.99f)
 
     Box(
         modifier = modifier
-            // ⛔ block touch-through
-            .pointerInput(Unit) {}
-            // soft ambient lift
             .shadow(
-                elevation = 22.dp,
+                elevation = 26.dp,
                 shape = shape,
-                ambientColor = Color.Black.copy(alpha = if (isDark) 0.40f else 0.12f),
-                spotColor = Color.Black.copy(alpha = if (isDark) 0.55f else 0.16f)
+                ambientColor = Color.Black.copy(alpha = if (isDark) 0.45f else 0.18f),
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.65f else 0.25f)
             )
-            // glass surface
-            .background(
-                brush = glassBrush,
-                shape = shape
-            )
-            // glass edge highlight
-            .border(
-                width = 1.dp,
-                color = Color.White.copy(alpha = if (isDark) 0.08f else 0.22f),
-                shape = shape
+            .background(surfaceColor, shape)
+            .singleRefractiveBorder(
+                cornerRadius = 26.dp,
+                isDark = isDark
             )
             .padding(horizontal = 18.dp, vertical = 12.dp)
     ) {
@@ -108,23 +83,18 @@ fun FloatingNavBar(
                 label = "Home",
                 icon = Icons.Default.Home,
                 selected = selectedItem == FloatingNavItem.HOME,
-                isDark = isDark,
                 onClick = { onItemSelected(FloatingNavItem.HOME) }
             )
-
             NavItem(
                 label = "Favourites",
                 icon = Icons.Default.Favorite,
                 selected = selectedItem == FloatingNavItem.FAVOURITES,
-                isDark = isDark,
                 onClick = { onItemSelected(FloatingNavItem.FAVOURITES) }
             )
-
             NavItem(
                 label = "Settings",
                 icon = Icons.Default.Settings,
                 selected = selectedItem == FloatingNavItem.SETTINGS,
-                isDark = isDark,
                 onClick = { onItemSelected(FloatingNavItem.SETTINGS) }
             )
         }
@@ -134,46 +104,33 @@ fun FloatingNavBar(
 @Composable
 private fun NavItem(
     label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     selected: Boolean,
-    isDark: Boolean,
     onClick: () -> Unit
 ) {
-    val tint = if (selected) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f)
-    }
+    val tint =
+        if (selected) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
 
     Row(
         modifier = Modifier
             .clickable(
                 indication = null,
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = MutableInteractionSource(),
                 onClick = onClick
             )
             .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-
-        // ✅ INNER ACTIVE PILL (only animated element)
         Row(
             modifier = Modifier
                 .animateContentSize(
-                    animationSpec = tween(
-                        durationMillis = 200,
-                        easing = FastOutSlowInEasing
-                    )
+                    animationSpec = tween(200, easing = FastOutSlowInEasing)
                 )
                 .background(
-                    color = if (selected) {
-                        if (isDark)
-                            Color.Black.copy(alpha = 0.60f)
-                        else
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-                    } else {
-                        Color.Transparent
-                    },
+                    color = if (selected)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                    else Color.Transparent,
                     shape = RoundedCornerShape(50)
                 )
                 .padding(
@@ -182,14 +139,12 @@ private fun NavItem(
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             CompositionLocalProvider(LocalContentColor provides tint) {
                 Icon(icon, contentDescription = label)
             }
 
             if (selected) {
                 Spacer(Modifier.width(8.dp))
-
                 Text(
                     text = label,
                     fontSize = 12.sp,
@@ -199,4 +154,37 @@ private fun NavItem(
             }
         }
     }
+}
+
+private fun Modifier.singleRefractiveBorder(
+    cornerRadius: Dp,
+    isDark: Boolean
+) = this.drawBehind {
+
+    val strokeWidth = 3.dp.toPx()
+    val inset = strokeWidth / 2f
+
+    val rect = Rect(
+        inset,
+        inset,
+        size.width - inset,
+        size.height - inset
+    )
+
+    val radius = cornerRadius.toPx()
+
+    // 🔑 ONE COLOR ONLY (theme-inverted)
+    val borderColor =
+        if (isDark)
+            Color.White.copy(alpha = 0.28f)
+        else
+            Color.Black.copy(alpha = 0.22f)
+
+    drawRoundRect(
+        color = borderColor,
+        topLeft = rect.topLeft,
+        size = rect.size,
+        cornerRadius = CornerRadius(radius, radius),
+        style = Stroke(strokeWidth)
+    )
 }
