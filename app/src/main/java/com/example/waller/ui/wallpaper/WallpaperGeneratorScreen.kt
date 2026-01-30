@@ -86,6 +86,7 @@ fun WallpaperGeneratorScreen(
     modifier: Modifier = Modifier,
     sessionState: WallpaperSessionState,
     isAppDarkMode: Boolean,
+    onPreviewVisibilityChanged: (Boolean) -> Unit,
     onThemeChange: () -> Unit,
     defaultGradientCount: Int,
     defaultToneMode: ToneMode,
@@ -478,6 +479,7 @@ fun WallpaperGeneratorScreen(
                         InteractionMode.ADVANCED -> {
                             previewWallpaper = wallpaper
                             showPreview = true
+                            onPreviewVisibilityChanged(true)
                         }
                     }
                 },
@@ -534,7 +536,9 @@ fun WallpaperGeneratorScreen(
             globalStripes = addStripes,
             globalOverlay = addOverlay,
             globalGeometric = addGeometric,
-            onDismiss = { showPreview = false },
+            onDismiss = {
+                showPreview = false
+                onPreviewVisibilityChanged(false)},
             writePermissionLauncher = writePermissionLauncher,
             context = context,
             coroutineScope = coroutineScope

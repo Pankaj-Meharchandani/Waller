@@ -50,8 +50,10 @@ enum class FloatingNavItem {
 fun FloatingNavBar(
     selectedItem: FloatingNavItem,
     onItemSelected: (FloatingNavItem) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    visible: Boolean = true
 ) {
+    if (!visible) return
     val shape = RoundedCornerShape(26.dp)
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 

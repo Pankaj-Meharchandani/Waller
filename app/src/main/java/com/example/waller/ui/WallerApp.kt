@@ -433,6 +433,7 @@ fun WallerApp() {
 
     // --- NAVIGATION STATE ---
     var currentScreen by remember { mutableStateOf(RootScreen.HOME) }
+    var isPreviewOpen by remember { mutableStateOf(false) }
 
     val isDarkTheme = when (appThemeMode) {
         AppThemeMode.LIGHT -> false
@@ -519,7 +520,8 @@ fun WallerApp() {
                             },
                             isPortrait = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortrait = it },
-                            interactionMode = interactionMode
+                            interactionMode = interactionMode,
+                                    onPreviewVisibilityChanged = { isPreviewOpen = it}
                         )
                     }
 
@@ -594,24 +596,26 @@ fun WallerApp() {
                         )
                     }
                 }
-                FloatingNavBar(
-                    selectedItem = when (selectedForNav) {
-                        RootScreen.HOME -> FloatingNavItem.HOME
-                        RootScreen.FAVOURITES -> FloatingNavItem.FAVOURITES
-                        RootScreen.SETTINGS -> FloatingNavItem.SETTINGS
-                        RootScreen.ABOUT -> FloatingNavItem.SETTINGS
-                    },
-                    onItemSelected = { item ->
-                        currentScreen = when (item) {
-                            FloatingNavItem.HOME -> RootScreen.HOME
-                            FloatingNavItem.FAVOURITES -> RootScreen.FAVOURITES
-                            FloatingNavItem.SETTINGS -> RootScreen.SETTINGS
-                        }
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 48.dp)
-                )
+                if (!isPreviewOpen) {
+                    FloatingNavBar(
+                        selectedItem = when (selectedForNav) {
+                            RootScreen.HOME -> FloatingNavItem.HOME
+                            RootScreen.FAVOURITES -> FloatingNavItem.FAVOURITES
+                            RootScreen.SETTINGS -> FloatingNavItem.SETTINGS
+                            RootScreen.ABOUT -> FloatingNavItem.SETTINGS
+                        },
+                        onItemSelected = { item ->
+                            currentScreen = when (item) {
+                                FloatingNavItem.HOME -> RootScreen.HOME
+                                FloatingNavItem.FAVOURITES -> RootScreen.FAVOURITES
+                                FloatingNavItem.SETTINGS -> RootScreen.SETTINGS
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 48.dp)
+                    )
+                }
             }
 
             // Render the one-time ModePickerDialog as an overlay when needed
