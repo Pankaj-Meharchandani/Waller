@@ -59,9 +59,9 @@ fun FloatingNavBar(
 
     val surfaceColor =
         if (isDark)
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
         else
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.99f)
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
 
     Box(
         modifier = modifier
@@ -165,7 +165,7 @@ private fun Modifier.singleRefractiveBorder(
     isDark: Boolean
 ) = this.drawBehind {
 
-    val strokeWidth = 3.dp.toPx()
+    val strokeWidth = 2.25.dp.toPx()
     val inset = strokeWidth / 2f
 
     val rect = Rect(
