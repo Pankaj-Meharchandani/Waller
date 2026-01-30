@@ -80,7 +80,6 @@ import com.example.waller.ui.wallpaper.components.WallpaperItemCard
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalView
-import com.example.waller.ui.wallpaper.Haptics
 
 @Composable
 fun WallpaperGeneratorScreen(
