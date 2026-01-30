@@ -39,6 +39,8 @@ import com.example.waller.ui.wallpaper.InteractionMode
 import com.example.waller.ui.wallpaper.SectionCard
 import com.example.waller.ui.wallpaper.ToneMode
 import com.example.waller.ui.wallpaper.Haptics
+import com.google.common.math.LinearTransformation.horizontal
+import com.google.common.math.LinearTransformation.vertical
 
 // App-wide theme modes used by WallerApp and Settings.
 enum class AppThemeMode { LIGHT, DARK, SYSTEM }
@@ -80,7 +82,7 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scroll)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp + 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
@@ -357,6 +359,7 @@ fun SettingsScreen(
                         if (hapticsEnabled) Haptics.confirm(view)
                         onAboutClick()
                     }
+                    .padding(vertical = 8.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(

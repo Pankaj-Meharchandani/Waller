@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -79,13 +80,13 @@ import com.example.waller.ui.wallpaper.components.WallpaperItemCard
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalView
-import com.example.waller.ui.wallpaper.Haptics
 
 @Composable
 fun WallpaperGeneratorScreen(
     modifier: Modifier = Modifier,
     sessionState: WallpaperSessionState,
     isAppDarkMode: Boolean,
+    onPreviewVisibilityChanged: (Boolean) -> Unit,
     onThemeChange: () -> Unit,
     defaultGradientCount: Int,
     defaultToneMode: ToneMode,
@@ -268,6 +269,9 @@ fun WallpaperGeneratorScreen(
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .fillMaxSize(),
+        contentPadding = PaddingValues(
+            top = 12.dp,
+            bottom = 12.dp + 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -478,6 +482,7 @@ fun WallpaperGeneratorScreen(
                         InteractionMode.ADVANCED -> {
                             previewWallpaper = wallpaper
                             showPreview = true
+                            onPreviewVisibilityChanged(true)
                         }
                     }
                 },
@@ -534,7 +539,9 @@ fun WallpaperGeneratorScreen(
             globalStripes = addStripes,
             globalOverlay = addOverlay,
             globalGeometric = addGeometric,
-            onDismiss = { showPreview = false },
+            onDismiss = {
+                showPreview = false
+                onPreviewVisibilityChanged(false)},
             writePermissionLauncher = writePermissionLauncher,
             context = context,
             coroutineScope = coroutineScope

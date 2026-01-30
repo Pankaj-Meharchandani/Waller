@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 pluginManagement {
     repositories {
         google {
@@ -19,7 +21,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-    }
+}
 }
 
 rootProject.name = "Waller"

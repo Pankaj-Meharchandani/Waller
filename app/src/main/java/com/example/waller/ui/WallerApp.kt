@@ -27,16 +27,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,8 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import com.example.waller.R
 import com.example.waller.ui.settings.AboutScreen
 import com.example.waller.ui.settings.AppThemeMode
 import com.example.waller.ui.settings.DefaultOrientation
@@ -73,6 +63,10 @@ import java.util.Locale
 import androidx.compose.ui.platform.LocalConfiguration
 import com.example.waller.ui.wallpaper.WallpaperSessionState
 import com.example.waller.ui.wallpaper.Haptics
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import com.example.waller.ui.wallpaper.components.FloatingNavBar
+import com.example.waller.ui.wallpaper.components.FloatingNavItem
 
 // Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
@@ -439,6 +433,7 @@ fun WallerApp() {
 
     // --- NAVIGATION STATE ---
     var currentScreen by remember { mutableStateOf(RootScreen.HOME) }
+    var isPreviewOpen by remember { mutableStateOf(false) }
 
     val isDarkTheme = when (appThemeMode) {
         AppThemeMode.LIGHT -> false
@@ -490,12 +485,7 @@ fun WallerApp() {
                 modifier = Modifier.fillMaxSize(),
                 containerColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onBackground,
-                bottomBar = {
-                    WallerBottomBar(
-                        selectedScreen = selectedForNav,
-                        onScreenSelected = { screen -> currentScreen = screen }
-                    )
-                }
+                bottomBar = {}
             ) { innerPadding ->
                 when (currentScreen) {
                     RootScreen.HOME -> {
@@ -530,7 +520,8 @@ fun WallerApp() {
                             },
                             isPortrait = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortrait = it },
-                            interactionMode = interactionMode
+                            interactionMode = interactionMode,
+                                    onPreviewVisibilityChanged = { isPreviewOpen = it}
                         )
                     }
 
@@ -605,6 +596,26 @@ fun WallerApp() {
                         )
                     }
                 }
+                if (!isPreviewOpen) {
+                    FloatingNavBar(
+                        selectedItem = when (selectedForNav) {
+                            RootScreen.HOME -> FloatingNavItem.HOME
+                            RootScreen.FAVOURITES -> FloatingNavItem.FAVOURITES
+                            RootScreen.SETTINGS -> FloatingNavItem.SETTINGS
+                            RootScreen.ABOUT -> FloatingNavItem.SETTINGS
+                        },
+                        onItemSelected = { item ->
+                            currentScreen = when (item) {
+                                FloatingNavItem.HOME -> RootScreen.HOME
+                                FloatingNavItem.FAVOURITES -> RootScreen.FAVOURITES
+                                FloatingNavItem.SETTINGS -> RootScreen.SETTINGS
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 48.dp)
+                    )
+                }
             }
 
             // Render the one-time ModePickerDialog as an overlay when needed
@@ -637,35 +648,6 @@ fun WallerApp() {
             }
 
         }
-    }
-}
-
-@Composable
-private fun WallerBottomBar(
-    selectedScreen: RootScreen,
-    onScreenSelected: (RootScreen) -> Unit
-) {
-    NavigationBar {
-        NavigationBarItem(
-            selected = selectedScreen == RootScreen.HOME,
-            onClick = { onScreenSelected(RootScreen.HOME) },
-            icon = { Icon(Icons.Default.Home, contentDescription = null) },
-            label = { Text(text = stringResource(id = R.string.nav_home)) }
-        )
-
-        NavigationBarItem(
-            selected = selectedScreen == RootScreen.FAVOURITES,
-            onClick = { onScreenSelected(RootScreen.FAVOURITES) },
-            icon = { Icon(Icons.Default.Favorite, contentDescription = null) },
-            label = { Text(text = stringResource(id = R.string.nav_favourites)) }
-        )
-
-        NavigationBarItem(
-            selected = selectedScreen == RootScreen.SETTINGS,
-            onClick = { onScreenSelected(RootScreen.SETTINGS) },
-            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-            label = { Text(text = stringResource(id = R.string.nav_settings)) }
-        )
     }
 }
 
