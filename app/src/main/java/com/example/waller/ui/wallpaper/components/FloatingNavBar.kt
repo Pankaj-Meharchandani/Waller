@@ -185,7 +185,6 @@ private fun Modifier.singleRefractiveBorder(
 
     val radius = cornerRadius.toPx()
 
-    // 🔑 ONE COLOR ONLY (theme-inverted)
     val borderColor =
         if (isDark)
             Color.White.copy(alpha = 0.28f)
