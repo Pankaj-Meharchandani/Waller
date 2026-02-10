@@ -395,12 +395,12 @@ fun WallpaperGeneratorScreen(
                 Spacer(modifier = Modifier.weight(1f))
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
                         .border(
                             1.dp,
                             MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            RoundedCornerShape(999.dp)
+                            RoundedCornerShape(10.dp)
                         )
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
@@ -420,7 +420,7 @@ fun WallpaperGeneratorScreen(
                 val refreshScope = rememberCoroutineScope()
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .clickable {
                             Haptics.light(view)
                             refreshScope.launch {
@@ -435,12 +435,12 @@ fun WallpaperGeneratorScreen(
                                 sessionState.wallpapers = wallpapers
                             }
                         }
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
                         .border(
                             1.dp,
                             MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            RoundedCornerShape(999.dp)
+                            RoundedCornerShape(10.dp)
                         )
                         .padding(horizontal = 4.dp, vertical = 4.dp)
                 ) {
