@@ -37,6 +37,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.waller.R
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.shape.CircleShape
 
 /* ───────────────── Gradient type selectors ───────────────── */
 
@@ -407,50 +413,84 @@ fun EffectOpacitySlider(
     onSliderChange: (Float) -> Unit,
     labelColor: Color
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = label,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 14.sp,
-            letterSpacing = 0.2.sp,
-            color = labelColor
-        )
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val pct = (value * 100).toInt()
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val trackInactive = if (isDark) Color.White.copy(alpha = 0.13f) else Color.Black.copy(alpha = 0.10f)
 
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                if (isDark) Color.White.copy(alpha = 0.06f)
+                else Color.Black.copy(alpha = 0.04f)
+            )
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Label row with live percentage
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = stringResource(id = R.string.preview_off),
+                text = label,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                letterSpacing = 0.2.sp,
+                color = labelColor
+            )
+            // Pill badge showing percentage
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(primaryColor.copy(alpha = 0.18f))
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = "$pct%",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = primaryColor
+                )
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "$pct%",
+                modifier = Modifier.width(44.dp),
+                color = labelColor,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.width(40.dp),
-                color = labelColor.copy(alpha = 0.7f)
+                fontWeight = FontWeight.Medium
             )
 
             Slider(
                 value = value,
                 onValueChange = { onSliderChange(it.coerceIn(0f, 1f)) },
-                modifier = Modifier.weight(1f),
                 valueRange = 0f..1f,
+                modifier = Modifier.weight(1f),
                 colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    thumbColor = primaryColor,
+                    activeTrackColor = primaryColor,
+                    inactiveTrackColor = trackInactive
                 )
             )
 
-            Text(
-                text = stringResource(id = R.string.preview_high),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.width(40.dp),
-                color = labelColor.copy(alpha = 0.7f)
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(primaryColor)
             )
         }
+
     }
 }
-
 /* ───────────────── Device frame ───────────────── */
 
 @Composable

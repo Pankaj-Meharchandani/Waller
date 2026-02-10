@@ -88,7 +88,8 @@ fun PreviewWallpaperRender(
 
             if (previewType == GradientType.Angular) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val sweep = createRotatedSweepShader(size.width, size.height, androidColors, angleDeg)
+                    val sweep =
+                        createRotatedSweepShader(size.width, size.height, androidColors, angleDeg)
                     val paint = Paint().apply {
                         isAntiAlias = true
                         shader = sweep
@@ -97,12 +98,17 @@ fun PreviewWallpaperRender(
 
                     if (addNoise && noiseAlpha > 0f) {
                         val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
-                        val numNoisePoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                        val numNoisePoints =
+                            (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
                         repeat(numNoisePoints) {
                             val x = Random.nextFloat() * size.width
                             val y = Random.nextFloat() * size.height
                             val alpha = (Random.nextFloat() * 0.15f) * noiseAlpha
-                            drawCircle(Color.White.copy(alpha = alpha), radius = noiseSize, center = Offset(x, y))
+                            drawCircle(
+                                Color.White.copy(alpha = alpha),
+                                radius = noiseSize,
+                                center = Offset(x, y)
+                            )
                         }
                     }
 
@@ -146,12 +152,17 @@ fun PreviewWallpaperRender(
                     if (addNoise && noiseAlpha > 0f) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
-                            val numNoisePoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                            val numNoisePoints =
+                                (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
                             repeat(numNoisePoints) {
                                 val x = Random.nextFloat() * size.width
                                 val y = Random.nextFloat() * size.height
                                 val alpha = (Random.nextFloat() * 0.15f) * noiseAlpha
-                                drawCircle(Color.White.copy(alpha = alpha), radius = noiseSize, center = Offset(x, y))
+                                drawCircle(
+                                    Color.White.copy(alpha = alpha),
+                                    radius = noiseSize,
+                                    center = Offset(x, y)
+                                )
                             }
                         }
                     }
@@ -195,22 +206,21 @@ fun PreviewWallpaperRender(
                 }
             }
 
-            // Premium bottom tag design
+            // Bottom tag — matches card style (gradient bg, plain swatches)
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(12.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .padding(10.dp)
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color.Black.copy(alpha = 0.7f),
-                                Color.Black.copy(alpha = 0.8f)
+                                Color.Black.copy(alpha = 0.70f),
+                                Color.Black.copy(alpha = 0.80f)
                             )
-                        )
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     )
-                    .premiumPreviewTagBorder()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 10.dp, vertical = 5.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (showTypeLabel) {
@@ -218,64 +228,26 @@ fun PreviewWallpaperRender(
                         text = previewType.name
                             .lowercase()
                             .replaceFirstChar { it.uppercase() },
-                        color = Color.White.copy(alpha = 0.95f),
+                        color = Color.White,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.3.sp
+                        letterSpacing = 0.2.sp
                     )
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.width(8.dp))
                 }
 
                 wallpaper.colors.forEachIndexed { index, color ->
                     Box(
                         modifier = Modifier
-                            .size(14.dp)
-                            .clip(RoundedCornerShape(4.dp))
+                            .size(12.dp)
+                            .clip(RoundedCornerShape(3.dp))
                             .background(color)
-                            .drawBehind {
-                                val strokeWidth = 0.5.dp.toPx()
-                                val inset = strokeWidth / 2f
-                                val rect = Rect(
-                                    left = inset,
-                                    top = inset,
-                                    right = size.width - inset,
-                                    bottom = size.height - inset
-                                )
-                                drawRoundRect(
-                                    color = Color.White.copy(alpha = 0.15f),
-                                    topLeft = rect.topLeft,
-                                    size = rect.size,
-                                    cornerRadius = CornerRadius(4.dp.toPx()),
-                                    style = Stroke(strokeWidth)
-                                )
-                            }
                     )
                     if (index != wallpaper.colors.lastIndex) {
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(5.dp))
                     }
                 }
             }
         }
     }
-}
-
-// Premium preview tag border
-private fun Modifier.premiumPreviewTagBorder() = this.drawBehind {
-    val strokeWidth = 0.8.dp.toPx()
-    val inset = strokeWidth / 2f
-
-    val rect = Rect(
-        left = inset,
-        top = inset,
-        right = size.width - inset,
-        bottom = size.height - inset
-    )
-
-    drawRoundRect(
-        color = Color.White.copy(alpha = 0.15f),
-        topLeft = rect.topLeft,
-        size = rect.size,
-        cornerRadius = CornerRadius(12.dp.toPx()),
-        style = Stroke(strokeWidth)
-    )
 }

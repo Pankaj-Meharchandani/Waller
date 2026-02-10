@@ -704,15 +704,34 @@ private fun PreviewFrame(
         var localFav by remember { mutableStateOf(isFavorite) }
         val view = LocalView.current
 
+        // Navbar bar — simulates device home indicator at the bottom
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(18.dp)
+                .background(Color.Black.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(36.dp)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color.White.copy(alpha = 0.35f))
+            )
+        }
+
+        // Fav button — top-end, radius reduced to ~14dp (CircleShape + size 32dp)
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 8.dp, end = 8.dp)
+                .padding(top = 6.dp, end = 6.dp)
         ) {
             Surface(
-                shape = RoundedCornerShape(999.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
-                modifier = Modifier.size(44.dp)
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f),
+                modifier = Modifier.size(32.dp)
             ) {
                 IconButton(onClick = {
                     Haptics.confirm(view)
@@ -725,6 +744,7 @@ private fun PreviewFrame(
                         else
                             Icons.Outlined.FavoriteBorder,
                         contentDescription = null,
+                        modifier = Modifier.size(16.dp),
                         tint = if (localFav) Color(0xFFFF4D6A) else overlayTextColor()
                     )
                 }
