@@ -15,6 +15,7 @@
 @file:Suppress("DEPRECATION")
 package com.example.waller.ui.wallpaper.components
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -44,6 +45,7 @@ import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.Wallpaper
 import kotlin.random.Random
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import com.example.waller.ui.wallpaper.components.previewOverlay.createBrushForPreview
@@ -67,7 +69,7 @@ fun WallpaperItemCard(
     onFavoriteToggle: (Wallpaper, Boolean, Boolean, Boolean, Boolean, Float, Float, Float, Float) -> Unit,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    modifier: Modifier = Modifier,
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
     isPreview: Boolean = false
 ) {
     val view = LocalView.current
@@ -124,8 +126,8 @@ fun WallpaperItemCard(
                     .padding(top = 8.dp, end = 8.dp)
             ) {
                 Surface(
-                    shape = RoundedCornerShape(22.dp),
-                    color = Color.Black.copy(alpha = 0.30f),
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color.Black.copy(alpha = 0.70f),
                     tonalElevation = 2.dp,
                     modifier = Modifier.size(40.dp)
                 ) {
@@ -167,7 +169,7 @@ fun WallpaperItem(
     addNoise: Boolean,
     addNothingStripes: Boolean,
     addOverlay: Boolean,
-    addGeometric: Boolean, // ✅ NEW
+    addGeometric: Boolean,
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
@@ -335,7 +337,14 @@ fun WallpaperItem(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(10.dp)
-                    .background(Color.Black.copy(alpha = 0.36f), shape = RoundedCornerShape(999.dp))
+                    .background(brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.7f),
+                            Color.Black.copy(alpha = 0.8f)
+                        )
+                    )
+                        , shape = RoundedCornerShape(12.dp)
+                    )
                     .padding(horizontal = 10.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {

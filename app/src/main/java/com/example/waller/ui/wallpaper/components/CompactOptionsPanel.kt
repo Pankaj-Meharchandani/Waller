@@ -10,6 +10,7 @@
 
 package com.example.waller.ui.wallpaper.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,21 +18,29 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.ToneMode
@@ -59,8 +68,10 @@ fun CompactOptionsPanel(
     onGeometricToggle: () -> Unit
 ) {
     val view = LocalView.current
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
     Column(
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
 
@@ -76,7 +87,10 @@ fun CompactOptionsPanel(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    CompactAddColorChip(onClick = onAddColor)
+                    CompactAddColorChip(
+                        onClick = onAddColor,
+                        isDark = isDark
+                    )
                 }
             } else {
                 Row(
@@ -87,12 +101,16 @@ fun CompactOptionsPanel(
                     selectedColors.forEachIndexed { index, color ->
                         ColorSquareChip(
                             color = color,
-                            onClick = { onRemoveColor(index) }
+                            onClick = { onRemoveColor(index) },
+                            isDark = isDark
                         )
                     }
 
                     if (selectedColors.size < 5) {
-                        CompactAddColorChip(onClick = onAddColor)
+                        CompactAddColorChip(
+                            onClick = onAddColor,
+                            isDark = isDark
+                        )
                     }
                 }
             }
@@ -108,7 +126,8 @@ fun CompactOptionsPanel(
                         Haptics.light(view)
                     }
                     onMultiColorChange(!isMultiColor)
-                }
+                },
+                isDark = isDark
             )
         }
 
@@ -118,26 +137,22 @@ fun CompactOptionsPanel(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             GradientType.entries.forEach { type ->
-                FilterChip(
+                PremiumFilterChip(
                     modifier = Modifier.weight(1f),
                     selected = type in selectedGradientTypes,
                     onClick = {
                         Haptics.light(view)
                         onGradientToggle(type)
                     },
-                    label = {
-                        ChipText(
-                            text = stringResource(
-                                id = when (type) {
-                                    GradientType.Linear -> R.string.gradient_style_linear
-                                    GradientType.Radial -> R.string.gradient_style_radial
-                                    GradientType.Angular -> R.string.gradient_style_angular
-                                    GradientType.Diamond -> R.string.gradient_style_diamond
-                                }
-                            )
-                        )
-                    },
-                    shape = RoundedCornerShape(999.dp)
+                    label = stringResource(
+                        id = when (type) {
+                            GradientType.Linear -> R.string.gradient_style_linear
+                            GradientType.Radial -> R.string.gradient_style_radial
+                            GradientType.Angular -> R.string.gradient_style_angular
+                            GradientType.Diamond -> R.string.gradient_style_diamond
+                        }
+                    ),
+                    isDark = isDark
                 )
             }
         }
@@ -148,29 +163,33 @@ fun CompactOptionsPanel(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            FilterChip(
+            PremiumFilterChip(
                 modifier = Modifier.weight(1f),
                 selected = addOverlay,
                 onClick = onOverlayToggle,
-                label = { ChipText(stringResource(R.string.effects_nothing_style)) }
+                label = stringResource(R.string.effects_nothing_style),
+                isDark = isDark
             )
-            FilterChip(
+            PremiumFilterChip(
                 modifier = Modifier.weight(1f),
                 selected = addNoise,
                 onClick = onNoiseToggle,
-                label = { ChipText(stringResource(R.string.effects_snow_effect)) }
+                label = stringResource(R.string.effects_snow_effect),
+                isDark = isDark
             )
-            FilterChip(
+            PremiumFilterChip(
                 modifier = Modifier.weight(1f),
                 selected = addStripes,
                 onClick = onStripesToggle,
-                label = { ChipText(stringResource(R.string.effects_stripes)) }
+                label = stringResource(R.string.effects_stripes),
+                isDark = isDark
             )
-            FilterChip(
+            PremiumFilterChip(
                 modifier = Modifier.weight(1f),
                 selected = addGeometric,
                 onClick = onGeometricToggle,
-                label = { ChipText(stringResource(R.string.effect_geometric)) }
+                label = stringResource(R.string.effect_geometric),
+                isDark = isDark
             )
         }
 
@@ -178,34 +197,95 @@ fun CompactOptionsPanel(
 
         ToneSliderRow(
             toneMode = toneMode,
-            onToneChange = onToneChange
+            onToneChange = onToneChange,
+            isDark = isDark
         )
     }
 }
 
 @Composable
-private fun ChipText(text: String) {
+private fun PremiumFilterChip(
+    modifier: Modifier = Modifier,
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String,
+    isDark: Boolean
+) {
+    var isPressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.6f,
+            stiffness = 500f
+        ),
+        label = "chipScale"
+    )
+
     Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
+        modifier = modifier.scale(scale)
     ) {
-        Text(
-            text = text,
-            maxLines = 1,
-            softWrap = false,
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.labelMedium
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(
+                    if (selected) {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                            )
+                        )
+                    } else if (isDark) {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.06f),
+                                Color.White.copy(alpha = 0.04f)
+                            )
+                        )
+                    } else {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.04f),
+                                Color.Black.copy(alpha = 0.02f)
+                            )
+                        )
+                    }
+                )
+                .premiumChipBorder(
+                    selected = selected,
+                    isDark = isDark
+                )
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label,
+                maxLines = 1,
+                textAlign = TextAlign.Center,
+                fontSize = 13.sp,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                letterSpacing = 0.2.sp,
+                color = if (selected) {
+                    if (isDark) Color.Black else Color.White
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                }
+            )
+        }
     }
 }
+
 /* ----------------------------- Tone slider row ----------------------------- */
 
 @Composable
 private fun ToneSliderRow(
     toneMode: ToneMode,
-    onToneChange: (ToneMode) -> Unit
+    onToneChange: (ToneMode) -> Unit,
+    isDark: Boolean
 ) {
-    // 0 = Dark, 1 = Neutral, 2 = Light
     var position by remember(toneMode) {
         mutableIntStateOf(
             when (toneMode) {
@@ -221,16 +301,26 @@ private fun ToneSliderRow(
     ) {
         Text(
             text = stringResource(id = R.string.wallpaper_theme_title),
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.2.sp
         )
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(8.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(34.dp)
-                .clip(RoundedCornerShape(999.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .height(44.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(
+                    if (isDark) {
+                        Color.White.copy(alpha = 0.06f)
+                    } else {
+                        Color.Black.copy(alpha = 0.04f)
+                    }
+                )
+                .premiumSliderBorder(isDark = isDark)
+                .padding(3.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxSize()
@@ -243,10 +333,12 @@ private fun ToneSliderRow(
 
                 labels.forEachIndexed { index, label ->
                     val selected = position == index
+
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
+                            .clip(RoundedCornerShape(11.dp))
                             .clickable {
                                 position = index
                                 val newMode = when (index) {
@@ -257,20 +349,31 @@ private fun ToneSliderRow(
                                 onToneChange(newMode)
                             }
                             .background(
-                                color = if (selected)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    Color.Transparent
+                                if (selected) {
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.primary,
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                                        )
+                                    )
+                                } else {
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, Color.Transparent)
+                                    )
+                                }
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (selected)
-                                MaterialTheme.colorScheme.onPrimary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = 12.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            letterSpacing = 0.3.sp,
+                            color = if (selected) {
+                                if (isDark) Color.Black else Color.White
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            }
                         )
                     }
                 }
@@ -279,96 +382,308 @@ private fun ToneSliderRow(
     }
 }
 
-/* ------------------------ Squircle color chip  ------------------------ */
+/* ------------------------ Color square chip with premium design ------------------------ */
 
 @Composable
 private fun ColorSquareChip(
     color: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isDark: Boolean
 ) {
-    Surface(
-        color = color,
-        shape = RoundedCornerShape(12.dp),
+    var isPressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.9f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.6f,
+            stiffness = 500f
+        ),
+        label = "colorScale"
+    )
+
+    Box(
         modifier = Modifier
-            .size(32.dp)
+            .scale(scale)
+            .size(38.dp)
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .background(color)
+            .premiumColorChipBorder()
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = "×",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White
-            )
-        }
+        Text(
+            text = "×",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (color.luminance() > 0.5f) {
+                Color.Black.copy(alpha = 0.6f)
+            } else {
+                Color.White.copy(alpha = 0.85f)
+            }
+        )
     }
 }
 
-/* ------------------------ Compact Add Color rectangular chip ------------------------ */
+/* ------------------------ Add Color chip ------------------------ */
 
 @Composable
 private fun CompactAddColorChip(
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isDark: Boolean
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = Color.Transparent,
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+    var isPressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.6f,
+            stiffness = 500f
         ),
+        label = "addColorScale"
+    )
+
+    Box(
         modifier = Modifier
-            .height(32.dp)
+            .scale(scale)
+            .height(38.dp)
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-    ) {
-        Box(
-            modifier = Modifier.padding(horizontal = 10.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "+ Add Color",
-                style = MaterialTheme.typography.labelMedium
+            .background(
+                if (isDark) {
+                    Color.White.copy(alpha = 0.06f)
+                } else {
+                    Color.Black.copy(alpha = 0.04f)
+                }
             )
-        }
+            .premiumAddColorBorder(isDark = isDark)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "+ Add Color",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 0.2.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 
+/* ------------------------ Multi-color toggle chip ------------------------ */
 
 @Composable
 private fun MultiColorToggleChip(
     isMultiColor: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    isDark: Boolean
 ) {
-    val chipShape = RoundedCornerShape(12.dp)
+    var isPressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.6f,
+            stiffness = 500f
+        ),
+        label = "multiColorScale"
+    )
 
     Box(
         modifier = Modifier
-            // match Add Color chip height / radius “family”
-            .height(32.dp)
-            .clip(chipShape)
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
-                chipShape
-            )
+            .scale(scale)
+            .height(38.dp)
+            .clip(RoundedCornerShape(12.dp))
             .background(
-                if (isMultiColor)
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f)
-                else
-                    Color.Transparent
+                if (isMultiColor) {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+                        )
+                    )
+                } else if (isDark) {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.06f),
+                            Color.White.copy(alpha = 0.04f)
+                        )
+                    )
+                } else {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.04f),
+                            Color.Black.copy(alpha = 0.02f)
+                        )
+                    )
+                }
+            )
+            .premiumMultiColorBorder(
+                selected = isMultiColor,
+                isDark = isDark
             )
             .clickable(onClick = onToggle)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = stringResource(id = R.string.multicolor_label),
-            style = MaterialTheme.typography.labelMedium,
-            color = if (isMultiColor)
+            fontSize = 13.sp,
+            fontWeight = if (isMultiColor) FontWeight.SemiBold else FontWeight.Medium,
+            letterSpacing = 0.2.sp,
+            color = if (isMultiColor) {
                 MaterialTheme.colorScheme.onPrimaryContainer
-            else
-                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+            }
+        )
+    }
+}
+
+// Premium chip border
+fun Modifier.premiumChipBorder(
+    selected: Boolean,
+    isDark: Boolean
+) = composed {
+    val borderColor = if (selected) {
+        if (isDark) Color.Black.copy(alpha = 0.15f)
+        else Color.White.copy(alpha = 0.3f)
+    } else if (isDark) {
+        Color.White.copy(alpha = 0.1f)
+    } else {
+        Color.Black.copy(alpha = 0.08f)
+    }
+
+    this.drawBehind {
+        val strokeWidth = 1.2f.dp.toPx()
+        val inset = strokeWidth / 2f
+
+        val rect = Rect(
+            left = inset,
+            top = inset,
+            right = size.width - inset,
+            bottom = size.height - inset
+        )
+
+        drawRoundRect(
+            color = borderColor,
+            topLeft = rect.topLeft,
+            size = rect.size,
+            cornerRadius = CornerRadius(14.dp.toPx()),
+            style = Stroke(strokeWidth)
+        )
+    }
+}
+
+// Premium slider border
+fun Modifier.premiumSliderBorder(isDark: Boolean) = composed {
+    val color = if (isDark) {
+        Color.White.copy(alpha = 0.1f)
+    } else {
+        Color.Black.copy(alpha = 0.08f)
+    }
+
+    this.drawBehind {
+        val strokeWidth = 1.2f.dp.toPx()
+        val inset = strokeWidth / 2f
+
+        val rect = Rect(
+            left = inset,
+            top = inset,
+            right = size.width - inset,
+            bottom = size.height - inset
+        )
+
+        drawRoundRect(
+            color = color,
+            topLeft = rect.topLeft,
+            size = rect.size,
+            cornerRadius = CornerRadius(14.dp.toPx()),
+            style = Stroke(strokeWidth)
+        )
+    }
+}
+
+// Premium color chip border
+fun Modifier.premiumColorChipBorder() = this.drawBehind {
+    val strokeWidth = 1.5f.dp.toPx()
+    val inset = strokeWidth / 2f
+
+    val rect = Rect(
+        left = inset,
+        top = inset,
+        right = size.width - inset,
+        bottom = size.height - inset
+    )
+
+    drawRoundRect(
+        color = Color.White.copy(alpha = 0.25f),
+        topLeft = rect.topLeft,
+        size = rect.size,
+        cornerRadius = CornerRadius(12.dp.toPx()),
+        style = Stroke(strokeWidth)
+    )
+}
+
+// Add color border
+fun Modifier.premiumAddColorBorder(isDark: Boolean) = composed {
+    val brush = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+        )
+    )
+
+    this.drawBehind {
+        val strokeWidth = 1.2f.dp.toPx()
+        val inset = strokeWidth / 2f
+
+        val rect = Rect(
+            left = inset,
+            top = inset,
+            right = size.width - inset,
+            bottom = size.height - inset
+        )
+
+        drawRoundRect(
+            brush = brush,
+            topLeft = rect.topLeft,
+            size = rect.size,
+            cornerRadius = CornerRadius(12.dp.toPx()),
+            style = Stroke(strokeWidth)
+        )
+    }
+}
+
+// Multi-color border
+fun Modifier.premiumMultiColorBorder(
+    selected: Boolean,
+    isDark: Boolean
+) = composed {
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f)
+    } else if (isDark) {
+        Color.White.copy(alpha = 0.1f)
+    } else {
+        Color.Black.copy(alpha = 0.08f)
+    }
+
+    this.drawBehind {
+        val strokeWidth = 1.2f.dp.toPx()
+        val inset = strokeWidth / 2f
+
+        val rect = Rect(
+            left = inset,
+            top = inset,
+            right = size.width - inset,
+            bottom = size.height - inset
+        )
+
+        drawRoundRect(
+            color = borderColor,
+            topLeft = rect.topLeft,
+            size = rect.size,
+            cornerRadius = CornerRadius(12.dp.toPx()),
+            style = Stroke(strokeWidth)
         )
     }
 }
