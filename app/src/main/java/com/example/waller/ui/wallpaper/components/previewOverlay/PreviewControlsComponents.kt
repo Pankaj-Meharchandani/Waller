@@ -13,24 +13,30 @@
 
 package com.example.waller.ui.wallpaper.components.previewOverlay
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.waller.R
-import androidx.compose.ui.res.stringResource
 
 /* ───────────────── Gradient type selectors ───────────────── */
 
@@ -41,31 +47,127 @@ fun GradientTypeItemFull(
     textColor: Color,
     onClick: () -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-        tonalElevation = if (selected) 6.dp else 0.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(
-                        if (selected)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    var isPressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.6f,
+            stiffness = 500f
+        ),
+        label = "gradientItemScale"
+    )
+
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+    } else if (isDark) {
+        Color.White.copy(alpha = 0.08f)
+    } else {
+        Color.Black.copy(alpha = 0.06f)
+    }
+
+    Box(modifier = Modifier.scale(scale)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(
+                    if (selected) {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+                            )
+                        )
+                    } else if (isDark) {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.04f),
+                                Color.White.copy(alpha = 0.02f)
+                            )
+                        )
+                    } else {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.02f),
+                                Color.Transparent
+                            )
+                        )
+                    }
+                )
+                .drawBehind {
+                    val strokeWidth = 1.2f.dp.toPx()
+                    val inset = strokeWidth / 2f
+
+                    val rect = Rect(
+                        left = inset,
+                        top = inset,
+                        right = size.width - inset,
+                        bottom = size.height - inset
                     )
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(label, color = textColor)
+
+                    drawRoundRect(
+                        color = borderColor,
+                        topLeft = rect.topLeft,
+                        size = rect.size,
+                        cornerRadius = CornerRadius(14.dp.toPx()),
+                        style = Stroke(strokeWidth)
+                    )
+                }
+                .clickable { onClick() }
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(14.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(
+                            if (selected)
+                                MaterialTheme.colorScheme.primary
+                            else if (isDark)
+                                Color.White.copy(alpha = 0.2f)
+                            else
+                                Color.Black.copy(alpha = 0.15f)
+                        )
+                        .drawBehind {
+                            val strokeWidth = 0.8.dp.toPx()
+                            val inset = strokeWidth / 2f
+                            val rect = Rect(
+                                left = inset,
+                                top = inset,
+                                right = size.width - inset,
+                                bottom = size.height - inset
+                            )
+                            drawRoundRect(
+                                color = if (selected) {
+                                    Color.White.copy(alpha = 0.2f)
+                                } else {
+                                    Color.Transparent
+                                },
+                                topLeft = rect.topLeft,
+                                size = rect.size,
+                                cornerRadius = CornerRadius(7.dp.toPx()),
+                                style = Stroke(strokeWidth)
+                            )
+                        }
+                )
+                Spacer(Modifier.width(14.dp))
+                Text(
+                    text = label,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        textColor
+                    },
+                    fontSize = 14.sp,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    letterSpacing = 0.2.sp
+                )
+            }
         }
     }
 }
@@ -77,33 +179,92 @@ fun GradientTypeItemRect(
     textColor: Color,
     onClick: () -> Unit
 ) {
-    val bg by animateColorAsState(
-        targetValue =
-            if (selected)
-                MaterialTheme.colorScheme.primaryContainer
-            else
-                Color.Transparent,
-        animationSpec = tween(220),
-        label = "gradient_chip_bg"
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    var isPressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.6f,
+            stiffness = 500f
+        ),
+        label = "gradientRectScale"
     )
 
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = bg,
-        tonalElevation = if (selected) 6.dp else 0.dp,
-        border = if (!selected) ButtonDefaults.outlinedButtonBorder else null,
-        modifier = Modifier.clickable { onClick() }
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+    } else if (isDark) {
+        Color.White.copy(alpha = 0.08f)
+    } else {
+        Color.Black.copy(alpha = 0.06f)
+    }
+
+    Box(modifier = Modifier.scale(scale)) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    if (selected) {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+                            )
+                        )
+                    } else if (isDark) {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.05f),
+                                Color.White.copy(alpha = 0.03f)
+                            )
+                        )
+                    } else {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.03f),
+                                Color.Black.copy(alpha = 0.01f)
+                            )
+                        )
+                    }
+                )
+                .drawBehind {
+                    val strokeWidth = 1.2f.dp.toPx()
+                    val inset = strokeWidth / 2f
+
+                    val rect = Rect(
+                        left = inset,
+                        top = inset,
+                        right = size.width - inset,
+                        bottom = size.height - inset
+                    )
+
+                    drawRoundRect(
+                        color = borderColor,
+                        topLeft = rect.topLeft,
+                        size = rect.size,
+                        cornerRadius = CornerRadius(12.dp.toPx()),
+                        style = Stroke(strokeWidth)
+                    )
+                }
+                .clickable { onClick() }
         ) {
-            Text(
-                text = label,
-                color = textColor,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = label,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        textColor
+                    },
+                    fontSize = 14.sp,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    letterSpacing = 0.2.sp,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
@@ -114,71 +275,128 @@ fun GradientTypeItemRect(
 fun EffectChip(
     label: String,
     selected: Boolean,
-    fillProgress: Float,      // 0f..1f
+    fillProgress: Float,
     isActive: Boolean,
     textColor: Color,
     modifier: Modifier = Modifier,
     onToggle: () -> Unit
 ) {
-    val shape = RoundedCornerShape(999.dp)
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    var isPressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.6f,
+            stiffness = 500f
+        ),
+        label = "effectChipScale"
+    )
+
+    val shape = RoundedCornerShape(14.dp)
+
+    val borderColor = when {
+        isActive -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+        selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+        isDark -> Color.White.copy(alpha = 0.1f)
+        else -> Color.Black.copy(alpha = 0.08f)
+    }
 
     Box(
         modifier = modifier
-            .height(44.dp)
+            .scale(scale)
+            .height(48.dp)
             .clip(shape)
-            .clickable { onToggle() }
-            .border(
-                1.dp,
-                if (selected)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                shape
-            )
     ) {
-        // Active background (stronger)
-        if (isActive) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f)
-                    )
-            )
-        }
+        // Background layer
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    if (isActive) {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+                            )
+                        )
+                    } else if (isDark) {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.06f),
+                                Color.White.copy(alpha = 0.04f)
+                            )
+                        )
+                    } else {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.04f),
+                                Color.Black.copy(alpha = 0.02f)
+                            )
+                        )
+                    }
+                )
+                .drawBehind {
+                    val strokeWidth = 1.5f.dp.toPx()
+                    val inset = strokeWidth / 2f
 
-        // 🔹 Variable fill (ONLY when selected & inactive)
+                    val rect = Rect(
+                        left = inset,
+                        top = inset,
+                        right = size.width - inset,
+                        bottom = size.height - inset
+                    )
+
+                    drawRoundRect(
+                        color = borderColor,
+                        topLeft = rect.topLeft,
+                        size = rect.size,
+                        cornerRadius = CornerRadius(14.dp.toPx()),
+                        style = Stroke(strokeWidth)
+                    )
+                }
+                .clickable { onToggle() }
+        )
+
+        // Fill progress indicator (ONLY when selected & inactive)
         if (selected && !isActive && fillProgress > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(fillProgress.coerceIn(0f, 1f))
                     .background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            )
+                        )
                     )
             )
         }
 
-        // 🔹 Centered label (always above fill)
+        // Centered label
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            val chipTextColor =
-                if (isActive)
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                else
-                    Color.White
             Text(
                 text = label,
-                color = chipTextColor,
-                maxLines = 1,
-                style = MaterialTheme.typography.labelMedium
+                color = if (isActive) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    textColor.copy(alpha = 0.8f)
+                },
+                fontSize = 13.sp,
+                fontWeight = if (isActive || selected) FontWeight.SemiBold else FontWeight.Medium,
+                letterSpacing = 0.3.sp,
+                maxLines = 1
             )
         }
     }
 }
-
 
 /* ───────────────── Effect opacity slider ───────────────── */
 
@@ -189,31 +407,47 @@ fun EffectOpacitySlider(
     onSliderChange: (Float) -> Unit,
     labelColor: Color
 ) {
-    Text(
-        text = label,
-        fontWeight = FontWeight.Medium,
-        color = labelColor
-    )
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = stringResource(id = R.string.preview_off),
-            modifier = Modifier.width(40.dp),
+            text = label,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            letterSpacing = 0.2.sp,
             color = labelColor
         )
 
-        Slider(
-            value = value,
-            onValueChange = { onSliderChange(it.coerceIn(0f, 1f)) },
-            modifier = Modifier.weight(1f),
-            valueRange = 0f..1f
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.preview_off),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.width(40.dp),
+                color = labelColor.copy(alpha = 0.7f)
+            )
 
-        Text(
-            text = stringResource(id = R.string.preview_high),
-            modifier = Modifier.width(40.dp),
-            color = labelColor
-        )
+            Slider(
+                value = value,
+                onValueChange = { onSliderChange(it.coerceIn(0f, 1f)) },
+                modifier = Modifier.weight(1f),
+                valueRange = 0f..1f,
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            )
+
+            Text(
+                text = stringResource(id = R.string.preview_high),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.width(40.dp),
+                color = labelColor.copy(alpha = 0.7f)
+            )
+        }
     }
 }
 
@@ -224,31 +458,95 @@ fun DeviceFrame(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit
 ) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.14f),
-                shape = RoundedCornerShape(14.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                if (isDark) {
+                    Color.Black.copy(alpha = 0.3f)
+                } else {
+                    Color.White.copy(alpha = 0.6f)
+                }
             )
+            .drawBehind {
+                val strokeWidth = 2f.dp.toPx()
+                val inset = strokeWidth / 2f
+
+                val rect = Rect(
+                    left = inset,
+                    top = inset,
+                    right = size.width - inset,
+                    bottom = size.height - inset
+                )
+
+                // Outer border with gradient
+                drawRoundRect(
+                    brush = Brush.linearGradient(
+                        colors = if (isDark) {
+                            listOf(
+                                Color.White.copy(alpha = 0.12f),
+                                Color.White.copy(alpha = 0.06f),
+                                Color.White.copy(alpha = 0.1f)
+                            )
+                        } else {
+                            listOf(
+                                Color.White.copy(alpha = 0.5f),
+                                Color.Black.copy(alpha = 0.04f),
+                                Color.White.copy(alpha = 0.3f)
+                            )
+                        },
+                        start = Offset.Zero,
+                        end = Offset(rect.width, rect.height)
+                    ),
+                    topLeft = rect.topLeft,
+                    size = rect.size,
+                    cornerRadius = CornerRadius(20.dp.toPx()),
+                    style = Stroke(strokeWidth)
+                )
+            }
     ) {
-        Box(modifier = Modifier.padding(6.dp)) {
+        Box(modifier = Modifier.padding(8.dp)) {
             content()
         }
 
-        // top notch / speaker hint
+        // Top notch / speaker hint - refined design
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 6.dp)
-                .width(48.dp)
-                .height(4.dp)
-                .clip(RoundedCornerShape(2.dp))
+                .padding(top = 10.dp)
+                .width(56.dp)
+                .height(5.dp)
+                .clip(RoundedCornerShape(3.dp))
                 .background(
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.06f)
+                    if (isDark) {
+                        Color.White.copy(alpha = 0.08f)
+                    } else {
+                        Color.Black.copy(alpha = 0.06f)
+                    }
                 )
+                .drawBehind {
+                    val strokeWidth = 0.5.dp.toPx()
+                    val inset = strokeWidth / 2f
+                    val rect = Rect(
+                        left = inset,
+                        top = inset,
+                        right = size.width - inset,
+                        bottom = size.height - inset
+                    )
+                    drawRoundRect(
+                        color = if (isDark) {
+                            Color.White.copy(alpha = 0.05f)
+                        } else {
+                            Color.Black.copy(alpha = 0.04f)
+                        },
+                        topLeft = rect.topLeft,
+                        size = rect.size,
+                        cornerRadius = CornerRadius(3.dp.toPx()),
+                        style = Stroke(strokeWidth)
+                    )
+                }
         )
     }
 }

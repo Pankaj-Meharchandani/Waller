@@ -32,16 +32,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.Wallpaper
@@ -56,7 +63,6 @@ fun PreviewWallpaperRender(
     addStripes: Boolean,
     addOverlay: Boolean,
     addGeometric: Boolean,
-    // NEW: alpha inputs from sliders
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
@@ -64,7 +70,8 @@ fun PreviewWallpaperRender(
     modifier: Modifier = Modifier,
     showTypeLabel: Boolean = true
 ) {
-    val cornerRadius = 14.dp
+    val cornerRadius = 18.dp
+
     Box(modifier = modifier.clip(RoundedCornerShape(cornerRadius))) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val widthDp = maxWidth
@@ -88,7 +95,6 @@ fun PreviewWallpaperRender(
                     }
                     drawContext.canvas.nativeCanvas.drawRect(0f, 0f, size.width, size.height, paint)
 
-                    // noise
                     if (addNoise && noiseAlpha > 0f) {
                         val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
                         val numNoisePoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
@@ -100,7 +106,6 @@ fun PreviewWallpaperRender(
                         }
                     }
 
-                    // stripes
                     if (addStripes && stripesAlpha > 0f) {
                         val stripeCount = 18
                         val stripeWidth = size.width / (stripeCount * 2f)
@@ -190,13 +195,22 @@ fun PreviewWallpaperRender(
                 }
             }
 
-            // bottom tag (type + Colors)
+            // Premium bottom tag design
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(10.dp)
-                    .background(Color.Black.copy(alpha = 0.36f), shape = RoundedCornerShape(999.dp))
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                    .padding(12.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.7f),
+                                Color.Black.copy(alpha = 0.8f)
+                            )
+                        )
+                    )
+                    .premiumPreviewTagBorder()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (showTypeLabel) {
@@ -204,16 +218,64 @@ fun PreviewWallpaperRender(
                         text = previewType.name
                             .lowercase()
                             .replaceFirstChar { it.uppercase() },
-                        color = Color.White
+                        color = Color.White.copy(alpha = 0.95f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.3.sp
                     )
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(10.dp))
                 }
 
                 wallpaper.colors.forEachIndexed { index, color ->
-                    Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(3.dp)).background(color))
-                    if (index != wallpaper.colors.lastIndex) Spacer(Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(color)
+                            .drawBehind {
+                                val strokeWidth = 0.5.dp.toPx()
+                                val inset = strokeWidth / 2f
+                                val rect = Rect(
+                                    left = inset,
+                                    top = inset,
+                                    right = size.width - inset,
+                                    bottom = size.height - inset
+                                )
+                                drawRoundRect(
+                                    color = Color.White.copy(alpha = 0.15f),
+                                    topLeft = rect.topLeft,
+                                    size = rect.size,
+                                    cornerRadius = CornerRadius(4.dp.toPx()),
+                                    style = Stroke(strokeWidth)
+                                )
+                            }
+                    )
+                    if (index != wallpaper.colors.lastIndex) {
+                        Spacer(Modifier.width(6.dp))
+                    }
                 }
             }
         }
     }
+}
+
+// Premium preview tag border
+private fun Modifier.premiumPreviewTagBorder() = this.drawBehind {
+    val strokeWidth = 0.8.dp.toPx()
+    val inset = strokeWidth / 2f
+
+    val rect = Rect(
+        left = inset,
+        top = inset,
+        right = size.width - inset,
+        bottom = size.height - inset
+    )
+
+    drawRoundRect(
+        color = Color.White.copy(alpha = 0.15f),
+        topLeft = rect.topLeft,
+        size = rect.size,
+        cornerRadius = CornerRadius(12.dp.toPx()),
+        style = Stroke(strokeWidth)
+    )
 }
