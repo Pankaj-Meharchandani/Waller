@@ -1,11 +1,6 @@
 /**
  * FloatingNavBar.kt
  *
- * Theme-aware floating bottom navigation for Waller.
- */
-/**
- * FloatingNavBar.kt
- *
  * Superior Android luxury navigation.
  * Material You excellence with bold design language,
  * powerful animations, and premium depth effects.
@@ -124,8 +119,8 @@ fun FloatingNavBar(
                     brush = Brush.verticalGradient(
                         colors = if (isDark) {
                             listOf(
-                                surfaceContainer.copy(alpha = 0.92f),
-                                surfaceContainer
+                                surfaceContainer.copy(alpha = 0.85f),
+                                surfaceContainer.copy(alpha = 0.88f)
                             )
                         } else {
                             listOf(
@@ -134,6 +129,10 @@ fun FloatingNavBar(
                             )
                         }
                     )
+                )
+                .frostedDepth(
+                    primary = primary,
+                    isDark = isDark
                 )
                 .premiumBorderEffect(
                     primary = primary,
@@ -486,6 +485,76 @@ private fun Modifier.premiumSelectedBorder(
         cornerRadius = CornerRadius(radius),
         style = Stroke(strokeWidth)
     )
+}
+
+// Frosted depth - Android material elevation effect
+private fun Modifier.frostedDepth(
+    primary: Color,
+    isDark: Boolean
+) = this.drawBehind {
+    // Ambient occlusion at edges
+    val aoGradient = Brush.verticalGradient(
+        colors = if (isDark) {
+            listOf(
+                Color.Black.copy(alpha = 0.25f),
+                Color.Transparent,
+                Color.Black.copy(alpha = 0.15f)
+            )
+        } else {
+            listOf(
+                Color.Black.copy(alpha = 0.06f),
+                Color.Transparent,
+                Color.Black.copy(alpha = 0.03f)
+            )
+        },
+        startY = 0f,
+        endY = size.height
+    )
+
+    drawRoundRect(
+        brush = aoGradient,
+        cornerRadius = CornerRadius(20.dp.toPx()),
+        size = size
+    )
+
+    // Specular highlight - material elevation catch light
+    val highlightHeight = size.height * 0.35f
+    drawRoundRect(
+        brush = Brush.verticalGradient(
+            colors = if (isDark) {
+                listOf(
+                    Color.White.copy(alpha = 0.04f),
+                    Color.Transparent
+                )
+            } else {
+                listOf(
+                    Color.White.copy(alpha = 0.6f),
+                    Color.Transparent
+                )
+            },
+            startY = 0f,
+            endY = highlightHeight
+        ),
+        topLeft = Offset(0f, 0f),
+        size = size.copy(height = highlightHeight),
+        cornerRadius = CornerRadius(20.dp.toPx(), 20.dp.toPx())
+    )
+
+    // Subtle color tint from primary theme
+    if (isDark) {
+        drawRoundRect(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    primary.copy(alpha = 0.05f),
+                    Color.Transparent
+                ),
+                center = Offset(size.width / 2f, size.height * 0.3f),
+                radius = size.width * 0.6f
+            ),
+            cornerRadius = CornerRadius(20.dp.toPx()),
+            size = size
+        )
+    }
 }
 
 // Dynamic glow effect
