@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -154,6 +155,7 @@ fun FavoritesScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     OutlinedButton(
+                        shape = RoundedCornerShape(14.dp),
                         onClick = {
                             coroutineScope.launch { gridState.animateScrollToItem(1) }
                         },
