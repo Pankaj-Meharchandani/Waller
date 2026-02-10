@@ -48,6 +48,15 @@ import com.example.waller.ui.wallpaper.Haptics
 enum class FloatingNavItem {
     HOME, FAVOURITES, SETTINGS
 }
+private val MicroTween = tween<Float>(
+    durationMillis = 60,
+    easing = LinearEasing
+)
+
+private val MicroColorTween = tween<Color>(
+    durationMillis = 60,
+    easing = LinearEasing
+)
 
 @Composable
 fun FloatingNavBar(
@@ -69,9 +78,9 @@ fun FloatingNavBar(
     var isVisible by remember { mutableStateOf(false) }
     val slideUp by animateFloatAsState(
         targetValue = if (isVisible) 0f else 100f,
-        animationSpec = spring(
-            dampingRatio = 0.7f,
-            stiffness = 300f
+        animationSpec = tween(
+            durationMillis = 80,
+            easing = FastOutSlowInEasing
         ),
         label = "slideUp"
     )
@@ -193,35 +202,22 @@ private fun NavItem(
 
     // Powerful spring physics
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.88f else 1f,
-        animationSpec = spring(
-            dampingRatio = 0.6f,
-            stiffness = 500f
-        ),
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = MicroTween,
         label = "itemScale"
     )
 
     // Morphing shape animation
     val shapeProgress by animateFloatAsState(
         targetValue = if (selected) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = 0.75f,
-            stiffness = 200f
-        ),
+        animationSpec = MicroTween,
         label = "shapeProgress"
     )
 
     // Dynamic color animation
     val backgroundColor by animateColorAsState(
-        targetValue = if (selected) {
-            primary
-        } else {
-            Color.Transparent
-        },
-        animationSpec = spring(
-            dampingRatio = 0.8f,
-            stiffness = 300f
-        ),
+        targetValue = if (selected) primary else Color.Transparent,
+        animationSpec = MicroColorTween,
         label = "bgColor"
     )
 
@@ -231,23 +227,8 @@ private fun NavItem(
         } else {
             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         },
-        animationSpec = spring(
-            dampingRatio = 0.8f,
-            stiffness = 300f
-        ),
+        animationSpec = MicroColorTween,
         label = "contentColor"
-    )
-
-    // Ripple effect for selection
-    val infiniteTransition = rememberInfiniteTransition(label = "ripple")
-    val rippleScale by infiniteTransition.animateFloat(
-        initialValue = 0.8f,
-        targetValue = 1.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "rippleScale"
     )
 
     Box(
@@ -264,7 +245,7 @@ private fun NavItem(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .scale(rippleScale * 0.3f)
+                    .scale(1f)
                     .dynamicGlow(
                         color = primary,
                         intensity = 0.4f,
@@ -276,10 +257,7 @@ private fun NavItem(
         Row(
             modifier = Modifier
                 .animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = 0.75f,
-                        stiffness = 250f
-                    )
+                    animationSpec = tween(60, easing = LinearEasing)
                 )
                 .clip(RoundedCornerShape(16.dp))
                 .background(backgroundColor)
@@ -317,22 +295,8 @@ private fun NavItem(
             // Label with smooth transition
             AnimatedVisibility(
                 visible = selected,
-                enter = fadeIn(
-                    animationSpec = spring(
-                        dampingRatio = 0.8f,
-                        stiffness = 300f
-                    )
-                ) + expandHorizontally(
-                    animationSpec = spring(
-                        dampingRatio = 0.75f,
-                        stiffness = 250f
-                    )
-                ),
-                exit = fadeOut(
-                    animationSpec = tween(150)
-                ) + shrinkHorizontally(
-                    animationSpec = tween(150)
-                )
+                enter = fadeIn(tween(60)) + expandHorizontally(tween(60)),
+                exit = fadeOut(tween(60)) + shrinkHorizontally(tween(60))
             ) {
                 Row {
                     Spacer(Modifier.width(12.dp))
