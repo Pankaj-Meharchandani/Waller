@@ -119,13 +119,13 @@ fun FloatingNavBar(
                     brush = Brush.verticalGradient(
                         colors = if (isDark) {
                             listOf(
-                                surfaceContainer.copy(alpha = 0.85f),
-                                surfaceContainer.copy(alpha = 0.88f)
+                                Color.Black.copy(alpha = 0.85f),
+                                Color.Black.copy(alpha = 0.88f)
                             )
                         } else {
                             listOf(
-                                surfaceContainer.copy(alpha = 0.98f),
-                                surfaceContainer.copy(alpha = 0.92f)
+                                Color.White.copy(alpha = 0.98f),
+                                Color.White.copy(alpha = 0.92f)
                             )
                         }
                     )
