@@ -145,5 +145,6 @@
     <string name="update_available_title">New update available</string>
     <string name="update_available_message">Update the app to the latest version</string>
     <string name="settings_enable_haptics">Enable haptics</string>
+    <string name="whats_new">What’s new</string>
 
 </resources>

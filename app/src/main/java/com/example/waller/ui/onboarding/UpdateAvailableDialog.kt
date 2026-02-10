@@ -3,6 +3,7 @@
  *
  * - Waller-style modal dialog
  * - Matches ModePickerDialog look & feel
+ * - Shows version + release notes
  * - Allows user to update or dismiss
  */
 
@@ -11,6 +12,8 @@ package com.example.waller.ui.onboarding
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -26,10 +29,12 @@ import com.example.waller.R
 @Composable
 fun UpdateAvailableDialog(
     latestVersion: String,
+    releaseNotes: String,
     releaseUrl: String,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
 
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(16.dp)) {
@@ -48,7 +53,7 @@ fun UpdateAvailableDialog(
                     style = MaterialTheme.typography.titleLarge
                 )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
 
                 Text(
                     text = stringResource(
@@ -58,6 +63,26 @@ fun UpdateAvailableDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
+
+                if (releaseNotes.isNotBlank()) {
+                    Spacer(Modifier.height(16.dp))
+
+                    Text(
+                        text = stringResource(R.string.whats_new),
+                        style = MaterialTheme.typography.titleSmall
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        text = releaseNotes,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 160.dp)
+                            .verticalScroll(scrollState)
+                    )
+                }
 
                 Spacer(Modifier.height(24.dp))
 
@@ -76,7 +101,10 @@ fun UpdateAvailableDialog(
                     Button(
                         onClick = {
                             context.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse(releaseUrl))
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse(releaseUrl)
+                                )
                             )
                             onDismiss()
                         },
