@@ -53,7 +53,7 @@ fun GradientTypeItemFull(
     textColor: Color,
     onClick: () -> Unit
 ) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val isDark = true // always on dark scrim overlay
     var isPressed by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
@@ -185,7 +185,7 @@ fun GradientTypeItemRect(
     textColor: Color,
     onClick: () -> Unit
 ) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val isDark = true // always on dark scrim overlay
     var isPressed by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
@@ -287,7 +287,7 @@ fun EffectChip(
     modifier: Modifier = Modifier,
     onToggle: () -> Unit
 ) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val isDark = true // always on dark scrim overlay
     var isPressed by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
@@ -413,50 +413,27 @@ fun EffectOpacitySlider(
     onSliderChange: (Float) -> Unit,
     labelColor: Color
 ) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val isDark = true // always on dark scrim overlay
     val pct = (value * 100).toInt()
     val primaryColor = MaterialTheme.colorScheme.primary
-    val trackInactive = if (isDark) Color.White.copy(alpha = 0.13f) else Color.Black.copy(alpha = 0.10f)
+    val trackInactive = Color.White.copy(alpha = 0.13f)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(
-                if (isDark) Color.White.copy(alpha = 0.06f)
-                else Color.Black.copy(alpha = 0.04f)
-            )
+            .background(Color.White.copy(alpha = 0.06f))
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Label row with live percentage
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp,
-                letterSpacing = 0.2.sp,
-                color = labelColor
-            )
-            // Pill badge showing percentage
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(primaryColor.copy(alpha = 0.18f))
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
-            ) {
-                Text(
-                    text = "$pct%",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = primaryColor
-                )
-            }
-        }
+        // Label row
+        Text(
+            text = label,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 13.sp,
+            letterSpacing = 0.2.sp,
+            color = labelColor
+        )
 
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -498,95 +475,7 @@ fun DeviceFrame(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                if (isDark) {
-                    Color.Black.copy(alpha = 0.3f)
-                } else {
-                    Color.White.copy(alpha = 0.6f)
-                }
-            )
-            .drawBehind {
-                val strokeWidth = 2f.dp.toPx()
-                val inset = strokeWidth / 2f
-
-                val rect = Rect(
-                    left = inset,
-                    top = inset,
-                    right = size.width - inset,
-                    bottom = size.height - inset
-                )
-
-                // Outer border with gradient
-                drawRoundRect(
-                    brush = Brush.linearGradient(
-                        colors = if (isDark) {
-                            listOf(
-                                Color.White.copy(alpha = 0.12f),
-                                Color.White.copy(alpha = 0.06f),
-                                Color.White.copy(alpha = 0.1f)
-                            )
-                        } else {
-                            listOf(
-                                Color.White.copy(alpha = 0.5f),
-                                Color.Black.copy(alpha = 0.04f),
-                                Color.White.copy(alpha = 0.3f)
-                            )
-                        },
-                        start = Offset.Zero,
-                        end = Offset(rect.width, rect.height)
-                    ),
-                    topLeft = rect.topLeft,
-                    size = rect.size,
-                    cornerRadius = CornerRadius(20.dp.toPx()),
-                    style = Stroke(strokeWidth)
-                )
-            }
-    ) {
         Box(modifier = Modifier.padding(8.dp)) {
             content()
         }
-
-        // Top notch / speaker hint - refined design
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 10.dp)
-                .width(56.dp)
-                .height(5.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(
-                    if (isDark) {
-                        Color.White.copy(alpha = 0.08f)
-                    } else {
-                        Color.Black.copy(alpha = 0.06f)
-                    }
-                )
-                .drawBehind {
-                    val strokeWidth = 0.5.dp.toPx()
-                    val inset = strokeWidth / 2f
-                    val rect = Rect(
-                        left = inset,
-                        top = inset,
-                        right = size.width - inset,
-                        bottom = size.height - inset
-                    )
-                    drawRoundRect(
-                        color = if (isDark) {
-                            Color.White.copy(alpha = 0.05f)
-                        } else {
-                            Color.Black.copy(alpha = 0.04f)
-                        },
-                        topLeft = rect.topLeft,
-                        size = rect.size,
-                        cornerRadius = CornerRadius(3.dp.toPx()),
-                        style = Stroke(strokeWidth)
-                    )
-                }
-        )
     }
-}

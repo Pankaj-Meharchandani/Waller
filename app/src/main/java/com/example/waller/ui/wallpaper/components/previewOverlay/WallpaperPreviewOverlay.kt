@@ -20,6 +20,7 @@ import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -99,8 +100,9 @@ fun WallpaperPreviewOverlay(
     // small local helpers
     @Composable
     fun overlayTextColor(selectedForButton: Boolean = false): Color {
-        val isLightTheme = MaterialTheme.colorScheme.background.luminance() > 0.5f
-        return if (isLightTheme && selectedForButton) Color.Black else Color.White
+        // This overlay always renders on a dark scrim, so white is always correct.
+        // Exception: selected gradient chips use primaryContainer bg, so need onPrimaryContainer.
+        return Color.White
     }
     val view = LocalView.current
     var noise by remember { mutableStateOf(globalNoise) }
@@ -202,7 +204,7 @@ fun WallpaperPreviewOverlay(
                         }
                     }
                 }
-                .background(Color.Black.copy(alpha = 0.75f))
+                .background(Color.Black.copy(alpha = 0.85f))
         ) {
             Box(
                 modifier = Modifier
@@ -226,7 +228,7 @@ fun WallpaperPreviewOverlay(
         ) {
             // Close button (X) with contrast surface
             Surface(
-                shape = RoundedCornerShape(999.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.20f),
                 modifier = Modifier.height(46.dp)
             ) {
@@ -546,7 +548,7 @@ fun WallpaperPreviewOverlay(
             Box(
                 modifier = Modifier
                     .wrapContentWidth()
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.06f))
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
@@ -704,51 +706,27 @@ private fun PreviewFrame(
         var localFav by remember { mutableStateOf(isFavorite) }
         val view = LocalView.current
 
-        // Navbar bar — simulates device home indicator at the bottom
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(18.dp)
-                .background(Color.Black.copy(alpha = 0.18f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(36.dp)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(Color.White.copy(alpha = 0.35f))
-            )
-        }
-
-        // Fav button — top-end, radius reduced to ~14dp (CircleShape + size 32dp)
+        // Fav button
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 6.dp, end = 6.dp)
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f),
-                modifier = Modifier.size(32.dp)
-            ) {
-                IconButton(onClick = {
+                .padding(top = 14.dp, end = 10.dp)
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.30f))
+                .clickable {
                     Haptics.confirm(view)
                     localFav = !localFav
                     onFavoriteToggle()
-                }) {
-                    Icon(
-                        imageVector = if (localFav)
-                            Icons.Filled.Favorite
-                        else
-                            Icons.Outlined.FavoriteBorder,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = if (localFav) Color(0xFFFF4D6A) else overlayTextColor()
-                    )
-                }
-            }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (localFav) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = if (localFav) Color(0xFFFF4D6A) else Color.White
+            )
         }
 
         if (isBusy) {

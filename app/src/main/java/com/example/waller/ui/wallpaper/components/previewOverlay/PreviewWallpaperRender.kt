@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,7 +71,7 @@ fun PreviewWallpaperRender(
     modifier: Modifier = Modifier,
     showTypeLabel: Boolean = true
 ) {
-    val cornerRadius = 18.dp
+    val cornerRadius = 12.dp
 
     Box(modifier = modifier.clip(RoundedCornerShape(cornerRadius))) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -218,9 +219,9 @@ fun PreviewWallpaperRender(
                                 Color.Black.copy(alpha = 0.80f)
                             )
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(8.dp)
                     )
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (showTypeLabel) {
@@ -240,7 +241,7 @@ fun PreviewWallpaperRender(
                     Box(
                         modifier = Modifier
                             .size(12.dp)
-                            .clip(RoundedCornerShape(3.dp))
+                            .clip(RoundedCornerShape(4.dp))
                             .background(color)
                     )
                     if (index != wallpaper.colors.lastIndex) {
