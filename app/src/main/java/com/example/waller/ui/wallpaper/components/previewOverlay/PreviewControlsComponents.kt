@@ -304,7 +304,7 @@ fun EffectChip(
 
     val borderColor = when {
         isActive -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-        selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+        selected && fillProgress >= 1f -> MaterialTheme.colorScheme.background.copy(alpha = 0.8f)
         isDark -> Color.White.copy(alpha = 0.1f)
         else -> Color.Black.copy(alpha = 0.08f)
     }
@@ -374,8 +374,8 @@ fun EffectChip(
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
                             )
                         )
                     )
@@ -389,15 +389,16 @@ fun EffectChip(
         ) {
             Text(
                 text = label,
-                color = if (isActive) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else if (selected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    textColor.copy(alpha = 0.8f)
+                color = when {
+                    isActive -> MaterialTheme.colorScheme.onPrimaryContainer
+
+                    selected && fillProgress >= 1f ->
+                        MaterialTheme.colorScheme.primary
+
+                    else -> textColor.copy(alpha = 0.8f)
                 },
                 fontSize = 13.sp,
-                fontWeight = if (isActive || selected) FontWeight.SemiBold else FontWeight.Medium,
+                fontWeight = if (isActive || (selected && fillProgress >= 1f)) FontWeight.Bold else FontWeight.Medium,
                 letterSpacing = 0.3.sp,
                 maxLines = 1
             )
