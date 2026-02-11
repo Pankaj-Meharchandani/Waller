@@ -357,90 +357,11 @@ private fun Modifier.premiumBorderEffect(
 
     val radius = cornerRadius.toPx()
 
-    // Outer accent border
-    drawRoundRect(
-        brush = Brush.sweepGradient(
-            colors = if (isDark) {
-                listOf(
-                    primary.copy(alpha = 0.6f),
-                    Color.White.copy(alpha = 0.3f),
-                    primary.copy(alpha = 0.8f),
-                    Color.White.copy(alpha = 0.2f),
-                    primary.copy(alpha = 0.6f)
-                )
-            } else {
-                listOf(
-                    primary.copy(alpha = 0.4f),
-                    Color.Black.copy(alpha = 0.15f),
-                    primary.copy(alpha = 0.5f),
-                    Color.Black.copy(alpha = 0.1f),
-                    primary.copy(alpha = 0.4f)
-                )
-            },
-            center = Offset(size.width / 2f, size.height / 2f)
-        ),
-        topLeft = rect.topLeft,
-        size = rect.size,
-        cornerRadius = CornerRadius(radius),
-        style = Stroke(strokeWidth)
-    )
-
-    // Inner highlight
-    val innerInset = strokeWidth * 2
-    val innerRect = Rect(
-        left = innerInset,
-        top = innerInset,
-        right = size.width - innerInset,
-        bottom = size.height - innerInset
-    )
-
-    drawRoundRect(
-        brush = Brush.linearGradient(
-            colors = if (isDark) {
-                listOf(
-                    Color.White.copy(alpha = 0.15f),
-                    Color.Transparent,
-                    Color.Transparent
-                )
-            } else {
-                listOf(
-                    Color.White.copy(alpha = 0.4f),
-                    Color.Transparent,
-                    Color.Transparent
-                )
-            },
-            start = Offset(0f, 0f),
-            end = Offset(0f, size.height * 0.5f)
-        ),
-        topLeft = innerRect.topLeft,
-        size = innerRect.size,
-        cornerRadius = CornerRadius(radius - strokeWidth),
-        style = Stroke(1.dp.toPx())
-    )
-}
-
-// Selected item border glow
-private fun Modifier.premiumSelectedBorder(
-    primary: Color,
-    isDark: Boolean
-) = this.drawBehind {
-    val strokeWidth = 1.5f.dp.toPx()
-    val inset = strokeWidth / 2f
-
-    val rect = Rect(
-        left = inset,
-        top = inset,
-        right = size.width - inset,
-        bottom = size.height - inset
-    )
-
-    val radius = 16.dp.toPx()
-
-    val borderColor = if (isDark) {
-        Color.White.copy(alpha = 0.2f)
-    } else {
-        Color.White.copy(alpha = 0.5f)
-    }
+    val borderColor =
+        if (isDark)
+            Color.White.copy(alpha = 0.28f)
+        else
+            Color.Black.copy(alpha = 0.22f)
 
     drawRoundRect(
         color = borderColor,
