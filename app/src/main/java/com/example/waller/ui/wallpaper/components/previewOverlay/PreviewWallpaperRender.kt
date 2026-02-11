@@ -36,6 +36,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -109,15 +110,27 @@ fun PreviewWallpaperRender(
                     }
 
                     if (addStripes && stripesAlpha > 0f) {
-                        val stripeCount = 18
-                        val stripeWidth = size.width / (stripeCount * 2f)
-                        for (i in 0 until stripeCount) {
-                            val left = i * stripeWidth * 2f
-                            drawRect(
-                                Color.White.copy(alpha = 0.10f * stripesAlpha),
-                                topLeft = Offset(left, 0f),
-                                size = Size(stripeWidth, size.height)
-                            )
+                        val stripeSpacing = size.width / 12f
+                        val stripeWidth = stripeSpacing / 2f
+
+                        rotate(-45f, pivot = center) {
+
+                            var x = -size.height
+                            while (x < size.width * 2f) {
+
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color.White.copy(alpha = 0.18f * stripesAlpha),
+                                            Color.Transparent
+                                        )
+                                    ),
+                                    topLeft = Offset(x, -size.height),
+                                    size = Size(stripeWidth, size.height * 2f)
+                                )
+
+                                x += stripeSpacing
+                            }
                         }
                     }
                 }
@@ -165,15 +178,31 @@ fun PreviewWallpaperRender(
 
                     if (addStripes && stripesAlpha > 0f) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
-                            val stripeCount = 18
-                            val stripeWidth = size.width / (stripeCount * 2f)
-                            for (i in 0 until stripeCount) {
-                                val left = i * stripeWidth * 2f
-                                drawRect(
-                                    Color.White.copy(alpha = 0.10f * stripesAlpha),
-                                    topLeft = Offset(left, 0f),
-                                    size = Size(stripeWidth, size.height)
-                                )
+
+                            val stripeSpacing = size.width / 10f
+                            val stripeWidth = stripeSpacing * 0.65f
+
+                            rotate(-45f, pivot = center) {
+
+                                var x = -size.height
+                                while (x < size.width * 2f) {
+
+                                    drawRect(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(
+                                                Color.White.copy(alpha = 0.14f * stripesAlpha),
+                                                Color.White.copy(alpha = 0.08f * stripesAlpha),
+                                                Color.Transparent
+                                            ),
+                                            startX = x,
+                                            endX = x + stripeWidth * 1.4f
+                                        ),
+                                        topLeft = Offset(x, -size.height),
+                                        size = Size(stripeWidth, size.height * 2f)
+                                    )
+
+                                    x += stripeSpacing
+                                }
                             }
                         }
                     }

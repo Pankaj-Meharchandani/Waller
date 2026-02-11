@@ -46,6 +46,7 @@ import com.example.waller.ui.wallpaper.Wallpaper
 import kotlin.random.Random
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import com.example.waller.ui.wallpaper.components.previewOverlay.createBrushForPreview
@@ -227,15 +228,28 @@ fun WallpaperItem(
                     }
 
                     if (addNothingStripes && stripesAlpha > 0f) {
-                        val stripeCount = 18
-                        val stripeWidth = size.width / (stripeCount * 2f)
-                        repeat(stripeCount) {
-                            val left = it * stripeWidth * 2f
-                            drawRect(
-                                Color.White.copy(alpha = 0.10f * stripesAlpha),
-                                topLeft = Offset(left, 0f),
-                                size = Size(stripeWidth, size.height)
-                            )
+
+                        val stripeSpacing = size.width / 12f
+                        val stripeWidth = stripeSpacing / 2f
+
+                        rotate(-45f, pivot = center) {
+
+                            var x = -size.height
+                            while (x < size.width * 2f) {
+
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color.White.copy(alpha = 0.18f * stripesAlpha),
+                                            Color.Transparent
+                                        )
+                                    ),
+                                    topLeft = Offset(x, -size.height),
+                                    size = Size(stripeWidth, size.height * 2f)
+                                )
+
+                                x += stripeSpacing
+                            }
                         }
                     }
                 }
@@ -295,15 +309,31 @@ fun WallpaperItem(
 
                     if (addNothingStripes && stripesAlpha > 0f) {
                         Canvas(modifier = Modifier.matchParentSize()) {
-                            val stripeCount = 18
-                            val stripeWidth = size.width / (stripeCount * 2f)
-                            repeat(stripeCount) {
-                                val left = it * stripeWidth * 2f
-                                drawRect(
-                                    Color.White.copy(alpha = 0.10f * stripesAlpha),
-                                    topLeft = Offset(left, 0f),
-                                    size = Size(stripeWidth, size.height)
-                                )
+
+                            val stripeSpacing = size.width / 10f
+                            val stripeWidth = stripeSpacing * 0.65f
+
+                            rotate(-45f, pivot = center) {
+
+                                var x = -size.height
+                                while (x < size.width * 2f) {
+
+                                    drawRect(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(
+                                                Color.White.copy(alpha = 0.14f * stripesAlpha),
+                                                Color.White.copy(alpha = 0.08f * stripesAlpha),
+                                                Color.Transparent
+                                            ),
+                                            startX = x,
+                                            endX = x + stripeWidth * 1.4f
+                                        ),
+                                        topLeft = Offset(x, -size.height),
+                                        size = Size(stripeWidth, size.height * 2f)
+                                    )
+
+                                    x += stripeSpacing
+                                }
                             }
                         }
                     }
