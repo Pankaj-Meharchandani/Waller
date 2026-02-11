@@ -15,6 +15,7 @@ package com.example.waller.ui.wallpaper
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,6 +53,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
@@ -78,20 +80,35 @@ fun ApplyDownloadDialog(
     if (!show || wallpaper == null) return
 
     Dialog(onDismissRequest = onDismiss) {
+
+        val isDark =
+            MaterialTheme.colorScheme.background.luminance() < 0.5f
+
         Card(
-            modifier = Modifier.fillMaxWidth(0.92f),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .border(
+                    width = 3.dp,
+                    color = if (isDark) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    } else {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
+                    },
+                    shape = RoundedCornerShape(20.dp)
+                ),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 14.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(24.dp)
             ) {
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -103,7 +120,9 @@ fun ApplyDownloadDialog(
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 0.2.sp
                         )
+
                         Spacer(modifier = Modifier.height(4.dp))
+
                         Text(
                             text = stringResource(R.string.apply_download_subtitle),
                             fontSize = 13.sp,
@@ -113,7 +132,11 @@ fun ApplyDownloadDialog(
 
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        ),
                         modifier = Modifier.size(44.dp)
                     ) {
                         Box(
@@ -152,8 +175,6 @@ fun ApplyDownloadDialog(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-
-                /* ───────── Primary action ───────── */
 
                 Button(
                     modifier = Modifier
@@ -206,8 +227,6 @@ fun ApplyDownloadDialog(
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
-
-                /* ───────── Secondary actions ───────── */
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
@@ -320,8 +339,6 @@ fun ApplyDownloadDialog(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                /* ───────── Utility actions ───────── */
-
                 OutlinedButton(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -381,8 +398,6 @@ fun ApplyDownloadDialog(
                         fontSize = 14.sp
                     )
                 }
-
-                /* ───────── Progress ───────── */
 
                 if (isWorking) {
                     Spacer(modifier = Modifier.height(12.dp))

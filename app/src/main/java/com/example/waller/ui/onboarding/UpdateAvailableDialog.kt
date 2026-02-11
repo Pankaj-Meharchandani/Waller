@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +41,7 @@ fun UpdateAvailableDialog(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
     Dialog(onDismissRequest = onDismiss) {
         val isDark =
@@ -110,7 +112,7 @@ fun UpdateAvailableDialog(
                         lineHeight = 18.sp,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 160.dp)
+                            .heightIn(max = screenHeight * 0.45f)
                             .verticalScroll(scrollState)
                     )
                 }
