@@ -202,20 +202,49 @@ fun createGradientBitmap(
         }
     }
 
-    if (addStripes) {
-        val paintStripe = Paint().apply { isAntiAlias = true }
-        val stripeCount = 18
-        val stripeWidth = width.toFloat() / (stripeCount * 2f)
+    if (addStripes && stripesAlpha > 0f) {
 
-        repeat(stripeCount) { i ->
-            val left = i * stripeWidth * 2f
-            val right = left + stripeWidth
-            // FIX: The base alpha was hardcoded. Now it's correctly scaled by the stripesAlpha parameter.
-            val alphaStripe = 0.09f * stripesAlpha
-            val alphaInt = (alphaStripe * 255).roundToInt().coerceIn(0, 255)
-            paintStripe.color = android.graphics.Color.argb(alphaInt, 255, 255, 255)
-            canvas.drawRect(left, 0f, right, height.toFloat(), paintStripe)
+        val stripeSpacing = width / 12f
+        val stripeWidth = stripeSpacing / 2f
+
+        val paintStripe = Paint().apply {
+            isAntiAlias = true
         }
+
+        val stripeColor = android.graphics.Color.argb(
+            (0.18f * stripesAlpha * 255).roundToInt().coerceIn(0, 255),
+            255, 255, 255
+        )
+
+        // Rotate canvas for diagonal stripes
+        canvas.save()
+        canvas.rotate(-45f, width / 2f, height / 2f)
+
+        var x = -height.toFloat()
+        while (x < width * 2f) {
+
+            val shader = LinearGradient(
+                x, 0f,
+                x + stripeWidth, 0f,
+                stripeColor,
+                android.graphics.Color.TRANSPARENT,
+                Shader.TileMode.CLAMP
+            )
+
+            paintStripe.shader = shader
+
+            canvas.drawRect(
+                x,
+                -height.toFloat(),
+                x + stripeWidth,
+                height * 2f,
+                paintStripe
+            )
+
+            x += stripeSpacing
+        }
+
+        canvas.restore()
     }
 
     if (addOverlay) {

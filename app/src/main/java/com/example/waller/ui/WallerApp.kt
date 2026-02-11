@@ -189,8 +189,14 @@ fun WallerApp() {
     var showModePickerDialog by remember { mutableStateOf(false) }
 
     // --- UPDATE CHECK RESULT ---
+    data class UpdateInfo(
+        val version: String,
+        val notes: String,
+        val url: String
+    )
+
     var updateInfo by remember {
-        mutableStateOf<Pair<String, String>?>(null)
+        mutableStateOf<UpdateInfo?>(null)
     }
 
     // --- CHECK FOR APP UPDATES (runs once per launch) ---
@@ -199,8 +205,12 @@ fun WallerApp() {
             currentVersion = appVersion,
             repoOwner = "Pankaj-Meharchandani",
             repoName = "Waller"
-        ) { latestVersion, releaseUrl ->
-            updateInfo = latestVersion to releaseUrl
+        ) { latestVersion, releaseNotes, releaseUrl ->
+            updateInfo = UpdateInfo(
+                version = latestVersion,
+                notes = releaseNotes,
+                url = releaseUrl
+            )
         }
     }
 
@@ -638,10 +648,11 @@ fun WallerApp() {
             }
             // --- UPDATE AVAILABLE DIALOG ---
             if (!showModePickerDialog) {
-                updateInfo?.let { (version, url) ->
+                updateInfo?.let { info ->
                     UpdateAvailableDialog(
-                        latestVersion = version,
-                        releaseUrl = url,
+                        latestVersion = info.version,
+                        releaseNotes = info.notes,
+                        releaseUrl = info.url,
                         onDismiss = { updateInfo = null }
                     )
                 }

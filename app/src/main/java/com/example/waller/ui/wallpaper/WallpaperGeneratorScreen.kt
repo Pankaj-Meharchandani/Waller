@@ -80,6 +80,7 @@ import com.example.waller.ui.wallpaper.components.WallpaperItemCard
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalView
+import com.example.waller.ui.wallpaper.components.Actions
 
 @Composable
 fun WallpaperGeneratorScreen(
@@ -395,12 +396,12 @@ fun WallpaperGeneratorScreen(
                 Spacer(modifier = Modifier.weight(1f))
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
                         .border(
                             1.dp,
                             MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            RoundedCornerShape(999.dp)
+                            RoundedCornerShape(10.dp)
                         )
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
@@ -420,7 +421,7 @@ fun WallpaperGeneratorScreen(
                 val refreshScope = rememberCoroutineScope()
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .clickable {
                             Haptics.light(view)
                             refreshScope.launch {
@@ -435,12 +436,12 @@ fun WallpaperGeneratorScreen(
                                 sessionState.wallpapers = wallpapers
                             }
                         }
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
                         .border(
                             1.dp,
                             MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            RoundedCornerShape(999.dp)
+                            RoundedCornerShape(10.dp)
                         )
                         .padding(horizontal = 4.dp, vertical = 4.dp)
                 ) {
@@ -494,30 +495,19 @@ fun WallpaperGeneratorScreen(
             )
         }
 
-        // Bottom "Refresh All" button
         item(span = { GridItemSpan(spanCount) }) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        Haptics.longPress(view)
-                        wallpapers = generateWallpapers()
-                        sessionState.wallpapers = wallpapers
-                        coroutineScope.launch { gridState.animateScrollToItem(2) }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth(0.6f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                ) {
-                    Text(stringResource(id = R.string.actions_refresh_all))
+            Actions(
+                onRefreshClick = {
+                    Haptics.longPress(view)
+                    wallpapers = generateWallpapers()
+                    sessionState.wallpapers = wallpapers
+                    coroutineScope.launch {
+                        gridState.animateScrollToItem(2)
+                    }
                 }
-            }
+            )
         }
+
     }
 
     // Inline preview overlay (opened when user taps a wallpaper)

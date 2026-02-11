@@ -50,7 +50,7 @@ fun Header(
     onOrientationChange: (Boolean) -> Unit = {}
 ) {
     val chipSize = 42.dp
-    val chipShape = RoundedCornerShape(14.dp)
+    val chipShape = RoundedCornerShape(12.dp)
     val view = LocalView.current
 
     Row(
@@ -98,7 +98,7 @@ fun Header(
         Spacer(modifier = Modifier.weight(1f))
 
         if (showOrientationToggle) {
-            val pillShape = RoundedCornerShape(999.dp)
+            val pillShape = RoundedCornerShape(10.dp)
             Box(
                 modifier = Modifier
                     .clip(pillShape)

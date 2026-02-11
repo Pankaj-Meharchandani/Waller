@@ -20,6 +20,7 @@ import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -40,7 +41,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
@@ -99,8 +99,9 @@ fun WallpaperPreviewOverlay(
     // small local helpers
     @Composable
     fun overlayTextColor(selectedForButton: Boolean = false): Color {
-        val isLightTheme = MaterialTheme.colorScheme.background.luminance() > 0.5f
-        return if (isLightTheme && selectedForButton) Color.Black else Color.White
+        // This overlay always renders on a dark scrim, so white is always correct.
+        // Exception: selected gradient chips use primaryContainer bg, so need onPrimaryContainer.
+        return Color.White
     }
     val view = LocalView.current
     var noise by remember { mutableStateOf(globalNoise) }
@@ -202,7 +203,7 @@ fun WallpaperPreviewOverlay(
                         }
                     }
                 }
-                .background(Color.Black.copy(alpha = 0.75f))
+                .background(Color.Black.copy(alpha = 0.85f))
         ) {
             Box(
                 modifier = Modifier
@@ -226,7 +227,7 @@ fun WallpaperPreviewOverlay(
         ) {
             // Close button (X) with contrast surface
             Surface(
-                shape = RoundedCornerShape(999.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.20f),
                 modifier = Modifier.height(46.dp)
             ) {
@@ -546,7 +547,7 @@ fun WallpaperPreviewOverlay(
             Box(
                 modifier = Modifier
                     .wrapContentWidth()
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.06f))
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
@@ -704,31 +705,27 @@ private fun PreviewFrame(
         var localFav by remember { mutableStateOf(isFavorite) }
         val view = LocalView.current
 
+        // Fav button
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 8.dp, end = 8.dp)
-        ) {
-            Surface(
-                shape = RoundedCornerShape(999.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
-                modifier = Modifier.size(44.dp)
-            ) {
-                IconButton(onClick = {
+                .size(32.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(Color.Black.copy(alpha = 0.30f))
+                .clickable {
                     Haptics.confirm(view)
                     localFav = !localFav
                     onFavoriteToggle()
-                }) {
-                    Icon(
-                        imageVector = if (localFav)
-                            Icons.Filled.Favorite
-                        else
-                            Icons.Outlined.FavoriteBorder,
-                        contentDescription = null,
-                        tint = if (localFav) Color(0xFFFF4D6A) else overlayTextColor()
-                    )
-                }
-            }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (localFav) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = if (localFav) Color(0xFFFF4D6A) else Color.White
+            )
         }
 
         if (isBusy) {

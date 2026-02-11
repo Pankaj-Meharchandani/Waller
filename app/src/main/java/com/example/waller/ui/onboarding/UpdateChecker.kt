@@ -3,7 +3,7 @@
  *
  * - Silent GitHub release checker
  * - Runs once per app open
- * - Compares current app version with latest release tag
+ * - Fetches latest version + release notes
  * - Calls back only when update is available
  */
 
@@ -20,7 +20,11 @@ object UpdateChecker {
         currentVersion: String,
         repoOwner: String,
         repoName: String,
-        onUpdateAvailable: (latestVersion: String, releaseUrl: String) -> Unit
+        onUpdateAvailable: (
+            latestVersion: String,
+            releaseNotes: String,
+            releaseUrl: String
+        ) -> Unit
     ) {
         withContext(Dispatchers.IO) {
             try {
@@ -30,12 +34,23 @@ object UpdateChecker {
                 val response = URL(apiUrl).readText()
                 val json = JSONObject(response)
 
-                val latestTag = json.getString("tag_name").removePrefix("v")
+                val latestTag = json
+                    .getString("tag_name")
+                    .removePrefix("v")
+
+                val releaseNotes = json
+                    .optString("body", "")
+                    .trim()
+
                 val releaseUrl = json.getString("html_url")
 
                 if (isNewer(latestTag, currentVersion)) {
                     withContext(Dispatchers.Main) {
-                        onUpdateAvailable(latestTag, releaseUrl)
+                        onUpdateAvailable(
+                            latestTag,
+                            releaseNotes,
+                            releaseUrl
+                        )
                     }
                 }
             } catch (_: Exception) {
