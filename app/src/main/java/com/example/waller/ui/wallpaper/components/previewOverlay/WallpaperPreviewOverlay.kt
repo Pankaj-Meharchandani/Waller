@@ -709,9 +709,9 @@ private fun PreviewFrame(
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 14.dp, end = 10.dp)
-                .size(28.dp)
-                .clip(CircleShape)
+                .padding(top = 8.dp, end = 8.dp)
+                .size(32.dp)
+                .clip(RoundedCornerShape(6.dp))
                 .background(Color.Black.copy(alpha = 0.30f))
                 .clickable {
                     Haptics.confirm(view)
@@ -723,7 +723,7 @@ private fun PreviewFrame(
             Icon(
                 imageVector = if (localFav) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 contentDescription = null,
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier.size(24.dp),
                 tint = if (localFav) Color(0xFFFF4D6A) else Color.White
             )
         }
