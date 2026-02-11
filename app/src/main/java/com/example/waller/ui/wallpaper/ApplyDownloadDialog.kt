@@ -14,6 +14,7 @@ package com.example.waller.ui.wallpaper
 
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,7 +44,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -52,6 +52,8 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun ApplyDownloadDialog(
@@ -77,17 +79,18 @@ fun ApplyDownloadDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            modifier = Modifier.fillMaxWidth(0.9f),
-            shape = RoundedCornerShape(26.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+            modifier = Modifier.fillMaxWidth(0.92f),
+            shape = RoundedCornerShape(24.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
+                containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 22.dp, vertical = 20.dp)
+                    .padding(24.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -96,21 +99,22 @@ fun ApplyDownloadDialog(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = stringResource(R.string.apply_download_title),
-                            style = MaterialTheme.typography.titleMedium
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.2.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = stringResource(R.string.apply_download_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
                     Surface(
-                        shape = RoundedCornerShape(999.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        tonalElevation = 2.dp,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(44.dp)
                     ) {
                         Box(
                             modifier = Modifier
@@ -140,22 +144,22 @@ fun ApplyDownloadDialog(
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = "Share",
-                                modifier = Modifier.size(18.dp),
+                                modifier = Modifier.size(20.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 /* ───────── Primary action ───────── */
 
                 Button(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
-//                    shape = RoundedCornerShape(22.dp),
+                        .height(54.dp),
+                    shape = RoundedCornerShape(14.dp),
                     onClick = {
                         onWorkingChange(true)
                         coroutineScope.launch(Dispatchers.IO) {
@@ -179,14 +183,16 @@ fun ApplyDownloadDialog(
                             )
                             withContext(Dispatchers.Main) {
                                 onWorkingChange(false)
-                                Toast.makeText(
-                                    context,
-                                    if (success)
-                                        context.getString(R.string.apply_success_both)
-                                    else
-                                        context.getString(R.string.apply_failed),
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast
+                                    .makeText(
+                                        context,
+                                        if (success)
+                                            context.getString(R.string.apply_success_both)
+                                        else
+                                            context.getString(R.string.apply_failed),
+                                        Toast.LENGTH_SHORT
+                                    )
+                                    .show()
                                 onDismiss()
                             }
                         }
@@ -194,11 +200,12 @@ fun ApplyDownloadDialog(
                 ) {
                     Text(
                         text = stringResource(R.string.apply_both_screens),
-                        style = MaterialTheme.typography.titleSmall
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 /* ───────── Secondary actions ───────── */
 
@@ -207,8 +214,8 @@ fun ApplyDownloadDialog(
                     FilledTonalButton(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(46.dp),
-//                        shape = RoundedCornerShape(20.dp),
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
                         onClick = {
                             onWorkingChange(true)
                             coroutineScope.launch(Dispatchers.IO) {
@@ -232,27 +239,33 @@ fun ApplyDownloadDialog(
                                 )
                                 withContext(Dispatchers.Main) {
                                     onWorkingChange(false)
-                                    Toast.makeText(
-                                        context,
-                                        if (success)
-                                            context.getString(R.string.apply_success_home)
-                                        else
-                                            context.getString(R.string.apply_failed),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast
+                                        .makeText(
+                                            context,
+                                            if (success)
+                                                context.getString(R.string.apply_success_home)
+                                            else
+                                                context.getString(R.string.apply_failed),
+                                            Toast.LENGTH_SHORT
+                                        )
+                                        .show()
                                     onDismiss()
                                 }
                             }
                         }
                     ) {
-                        Text(stringResource(R.string.apply_home_screen))
+                        Text(
+                            text = stringResource(R.string.apply_home_screen),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
 
                     FilledTonalButton(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(46.dp),
-//                        shape = RoundedCornerShape(20.dp),
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
                         onClick = {
                             onWorkingChange(true)
                             coroutineScope.launch(Dispatchers.IO) {
@@ -282,20 +295,26 @@ fun ApplyDownloadDialog(
 
                                 withContext(Dispatchers.Main) {
                                     onWorkingChange(false)
-                                    Toast.makeText(
-                                        context,
-                                        if (success)
-                                            context.getString(R.string.apply_success_lock)
-                                        else
-                                            context.getString(R.string.apply_failed),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast
+                                        .makeText(
+                                            context,
+                                            if (success)
+                                                context.getString(R.string.apply_success_lock)
+                                            else
+                                                context.getString(R.string.apply_failed),
+                                            Toast.LENGTH_SHORT
+                                        )
+                                        .show()
                                     onDismiss()
                                 }
                             }
                         }
                     ) {
-                        Text(stringResource(R.string.apply_lock_screen))
+                        Text(
+                            text = stringResource(R.string.apply_lock_screen),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
 
@@ -306,8 +325,8 @@ fun ApplyDownloadDialog(
                 OutlinedButton(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(46.dp),
-//                    shape = RoundedCornerShape(20.dp),
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
                     onClick = {
                         onWorkingChange(true)
                         coroutineScope.launch(Dispatchers.IO) {
@@ -331,27 +350,36 @@ fun ApplyDownloadDialog(
                             )
                             withContext(Dispatchers.Main) {
                                 onWorkingChange(false)
-                                Toast.makeText(
-                                    context,
-                                    if (saved)
-                                        context.getString(R.string.save_success)
-                                    else
-                                        context.getString(R.string.save_failed),
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast
+                                    .makeText(
+                                        context,
+                                        if (saved)
+                                            context.getString(R.string.save_success)
+                                        else
+                                            context.getString(R.string.save_failed),
+                                        Toast.LENGTH_SHORT
+                                    )
+                                    .show()
                                 onDismiss()
                             }
                         }
                     }
                 ) {
-                    Text(stringResource(R.string.download))
+                    Text(
+                        text = stringResource(R.string.download),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
 
                 TextButton(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { onDismiss() }
                 ) {
-                    Text(text = stringResource(R.string.cancel))
+                    Text(
+                        text = stringResource(R.string.cancel),
+                        fontSize = 14.sp
+                    )
                 }
 
                 /* ───────── Progress ───────── */
@@ -361,8 +389,8 @@ fun ApplyDownloadDialog(
                     LinearProgressIndicator(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(3.dp)
-                            .clip(RoundedCornerShape(999.dp))
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
                     )
                 }
             }
