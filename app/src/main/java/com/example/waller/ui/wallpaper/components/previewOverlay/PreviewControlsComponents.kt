@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme.colorScheme
 
 /* ───────────────── Gradient type selectors ───────────────── */
 
@@ -454,7 +455,7 @@ fun EffectOpacitySlider(
                 colors = SliderDefaults.colors(
                     thumbColor = primaryColor,
                     activeTrackColor = primaryColor,
-                    inactiveTrackColor = trackInactive
+                    inactiveTrackColor = colorScheme.surfaceVariant.copy(alpha = 1f)
                 )
             )
 
