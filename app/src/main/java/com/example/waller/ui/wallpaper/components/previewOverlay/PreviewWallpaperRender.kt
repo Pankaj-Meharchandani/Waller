@@ -125,8 +125,8 @@ fun PreviewWallpaperRender(
                                             Color.Transparent
                                         )
                                     ),
-                                    topLeft = Offset(x, -size.height),
-                                    size = Size(stripeWidth, size.height * 2f)
+                                    topLeft = Offset(x, -size.height * 2f),
+                                    size = Size(stripeWidth, size.height * 4f)
                                 )
 
                                 x += stripeSpacing
@@ -197,8 +197,8 @@ fun PreviewWallpaperRender(
                                             startX = x,
                                             endX = x + stripeWidth * 1.4f
                                         ),
-                                        topLeft = Offset(x, -size.height),
-                                        size = Size(stripeWidth, size.height * 2f)
+                                        topLeft = Offset(x, -size.height * 2f),
+                                        size = Size(stripeWidth, size.height * 4f)
                                     )
 
                                     x += stripeSpacing

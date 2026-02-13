@@ -15,10 +15,10 @@
     <string name="effects_subtitle">Noise, stripes, and optional Nothing-style overlay.</string>
     <string name="effects_snow_effect">Snow</string>
     <string name="effects_snow_effect_subtitle">Soft snow texture.</string>
-    <string name="effects_stripes_overlay">Stripes overlay</string>
-    <string name="effects_stripes">Stripes</string>
+    <string name="effects_stripes_overlay">Refraction overlay</string>
+    <string name="effects_stripes">Refraction</string>
     <string name="effect_geometric">Geometry</string>
-    <string name="effects_stripes_overlay_subtitle">Vertical translucent stripes.</string>
+    <string name="effects_stripes_overlay_subtitle">Vertical translucent Refraction.</string>
     <string name="effects_nothing_style">Glass</string>
     <string name="effects_nothing_style_subtitle">Add Nothing like glass effect</string>
     <string name="orientation_title">Orientation</string>
@@ -75,7 +75,7 @@
     <string name="settings_wallpaper_count">Default gradient count</string>
     <string name="settings_enable_nothing">Enable Glass effect by default</string>
     <string name="settings_enable_snow">Enable Snow effect by default</string>
-    <string name="settings_enable_stripes">Enable Stripes by default</string>
+    <string name="settings_enable_stripes">Enable Refraction by default</string>
 
     <string name="settings_section_about">About</string>
     <string name="settings_about_summary">Learn more about Waller and the developer.</string>
@@ -120,11 +120,11 @@
     <string name="preview_close">Close</string>
     <string name="preview_effect_nothing">Glass</string>
     <string name="preview_effect_snow">Snow</string>
-    <string name="preview_effect_stripes">Stripes</string>
+    <string name="preview_effect_stripes">Refraction</string>
     <string name="gradient_style_title">Gradient Style</string>
     <string name="preview_opacity_nothing">Glass Effect Opacity</string>
     <string name="preview_opacity_snow">Snow effect Opacity</string>
-    <string name="preview_opacity_stripes">Stripes Opacity</string>
+    <string name="preview_opacity_stripes">Refraction Opacity</string>
     <string name="preview_off">Off</string>
     <string name="preview_high">High</string>
     <string name="preview_favorite">Favourite</string>
