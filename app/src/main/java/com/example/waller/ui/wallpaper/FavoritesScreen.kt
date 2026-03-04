@@ -85,11 +85,20 @@ fun FavoritesScreen(
 
                 newWalls.forEach { onAddFavourite(it) }
 
-                android.widget.Toast.makeText(
-                    context,
-                    "${newWalls.size} wallpaper${if (newWalls.size != 1) "s" else ""} imported",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+                val message = when {
+                    newWalls.isEmpty() ->
+                        context.getString(R.string.wallpaper_already_exists)
+
+                    newWalls.size == 1 ->
+                        context.getString(R.string._1_wallpaper_imported)
+
+                    else ->
+                        "${newWalls.size} wallpapers imported"
+                }
+
+                android.widget.Toast
+                    .makeText(context, message, android.widget.Toast.LENGTH_SHORT)
+                    .show()
             }
         }
 

@@ -152,5 +152,7 @@
     <string name="import_export">Import / Export</string>
     <string name="import_wall">Import .wall</string>
     <string name="export_favourites">Export favourites</string>
+    <string name="_1_wallpaper_imported">1 wallpaper imported</string>
+    <string name="wallpaper_already_exists">Wallpaper already exists</string>
 
 </resources>
