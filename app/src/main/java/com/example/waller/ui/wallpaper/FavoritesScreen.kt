@@ -59,7 +59,16 @@ fun FavoritesScreen(
 
             val imported = WallFileManager.importWallFile(context, uri)
 
-            imported?.forEach { onAddFavourite(it) }
+            imported?.let {
+
+                it.forEach { fav -> onAddFavourite(fav) }
+
+                android.widget.Toast.makeText(
+                    context,
+                    "${it.size} wallpaper${if (it.size > 1) "s" else ""} imported",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
         }
 
     val writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean> =

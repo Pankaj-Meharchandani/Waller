@@ -405,8 +405,18 @@ fun ApplyDownloadDialog(
         Dialog(onDismissRequest = { showShareOptions = false }) {
 
             Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .border(
+                        width = 3.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(20.dp)
+                    ),
                 shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth(0.9f)
+                elevation = CardDefaults.cardElevation(defaultElevation = 14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
 
                 Column(
@@ -415,7 +425,7 @@ fun ApplyDownloadDialog(
                 ) {
 
                     Text(
-                        text = "Share wallpaper",
+                        text = stringResource(R.string.share_wallpaper),
                         style = MaterialTheme.typography.titleMedium
                     )
 
@@ -447,7 +457,7 @@ fun ApplyDownloadDialog(
                             }
                         }
                     ) {
-                        Text("Share PNG")
+                        Text(stringResource(R.string.share_png))
                     }
 
                     Button(
@@ -471,14 +481,14 @@ fun ApplyDownloadDialog(
                             WallFileManager.shareWall(context, fav)
                         }
                     ) {
-                        Text("Share .wall file")
+                        Text(stringResource(R.string.share_wall_file))
                     }
 
                     TextButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { showShareOptions = false }
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             }
