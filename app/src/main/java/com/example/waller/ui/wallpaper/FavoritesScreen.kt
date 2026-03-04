@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,6 +89,7 @@ fun FavoritesScreen(
     var showApplyDialog by remember { mutableStateOf(false) }
     var isWorking by remember { mutableStateOf(false) }
     var showPreview by remember { mutableStateOf(false) }
+    var showImportExportDialog by remember { mutableStateOf(false) }
 
     val spanCount = if (isPortrait) 2 else 1
     val columns = GridCells.Fixed(spanCount)
@@ -132,23 +134,12 @@ fun FavoritesScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-
-                    OutlinedButton(
-                        onClick = {
-                            importWallLauncher.launch(arrayOf("*/*"))
-                        }
-                    ) {
-                        Text("Import")
+                OutlinedButton(
+                    onClick = {
+                        showImportExportDialog = true
                     }
-
-                    OutlinedButton(
-                        onClick = {
-                            WallFileManager.shareFavorites(context, favourites)
-                        }
-                    ) {
-                        Text("Export")
-                    }
+                ) {
+                    Text("Import / Export")
                 }
             }
         }
@@ -254,7 +245,57 @@ fun FavoritesScreen(
             coroutineScope = coroutineScope
         )
     }
+    if (showImportExportDialog) {
 
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showImportExportDialog = false }
+        ) {
+
+            androidx.compose.material3.Card(
+                modifier = Modifier.fillMaxWidth(0.9f),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+
+                    Text(
+                        text = "Import / Export",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            showImportExportDialog = false
+                            importWallLauncher.launch(arrayOf("*/*"))
+                        }
+                    ) {
+                        Text("Import .wall")
+                    }
+
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            showImportExportDialog = false
+                            WallFileManager.shareFavorites(context, favourites)
+                        }
+                    ) {
+                        Text("Export favourites")
+                    }
+
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { showImportExportDialog = false }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        }
+    }
     ApplyDownloadDialog(
         show = showApplyDialog,
         wallpaper = pendingClickedWallpaper?.wallpaper,
