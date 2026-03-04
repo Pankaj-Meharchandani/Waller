@@ -16,6 +16,7 @@
 
 package com.example.waller.ui
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
@@ -82,6 +83,7 @@ private const val PREF_KEY_HAPTICS_ENABLED = "haptics_enabled_v1"
 // New: remember which app version we've shown the mode picker for
 private const val PREF_KEY_MODE_PICKER_SHOWN_VERSION = "mode_picker_shown_version_v1"
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun WallerApp(openedWallUri: Uri? = null) {
     val systemIsDark = isSystemInDarkTheme()
