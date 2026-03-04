@@ -64,42 +64,51 @@ fun FavoritesScreen(
     val gridState = rememberLazyGridState()
     val importWallLauncher =
         rememberLauncherForActivityResult(
-            ActivityResultContracts.OpenDocument()
-        ) { uri ->
+            ActivityResultContracts.OpenMultipleDocuments()
+        ) { uris ->
 
-            uri ?: return@rememberLauncherForActivityResult
+            var importedCount = 0
+            val importedKeys = mutableSetOf<String>()
 
-            val imported = WallFileManager.importWallFile(context, uri)
+            uris.forEach { uri ->
 
-            imported?.let { walls ->
+                val imported = WallFileManager.importWallFile(context, uri)
 
-                val newWalls = walls.filter { importedFav ->
-                    favourites.none { existing ->
-                        existing.wallpaper == importedFav.wallpaper &&
-                                existing.addNoise == importedFav.addNoise &&
-                                existing.addStripes == importedFav.addStripes &&
-                                existing.addOverlay == importedFav.addOverlay &&
-                                existing.addGeometric == importedFav.addGeometric
+                imported?.forEach { fav ->
+
+                    val key =
+                        "${fav.wallpaper}_${fav.addNoise}_${fav.addStripes}_${fav.addOverlay}_${fav.addGeometric}"
+
+                    val alreadyExistsInApp = favourites.any { existing ->
+                        existing.wallpaper == fav.wallpaper &&
+                                existing.addNoise == fav.addNoise &&
+                                existing.addStripes == fav.addStripes &&
+                                existing.addOverlay == fav.addOverlay &&
+                                existing.addGeometric == fav.addGeometric
+                    }
+
+                    if (!alreadyExistsInApp && !importedKeys.contains(key)) {
+                        importedKeys.add(key)
+                        onAddFavourite(fav)
+                        importedCount++
                     }
                 }
-
-                newWalls.forEach { onAddFavourite(it) }
-
-                val message = when {
-                    newWalls.isEmpty() ->
-                        context.getString(R.string.wallpaper_already_exists)
-
-                    newWalls.size == 1 ->
-                        context.getString(R.string._1_wallpaper_imported)
-
-                    else ->
-                        "${newWalls.size} wallpapers imported"
-                }
-
-                android.widget.Toast
-                    .makeText(context, message, android.widget.Toast.LENGTH_SHORT)
-                    .show()
             }
+
+            val message = when {
+                importedCount == 0 ->
+                    context.getString(R.string.wallpaper_already_exists)
+
+                importedCount == 1 ->
+                    context.getString(R.string._1_wallpaper_imported)
+
+                else ->
+                    "$importedCount wallpapers imported"
+            }
+
+            android.widget.Toast
+                .makeText(context, message, android.widget.Toast.LENGTH_SHORT)
+                .show()
         }
 
     val writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean> =
