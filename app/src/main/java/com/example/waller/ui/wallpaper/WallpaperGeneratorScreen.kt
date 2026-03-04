@@ -540,6 +540,7 @@ fun WallpaperGeneratorScreen(
 
     // Apply / Download dialog (legacy — still available if you open it elsewhere)
     ApplyDownloadDialog(
+        interactionMode = interactionMode,
         show = showApplyDialog,
         wallpaper = pendingClickedWallpaper,
         isPortrait = isPortrait,

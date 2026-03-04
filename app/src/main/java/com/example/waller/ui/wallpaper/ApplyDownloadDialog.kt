@@ -52,13 +52,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.example.waller.ui.wallfile.WallFileManager
 
 @Composable
 fun ApplyDownloadDialog(
+    interactionMode: InteractionMode,
     show: Boolean,
     wallpaper: Wallpaper?,
     isPortrait: Boolean,
@@ -75,10 +81,10 @@ fun ApplyDownloadDialog(
     onDismiss: () -> Unit,
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     context: android.content.Context,
-    coroutineScope: CoroutineScope
+    coroutineScope: CoroutineScope,
 ) {
     if (!show || wallpaper == null) return
-
+    var showShareOptions by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = onDismiss) {
 
         val isDark =
@@ -143,23 +149,32 @@ fun ApplyDownloadDialog(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clickable {
-                                    coroutineScope.launch(Dispatchers.IO) {
-                                        val bmp = createGradientBitmap(
-                                            context,
-                                            wallpaper,
-                                            isPortrait,
-                                            addNoise,
-                                            addStripes,
-                                            addOverlay,
-                                            addGeometric,
-                                            noiseAlpha,
-                                            stripesAlpha,
-                                            overlayAlpha,
-                                            geometricAlpha
-                                        )
-                                        withContext(Dispatchers.Main) {
-                                            shareBitmapAsPng(context, bmp)
+
+                                    if (interactionMode == InteractionMode.ADVANCED) {
+                                        showShareOptions = true
+                                    } else {
+
+                                        coroutineScope.launch(Dispatchers.IO) {
+
+                                            val bmp = createGradientBitmap(
+                                                context,
+                                                wallpaper,
+                                                isPortrait,
+                                                addNoise,
+                                                addStripes,
+                                                addOverlay,
+                                                addGeometric,
+                                                noiseAlpha,
+                                                stripesAlpha,
+                                                overlayAlpha,
+                                                geometricAlpha
+                                            )
+
+                                            withContext(Dispatchers.Main) {
+                                                shareBitmapAsPng(context, bmp)
+                                            }
                                         }
+
                                     }
                                 },
                             contentAlignment = Alignment.Center
@@ -407,6 +422,107 @@ fun ApplyDownloadDialog(
                             .height(4.dp)
                             .clip(RoundedCornerShape(2.dp))
                     )
+                }
+            }
+        }
+    }
+
+    if (showShareOptions && wallpaper != null) {
+
+        Dialog(onDismissRequest = { showShareOptions = false }) {
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .border(
+                        width = 3.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(20.dp)
+                    ),
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+
+                    Text(
+                        text = stringResource(R.string.share_wallpaper),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    FilledTonalButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        onClick = {
+
+                            showShareOptions = false
+
+                            coroutineScope.launch(Dispatchers.IO) {
+
+                                val bmp = createGradientBitmap(
+                                    context,
+                                    wallpaper,
+                                    isPortrait,
+                                    addNoise,
+                                    addStripes,
+                                    addOverlay,
+                                    addGeometric,
+                                    noiseAlpha,
+                                    stripesAlpha,
+                                    overlayAlpha,
+                                    geometricAlpha
+                                )
+
+                                withContext(Dispatchers.Main) {
+                                    shareBitmapAsPng(context, bmp)
+                                }
+                            }
+                        }
+                    ) {
+                        Text(stringResource(R.string.share_png))
+                    }
+
+                    FilledTonalButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        onClick = {
+
+                            showShareOptions = false
+
+                            val fav = FavoriteWallpaper(
+                                wallpaper = wallpaper,
+                                addNoise = addNoise,
+                                addStripes = addStripes,
+                                addOverlay = addOverlay,
+                                addGeometric = addGeometric,
+                                noiseAlpha = noiseAlpha,
+                                stripesAlpha = stripesAlpha,
+                                overlayAlpha = overlayAlpha,
+                                geometricAlpha = geometricAlpha
+                            )
+
+                            WallFileManager.shareWall(context, fav)
+                        }
+                    ) {
+                        Text(stringResource(R.string.share_wall_file))
+                    }
+
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { showShareOptions = false }
+                    ) {
+                        Text(stringResource(R.string.cancel))
+                    }
                 }
             }
         }

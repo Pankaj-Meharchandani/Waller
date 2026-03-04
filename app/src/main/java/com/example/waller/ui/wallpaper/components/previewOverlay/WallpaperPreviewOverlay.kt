@@ -54,6 +54,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlin.math.abs
 import androidx.compose.ui.platform.LocalView
 import com.example.waller.ui.wallpaper.Haptics
+import com.example.waller.ui.wallpaper.InteractionMode
 
 private enum class EffectType { OVERLAY, NOISE, STRIPES, GEOMETRIC }
 
@@ -644,6 +645,7 @@ fun WallpaperPreviewOverlay(
         // Apply dialog — pass previewWallpaper so saved/applied output matches preview
         if (showApplyDialog) {
             ApplyDownloadDialog(
+                interactionMode = InteractionMode.ADVANCED,
                 show = true,
                 wallpaper = previewWallpaper,
                 isPortrait = isPortrait,

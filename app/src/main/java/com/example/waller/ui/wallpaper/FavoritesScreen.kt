@@ -11,6 +11,9 @@ import android.annotation.SuppressLint
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -18,18 +21,28 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.waller.R
+import com.example.waller.ui.wallfile.WallFileManager
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
+import com.example.waller.ui.wallpaper.components.premiumAddColorBorder
 import com.example.waller.ui.wallpaper.components.previewOverlay.WallpaperPreviewOverlay
 import kotlinx.coroutines.launch
 
@@ -49,6 +62,54 @@ fun FavoritesScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
+    val importWallLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenMultipleDocuments()
+        ) { uris ->
+
+            var importedCount = 0
+            val importedKeys = mutableSetOf<String>()
+
+            uris.forEach { uri ->
+
+                val imported = WallFileManager.importWallFile(context, uri)
+
+                imported?.forEach { fav ->
+
+                    val key =
+                        "${fav.wallpaper}_${fav.addNoise}_${fav.addStripes}_${fav.addOverlay}_${fav.addGeometric}"
+
+                    val alreadyExistsInApp = favourites.any { existing ->
+                        existing.wallpaper == fav.wallpaper &&
+                                existing.addNoise == fav.addNoise &&
+                                existing.addStripes == fav.addStripes &&
+                                existing.addOverlay == fav.addOverlay &&
+                                existing.addGeometric == fav.addGeometric
+                    }
+
+                    if (!alreadyExistsInApp && !importedKeys.contains(key)) {
+                        importedKeys.add(key)
+                        onAddFavourite(fav)
+                        importedCount++
+                    }
+                }
+            }
+
+            val message = when {
+                importedCount == 0 ->
+                    context.getString(R.string.wallpaper_already_exists)
+
+                importedCount == 1 ->
+                    context.getString(R.string._1_wallpaper_imported)
+
+                else ->
+                    "$importedCount wallpapers imported"
+            }
+
+            android.widget.Toast
+                .makeText(context, message, android.widget.Toast.LENGTH_SHORT)
+                .show()
+        }
 
     val writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean> =
         rememberLauncherForActivityResult(
@@ -67,6 +128,7 @@ fun FavoritesScreen(
     var showApplyDialog by remember { mutableStateOf(false) }
     var isWorking by remember { mutableStateOf(false) }
     var showPreview by remember { mutableStateOf(false) }
+    var showImportExportDialog by remember { mutableStateOf(false) }
 
     val spanCount = if (isPortrait) 2 else 1
     val columns = GridCells.Fixed(spanCount)
@@ -99,8 +161,10 @@ fun FavoritesScreen(
         item(span = { GridItemSpan(spanCount) }) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 Text(
                     text = if (favourites.isEmpty())
                         stringResource(R.string.favourites_empty)
@@ -108,11 +172,33 @@ fun FavoritesScreen(
                         stringResource(R.string.favourites_count, favourites.size),
                     style = MaterialTheme.typography.titleMedium
                 )
+
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .premiumAddColorBorder(
+                            isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+                        )
+                        .clickable {
+                            showImportExportDialog = true
+                        }
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.import_export),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
 
         // Grid
-        items(favourites) { fav ->
+        items(favourites.asReversed()) { fav ->
             WallpaperItemCard(
                 wallpaper = fav.wallpaper,
                 isPortrait = isPortrait,
@@ -212,8 +298,82 @@ fun FavoritesScreen(
             coroutineScope = coroutineScope
         )
     }
+    if (showImportExportDialog) {
 
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showImportExportDialog = false }
+        ) {
+
+            val isDark =
+                MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .border(
+                        width = 3.dp,
+                        color = if (isDark) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                        } else {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
+                        },
+                        shape = RoundedCornerShape(20.dp)
+                    ),
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+
+                    Text(
+                        text = "Import / Export",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    FilledTonalButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        onClick = {
+                            showImportExportDialog = false
+                            importWallLauncher.launch(arrayOf("*/*"))
+                        }
+                    ) {
+                        Text(stringResource(R.string.import_wall))
+                    }
+
+                    OutlinedButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        onClick = {
+                            showImportExportDialog = false
+                            WallFileManager.shareFavorites(context, favourites)
+                        }
+                    ) {
+                        Text(stringResource(R.string.export_favourites))
+                    }
+
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { showImportExportDialog = false }
+                    ) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            }
+        }
+    }
     ApplyDownloadDialog(
+        interactionMode = interactionMode,
         show = showApplyDialog,
         wallpaper = pendingClickedWallpaper?.wallpaper,
         isPortrait = isPortrait,

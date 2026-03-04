@@ -146,5 +146,13 @@
     <string name="update_available_message">Update the app to the latest version</string>
     <string name="settings_enable_haptics">Enable haptics</string>
     <string name="whats_new">What’s new</string>
+    <string name="share_wallpaper">Share wallpaper</string>
+    <string name="share_png">Share PNG</string>
+    <string name="share_wall_file">Share .wall file</string>
+    <string name="import_export">Import / Export</string>
+    <string name="import_wall">Import .wall</string>
+    <string name="export_favourites">Export favourites</string>
+    <string name="_1_wallpaper_imported">1 wallpaper imported</string>
+    <string name="wallpaper_already_exists">Wallpaper already exists</string>
 
 </resources>
