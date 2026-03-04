@@ -11,6 +11,9 @@ import android.annotation.SuppressLint
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -18,6 +21,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -25,13 +31,19 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.waller.R
 import com.example.waller.ui.wallfile.WallFileManager
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
+import com.example.waller.ui.wallpaper.components.premiumAddColorBorder
 import com.example.waller.ui.wallpaper.components.previewOverlay.WallpaperPreviewOverlay
 import kotlinx.coroutines.launch
 
@@ -134,12 +146,26 @@ fun FavoritesScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                OutlinedButton(
-                    onClick = {
-                        showImportExportDialog = true
-                    }
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .premiumAddColorBorder(
+                            isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+                        )
+                        .clickable {
+                            showImportExportDialog = true
+                        }
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("Import / Export")
+                    Text(
+                        text = stringResource(R.string.import_export),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }
@@ -251,9 +277,26 @@ fun FavoritesScreen(
             onDismissRequest = { showImportExportDialog = false }
         ) {
 
-            androidx.compose.material3.Card(
-                modifier = Modifier.fillMaxWidth(0.9f),
-                shape = RoundedCornerShape(20.dp)
+            val isDark =
+                MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .border(
+                        width = 3.dp,
+                        color = if (isDark) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                        } else {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
+                        },
+                        shape = RoundedCornerShape(20.dp)
+                    ),
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
 
                 Column(
@@ -266,8 +309,11 @@ fun FavoritesScreen(
                         style = MaterialTheme.typography.titleMedium
                     )
 
-                    OutlinedButton(
-                        modifier = Modifier.fillMaxWidth(),
+                    FilledTonalButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
                         onClick = {
                             showImportExportDialog = false
                             importWallLauncher.launch(arrayOf("*/*"))
@@ -277,7 +323,10 @@ fun FavoritesScreen(
                     }
 
                     OutlinedButton(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
                         onClick = {
                             showImportExportDialog = false
                             WallFileManager.shareFavorites(context, favourites)

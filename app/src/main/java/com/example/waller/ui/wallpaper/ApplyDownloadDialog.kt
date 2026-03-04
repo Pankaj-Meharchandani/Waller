@@ -429,8 +429,11 @@ fun ApplyDownloadDialog(
                         style = MaterialTheme.typography.titleMedium
                     )
 
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
+                    FilledTonalButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
                         onClick = {
 
                             showShareOptions = false
@@ -460,8 +463,11 @@ fun ApplyDownloadDialog(
                         Text(stringResource(R.string.share_png))
                     }
 
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
+                    FilledTonalButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
                         onClick = {
 
                             showShareOptions = false

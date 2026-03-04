@@ -149,5 +149,6 @@
     <string name="share_wallpaper">Share wallpaper</string>
     <string name="share_png">Share PNG</string>
     <string name="share_wall_file">Share .wall file</string>
+    <string name="import_export">Import / Export</string>
 
 </resources>
