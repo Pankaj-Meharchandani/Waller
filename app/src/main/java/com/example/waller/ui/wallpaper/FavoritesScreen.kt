@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.R
+import com.example.waller.ui.wallfile.WallFileManager
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
 import com.example.waller.ui.wallpaper.components.previewOverlay.WallpaperPreviewOverlay
@@ -49,6 +50,17 @@ fun FavoritesScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
+    val importWallLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument()
+        ) { uri ->
+
+            uri ?: return@rememberLauncherForActivityResult
+
+            val imported = WallFileManager.importWallFile(context, uri)
+
+            imported?.forEach { onAddFavourite(it) }
+        }
 
     val writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean> =
         rememberLauncherForActivityResult(
@@ -99,7 +111,8 @@ fun FavoritesScreen(
         item(span = { GridItemSpan(spanCount) }) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     text = if (favourites.isEmpty())
@@ -108,6 +121,14 @@ fun FavoritesScreen(
                         stringResource(R.string.favourites_count, favourites.size),
                     style = MaterialTheme.typography.titleMedium
                 )
+
+                OutlinedButton(
+                    onClick = {
+                        importWallLauncher.launch(arrayOf("*/*"))
+                    }
+                ) {
+                    Text("Import")
+                }
             }
         }
 

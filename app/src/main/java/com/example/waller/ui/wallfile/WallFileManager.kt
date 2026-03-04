@@ -7,6 +7,7 @@ package com.example.waller.ui.wallfile
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.core.content.FileProvider
 import com.example.waller.ui.wallpaper.FavoriteWallpaper
 import kotlinx.serialization.encodeToString
@@ -60,5 +61,27 @@ object WallFileManager {
         context.startActivity(
             Intent.createChooser(intent, "Share wallpaper")
         )
+    }
+
+    fun importWallFile(
+        context: Context,
+        uri: Uri
+    ): List<FavoriteWallpaper>? {
+
+        return try {
+
+            val input = context.contentResolver.openInputStream(uri)
+                ?: return null
+
+            val jsonString = input.bufferedReader().use { it.readText() }
+
+            val wallFile = json.decodeFromString<WallFile>(jsonString)
+
+            wallFile.walls.map { it.toFavoriteWallpaper() }
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 }
