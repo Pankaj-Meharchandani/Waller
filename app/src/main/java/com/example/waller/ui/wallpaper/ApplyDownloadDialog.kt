@@ -64,6 +64,7 @@ import com.example.waller.ui.wallfile.WallFileManager
 
 @Composable
 fun ApplyDownloadDialog(
+    interactionMode: InteractionMode,
     show: Boolean,
     wallpaper: Wallpaper?,
     isPortrait: Boolean,
@@ -148,7 +149,33 @@ fun ApplyDownloadDialog(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clickable {
-                                    showShareOptions = true
+
+                                    if (interactionMode == InteractionMode.ADVANCED) {
+                                        showShareOptions = true
+                                    } else {
+
+                                        coroutineScope.launch(Dispatchers.IO) {
+
+                                            val bmp = createGradientBitmap(
+                                                context,
+                                                wallpaper,
+                                                isPortrait,
+                                                addNoise,
+                                                addStripes,
+                                                addOverlay,
+                                                addGeometric,
+                                                noiseAlpha,
+                                                stripesAlpha,
+                                                overlayAlpha,
+                                                geometricAlpha
+                                            )
+
+                                            withContext(Dispatchers.Main) {
+                                                shareBitmapAsPng(context, bmp)
+                                            }
+                                        }
+
+                                    }
                                 },
                             contentAlignment = Alignment.Center
                         ) {

@@ -364,6 +364,7 @@ fun FavoritesScreen(
         }
     }
     ApplyDownloadDialog(
+        interactionMode = interactionMode,
         show = showApplyDialog,
         wallpaper = pendingClickedWallpaper?.wallpaper,
         isPortrait = isPortrait,
