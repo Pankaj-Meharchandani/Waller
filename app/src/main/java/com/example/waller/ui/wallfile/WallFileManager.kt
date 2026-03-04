@@ -84,4 +84,47 @@ object WallFileManager {
             null
         }
     }
+
+    fun exportFavorites(
+        context: Context,
+        favourites: List<FavoriteWallpaper>
+    ): File {
+
+        val wallFile = WallFile(
+            walls = favourites.map { it.toWallFavorite() }
+        )
+
+        val file = File(
+            context.cacheDir,
+            "waller_favourites_${System.currentTimeMillis()}.wall"
+        )
+
+        file.writeText(json.encodeToString(wallFile))
+
+        return file
+    }
+
+    fun shareFavorites(
+        context: Context,
+        favourites: List<FavoriteWallpaper>
+    ) {
+
+        val file = exportFavorites(context, favourites)
+
+        val uri = FileProvider.getUriForFile(
+            context,
+            context.packageName + ".fileprovider",
+            file
+        )
+
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "*/*"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        context.startActivity(
+            Intent.createChooser(intent, "Share favourites")
+        )
+    }
 }

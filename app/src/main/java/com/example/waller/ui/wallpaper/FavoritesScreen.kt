@@ -120,9 +120,10 @@ fun FavoritesScreen(
         item(span = { GridItemSpan(spanCount) }) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+
                 Text(
                     text = if (favourites.isEmpty())
                         stringResource(R.string.favourites_empty)
@@ -131,12 +132,23 @@ fun FavoritesScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                OutlinedButton(
-                    onClick = {
-                        importWallLauncher.launch(arrayOf("*/*"))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                    OutlinedButton(
+                        onClick = {
+                            importWallLauncher.launch(arrayOf("*/*"))
+                        }
+                    ) {
+                        Text("Import")
                     }
-                ) {
-                    Text("Import")
+
+                    OutlinedButton(
+                        onClick = {
+                            WallFileManager.shareFavorites(context, favourites)
+                        }
+                    ) {
+                        Text("Export")
+                    }
                 }
             }
         }
