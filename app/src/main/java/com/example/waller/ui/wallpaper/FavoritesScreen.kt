@@ -189,7 +189,7 @@ fun FavoritesScreen(
         }
 
         // Grid
-        items(favourites) { fav ->
+        items(favourites.asReversed()) { fav ->
             WallpaperItemCard(
                 wallpaper = fav.wallpaper,
                 isPortrait = isPortrait,
