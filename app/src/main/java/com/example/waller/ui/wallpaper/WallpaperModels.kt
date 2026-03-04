@@ -18,13 +18,14 @@
 package com.example.waller.ui.wallpaper
 
 import androidx.compose.ui.graphics.Color
+import kotlinx.serialization.Serializable
 
 data class Wallpaper(
     val colors: List<Color>,
     val type: GradientType,
     val angleDeg: Float = 0f
 )
-
+@Serializable
 enum class GradientType {
     Linear,
     Radial,
