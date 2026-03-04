@@ -21,9 +21,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -170,9 +173,9 @@ fun FavoritesScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 40.dp),
+                            .padding(vertical = 48.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
 
                         Text(
@@ -180,12 +183,38 @@ fun FavoritesScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
 
-                        TextButton(
-                            onClick = {
-                                importWallLauncher.launch(arrayOf("*/*"))
-                            }
+                        Box(
+                            modifier = Modifier
+                                .size(160.dp)
+                                .background(MaterialTheme.colorScheme.surfaceContainer)
+                                .premiumAddColorBorder(
+                                    isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+                                )
+                                .clickable {
+                                    importWallLauncher.launch(arrayOf("*/*"))
+                                },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(stringResource(R.string.import_wall))
+
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+
+                                Icon(
+                                    imageVector = Icons.Default.FileUpload,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(32.dp)
+                                )
+
+                                Text(
+                                    text = "Import wallpapers",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
 
