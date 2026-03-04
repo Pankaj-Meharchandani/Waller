@@ -71,13 +71,23 @@ fun FavoritesScreen(
 
             val imported = WallFileManager.importWallFile(context, uri)
 
-            imported?.let {
+            imported?.let { walls ->
 
-                it.forEach { fav -> onAddFavourite(fav) }
+                val newWalls = walls.filter { importedFav ->
+                    favourites.none { existing ->
+                        existing.wallpaper == importedFav.wallpaper &&
+                                existing.addNoise == importedFav.addNoise &&
+                                existing.addStripes == importedFav.addStripes &&
+                                existing.addOverlay == importedFav.addOverlay &&
+                                existing.addGeometric == importedFav.addGeometric
+                    }
+                }
+
+                newWalls.forEach { onAddFavourite(it) }
 
                 android.widget.Toast.makeText(
                     context,
-                    "${it.size} wallpaper${if (it.size > 1) "s" else ""} imported",
+                    "${newWalls.size} wallpaper${if (newWalls.size != 1) "s" else ""} imported",
                     android.widget.Toast.LENGTH_SHORT
                 ).show()
             }
