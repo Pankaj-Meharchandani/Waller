@@ -20,6 +20,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.net.Uri
 import android.view.Surface
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -65,6 +66,7 @@ import com.example.waller.ui.wallpaper.WallpaperSessionState
 import com.example.waller.ui.wallpaper.Haptics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import com.example.waller.ui.wallfile.WallFileManager
 import com.example.waller.ui.wallpaper.components.FloatingNavBar
 import com.example.waller.ui.wallpaper.components.FloatingNavItem
 
@@ -80,7 +82,7 @@ private const val PREF_KEY_HAPTICS_ENABLED = "haptics_enabled_v1"
 private const val PREF_KEY_MODE_PICKER_SHOWN_VERSION = "mode_picker_shown_version_v1"
 
 @Composable
-fun WallerApp() {
+fun WallerApp(openedWallUri: Uri? = null) {
     val systemIsDark = isSystemInDarkTheme()
     val context = LocalContext.current
     val activity = context as Activity
@@ -656,6 +658,29 @@ fun WallerApp() {
                         onDismiss = { updateInfo = null }
                     )
                 }
+            }
+
+        }
+    }
+    LaunchedEffect(openedWallUri) {
+
+        openedWallUri?.let { uri ->
+
+            val imported = WallFileManager.importWallFile(context, uri)
+
+            imported?.forEach { fav ->
+
+                toggleFavouriteFromHome(
+                    fav.wallpaper,
+                    fav.addNoise,
+                    fav.addStripes,
+                    fav.addOverlay,
+                    fav.addGeometric,
+                    fav.noiseAlpha,
+                    fav.stripesAlpha,
+                    fav.overlayAlpha,
+                    fav.geometricAlpha
+                )
             }
 
         }

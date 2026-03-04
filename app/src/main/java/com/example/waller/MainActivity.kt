@@ -61,9 +61,13 @@ class MainActivity : FragmentActivity(), SimpleDialog.OnDialogResultListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val wallUri = intent?.data
+
         enableEdgeToEdge()
+
         setContent {
-            WallerApp()
+            WallerApp(openedWallUri = wallUri)
         }
     }
 }
