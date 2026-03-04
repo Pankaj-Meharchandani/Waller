@@ -47,7 +47,7 @@ object WallFileManager {
 
         val uri = FileProvider.getUriForFile(
             context,
-            context.packageName + ".provider",
+            context.packageName + ".fileprovider",
             file
         )
 

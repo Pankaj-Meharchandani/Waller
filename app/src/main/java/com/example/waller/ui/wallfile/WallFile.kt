@@ -16,7 +16,7 @@ data class WallFile(
     val version: Int = 1,
     val walls: List<WallFavorite>
 )
-
+@Serializable
 data class WallFavorite(
     val colors: List<Int>,
     val gradientType: GradientType,
