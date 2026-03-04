@@ -32,7 +32,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -319,7 +318,7 @@ fun FavoritesScreen(
                             importWallLauncher.launch(arrayOf("*/*"))
                         }
                     ) {
-                        Text("Import .wall")
+                        Text(stringResource(R.string.import_wall))
                     }
 
                     OutlinedButton(
@@ -332,14 +331,14 @@ fun FavoritesScreen(
                             WallFileManager.shareFavorites(context, favourites)
                         }
                     ) {
-                        Text("Export favourites")
+                        Text(stringResource(R.string.export_favourites))
                     }
 
                     TextButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { showImportExportDialog = false }
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             }

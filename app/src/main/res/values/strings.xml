@@ -150,5 +150,7 @@
     <string name="share_png">Share PNG</string>
     <string name="share_wall_file">Share .wall file</string>
     <string name="import_export">Import / Export</string>
+    <string name="import_wall">Import .wall</string>
+    <string name="export_favourites">Export favourites</string>
 
 </resources>
