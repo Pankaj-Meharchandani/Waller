@@ -165,13 +165,38 @@ fun FavoritesScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
-                Text(
-                    text = if (favourites.isEmpty())
-                        stringResource(R.string.favourites_empty)
-                    else
-                        stringResource(R.string.favourites_count, favourites.size),
-                    style = MaterialTheme.typography.titleMedium
-                )
+                if (favourites.isEmpty()) {
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+
+                        Text(
+                            text = stringResource(R.string.favourites_empty),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        TextButton(
+                            onClick = {
+                                importWallLauncher.launch(arrayOf("*/*"))
+                            }
+                        ) {
+                            Text(stringResource(R.string.import_wall))
+                        }
+                    }
+
+                } else {
+
+                    Text(
+                        text = stringResource(R.string.favourites_count, favourites.size),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                }
 
                 Box(
                     modifier = Modifier

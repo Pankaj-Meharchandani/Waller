@@ -67,6 +67,7 @@ import com.example.waller.ui.wallpaper.Haptics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.example.waller.ui.wallfile.WallFileManager
+import com.example.waller.R
 import com.example.waller.ui.wallpaper.components.FloatingNavBar
 import com.example.waller.ui.wallpaper.components.FloatingNavItem
 
@@ -668,21 +669,46 @@ fun WallerApp(openedWallUri: Uri? = null) {
 
             val imported = WallFileManager.importWallFile(context, uri)
 
-            imported?.forEach { fav ->
+            imported?.let { walls ->
 
-                toggleFavouriteFromHome(
-                    fav.wallpaper,
-                    fav.addNoise,
-                    fav.addStripes,
-                    fav.addOverlay,
-                    fav.addGeometric,
-                    fav.noiseAlpha,
-                    fav.stripesAlpha,
-                    fav.overlayAlpha,
-                    fav.geometricAlpha
-                )
+                var added = 0
+
+                walls.forEach { fav ->
+
+                    val before = favouriteWallpapers.size
+
+                    toggleFavouriteFromHome(
+                        fav.wallpaper,
+                        fav.addNoise,
+                        fav.addStripes,
+                        fav.addOverlay,
+                        fav.addGeometric,
+                        fav.noiseAlpha,
+                        fav.stripesAlpha,
+                        fav.overlayAlpha,
+                        fav.geometricAlpha
+                    )
+
+                    if (favouriteWallpapers.size > before) {
+                        added++
+                    }
+                }
+
+                val message = when {
+                    added == 0 ->
+                        context.getString(R.string.wallpaper_already_exists)
+
+                    added == 1 ->
+                        context.getString(R.string._1_wallpaper_imported)
+
+                    else ->
+                        "$added wallpapers imported"
+                }
+
+                android.widget.Toast
+                    .makeText(context, message, android.widget.Toast.LENGTH_SHORT)
+                    .show()
             }
-
         }
     }
 }
