@@ -673,7 +673,22 @@ fun WallerApp(openedWallUri: Uri? = null) {
 
             imported?.let { walls ->
 
-                val newWalls = walls.filter { importedFav ->
+                val sanitizedWalls = walls.map { fav ->
+
+                    val colors = fav.wallpaper.colors
+
+                    val safeColors =
+                        if (colors.size == 1)
+                            listOf(colors[0], colors[0])
+                        else
+                            colors
+
+                    fav.copy(
+                        wallpaper = fav.wallpaper.copy(colors = safeColors)
+                    )
+                }
+
+                val newWalls = sanitizedWalls.filter { importedFav ->
 
                     favouriteWallpapers.none { existing ->
 
@@ -743,11 +758,18 @@ private fun decodeFavourites(raw: String): List<FavoriteWallpaper> =
             val type = runCatching { GradientType.valueOf(parts[0]) }.getOrNull()
                 ?: return@mapNotNull null
 
-            val colors = parts[1]
+            val parsedColors = parts[1]
                 .split(",")
                 .mapNotNull { colorFromHexOrNull(it) }
-                .takeIf { it.isNotEmpty() }
-                ?: return@mapNotNull null
+
+            if (parsedColors.isEmpty()) return@mapNotNull null
+
+            // Ensure minimum 2 colors for gradient system
+            val colors =
+                if (parsedColors.size == 1)
+                    listOf(parsedColors[0], parsedColors[0])
+                else
+                    parsedColors
 
             val flagTokens = parts[2].split(",")
 
