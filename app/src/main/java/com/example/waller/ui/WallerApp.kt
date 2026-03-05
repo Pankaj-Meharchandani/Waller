@@ -673,44 +673,41 @@ fun WallerApp(openedWallUri: Uri? = null) {
 
             imported?.let { walls ->
 
-                var added = 0
+                val newWalls = walls.filter { importedFav ->
 
-                walls.forEach { fav ->
+                    favouriteWallpapers.none { existing ->
 
-                    val before = favouriteWallpapers.size
-
-                    toggleFavouriteFromHome(
-                        fav.wallpaper,
-                        fav.addNoise,
-                        fav.addStripes,
-                        fav.addOverlay,
-                        fav.addGeometric,
-                        fav.noiseAlpha,
-                        fav.stripesAlpha,
-                        fav.overlayAlpha,
-                        fav.geometricAlpha
-                    )
-
-                    if (favouriteWallpapers.size > before) {
-                        added++
+                        existing.wallpaper == importedFav.wallpaper &&
+                                existing.addNoise == importedFav.addNoise &&
+                                existing.addStripes == importedFav.addStripes &&
+                                existing.addOverlay == importedFav.addOverlay &&
+                                existing.addGeometric == importedFav.addGeometric
                     }
                 }
 
+                if (newWalls.isNotEmpty()) {
+                    favouriteWallpapers = favouriteWallpapers + newWalls
+                    persistFavourites()
+                }
+
                 val message = when {
-                    added == 0 ->
+                    newWalls.isEmpty() ->
                         context.getString(R.string.wallpaper_already_exists)
 
-                    added == 1 ->
+                    newWalls.size == 1 ->
                         context.getString(R.string._1_wallpaper_imported)
 
                     else ->
-                        "$added wallpapers imported"
+                        "${newWalls.size} wallpapers imported"
                 }
 
                 android.widget.Toast
                     .makeText(context, message, android.widget.Toast.LENGTH_SHORT)
                     .show()
             }
+
+            // Prevent re-import if activity recreates
+            (context as Activity).intent.data = null
         }
     }
 }
