@@ -2,8 +2,8 @@
  * Options panel — responsive, no scroll, no hidden content.
  *
  * Row 1 — Colors:   [●][●]  [+ Add Color]  ────  [Multi-color]
- * Row 2 — Gradient: [Linear][Radial][Angular][Diamond]
- * Row 3 — Effects:  [Glass][Stripes][Snow][Geo][Glow][Dust]
+ * Row 2 — Gradient: [Linear][Radial][Angular][ Diamond]
+ * Row 3 — Effects:  [Glass][Stripes][Snow][Geo][Glow][ Dust]
  * Row 4 — Tone:     [Dark Tones][Neutral][Light Tones]
  *
  * Font sizing:
@@ -35,11 +35,8 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -462,7 +459,7 @@ private fun EffectChip(
                 Text(
                     text = label,
                     fontSize = labelFs,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     color = chipFg(selected, isDark, true)
                 )
             }
