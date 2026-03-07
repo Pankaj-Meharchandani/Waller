@@ -252,10 +252,18 @@ private fun EffectChip(
     val anim by animateFloatAsState(if (pressed) 0.94f else 1f, spring(0.55f, 550f), label = "ef")
 
     // Muted preview gradient — blue→teal, matches dark theme nicely, stays subtle
+    val base = MaterialTheme.colorScheme.primary
+
     val previewColors = if (isDark) {
-        listOf(Color(0xFF1a237e), Color(0xFF37474f))
+        listOf(
+            base.copy(alpha = 0.85f),
+            base.copy(alpha = 0.45f)
+        )
     } else {
-        listOf(Color(0xFF6A7BFF), Color(0xFF8EC5FF))
+        listOf(
+            base.copy(alpha = 0.65f),
+            base.copy(alpha = 0.35f)
+        )
     }
     val overlayAlpha  = if (selected) 1f else 0.75f
     val patternColor = Color.White.copy(alpha = if (isDark) 0.16f else 0.22f)
@@ -299,30 +307,33 @@ private fun EffectChip(
                 when (iconKey) {
 
                     "glass" -> {
+
                         val bandCount = 8
-                        val bandH = h / bandCount
+                        val bandW = w / bandCount
 
                         for (i in 0 until bandCount) {
-                            val y = bandH * i
 
-                            val alpha = if (i % 2 == 0) 0.12f else 0.05f
+                            val x = bandW * i
+
+                            val alpha = if (i % 2 == 0) 0.10f else 0.04f
 
                             drawRect(
                                 color = Color.White.copy(alpha = alpha),
-                                topLeft = Offset(0f, y),
-                                size = Size(w, bandH)
+                                topLeft = Offset(x, 0f),
+                                size = Size(bandW, h)
                             )
                         }
 
-                        val lineSw = (h * 0.006f).coerceAtLeast(0.7f)
+                        val lineSw = (w * 0.006f).coerceAtLeast(0.7f)
 
                         for (i in 1 until bandCount) {
-                            val y = bandH * i
+
+                            val x = bandW * i
 
                             drawLine(
-                                Color.White.copy(alpha = 0.22f),
-                                Offset(0f, y),
-                                Offset(w, y),
+                                Color.White.copy(alpha = 0.18f),
+                                Offset(x, 0f),
+                                Offset(x, h),
                                 strokeWidth = lineSw
                             )
                         }
@@ -382,44 +393,7 @@ private fun EffectChip(
                         // Smaller circle centered lower
                         drawCircle(lineColor, w * 0.30f, Offset(w * 0.5f, h * 0.62f), style = Stroke(sw))
                     }
-
-                    "glow" -> {
-                        // Radial burst — temp effect, visualise as bright center radial glow
-                        val cx = w / 2f; val cy = h * 0.45f
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(Color.White.copy(alpha = 0.45f), Color.Transparent),
-                                center = Offset(cx, cy),
-                                radius = w * 0.48f
-                            ),
-                            radius = w * 0.48f,
-                            center = Offset(cx, cy)
-                        )
-                        // Inner bright core
-                        drawCircle(Color.White.copy(alpha = 0.30f), w * 0.12f, Offset(cx, cy))
-                    }
-
-                    "dust" -> {
-                        // Fine grain — same as snow but higher density, smaller radius
-                        val dotR = (w * 0.018f).coerceAtLeast(0.8f)
-                        listOf(
-                            0.04f to 0.04f, 0.14f to 0.09f, 0.26f to 0.03f, 0.38f to 0.12f, 0.50f to 0.06f,
-                            0.62f to 0.11f, 0.74f to 0.05f, 0.86f to 0.13f, 0.95f to 0.07f,
-                            0.08f to 0.22f, 0.19f to 0.28f, 0.31f to 0.19f, 0.44f to 0.25f, 0.56f to 0.20f,
-                            0.68f to 0.27f, 0.79f to 0.21f, 0.91f to 0.29f,
-                            0.03f to 0.40f, 0.13f to 0.45f, 0.24f to 0.37f, 0.36f to 0.43f, 0.48f to 0.38f,
-                            0.59f to 0.44f, 0.71f to 0.39f, 0.83f to 0.46f, 0.94f to 0.41f,
-                            0.07f to 0.58f, 0.18f to 0.63f, 0.30f to 0.55f, 0.42f to 0.61f, 0.54f to 0.57f,
-                            0.65f to 0.64f, 0.77f to 0.58f, 0.89f to 0.65f,
-                            0.02f to 0.76f, 0.12f to 0.81f, 0.23f to 0.73f, 0.35f to 0.79f, 0.47f to 0.75f,
-                            0.58f to 0.82f, 0.70f to 0.76f, 0.81f to 0.83f, 0.93f to 0.77f,
-                            0.06f to 0.92f, 0.17f to 0.88f, 0.28f to 0.95f, 0.40f to 0.90f, 0.52f to 0.93f,
-                            0.63f to 0.87f, 0.75f to 0.94f, 0.87f to 0.89f, 0.97f to 0.96f
-                        ).forEach { (fx, fy) ->
-                            val a = 0.06f + ((fx * 13 + fy * 9) % 10) * 0.010f
-                            drawCircle(Color.White.copy(alpha = a), dotR, Offset(w * fx, h * fy))
-                        }
-                    }
+                    
                 }
             }
 
@@ -461,26 +435,15 @@ private fun EffectChip(
 
             // Layer 4: label at bottom in frosted pill
             Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 5.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(
-                        if (isDark)
-                            Color.Black.copy(alpha = if (selected) 0.55f else 0.35f)
-                        else
-                            Color.White.copy(alpha = if (selected) 0.85f else 0.75f)
-                    )
-                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text          = label,
-                    fontSize      = labelFs,
-                    fontWeight    = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    letterSpacing = 0.1.sp,
-                    textAlign     = TextAlign.Center,
-                    maxLines      = 1,
-                    color         = if (isDark) Color.White else Color.Black
+                    text = label,
+                    fontSize = labelFs,
+                    fontWeight = FontWeight.Black,
+                    color = if (isDark) Color.Black else Color.White,
+                    letterSpacing = 0.3.sp
                 )
             }
         }
@@ -569,7 +532,7 @@ private fun AddColorPill(onClick: () -> Unit, height: Dp, isDark: Boolean, fontS
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "+ Add Color", fontSize = fontSize,
+            text = stringResource(R.string.color_selector_add_color), fontSize = fontSize,
             fontWeight = FontWeight.Medium, letterSpacing = 0.1.sp,
             color = MaterialTheme.colorScheme.primary
         )
