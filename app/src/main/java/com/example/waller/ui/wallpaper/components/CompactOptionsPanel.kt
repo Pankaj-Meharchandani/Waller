@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
@@ -249,7 +250,7 @@ private fun EffectChip(
     height: Dp
 ) {
     var pressed by remember { mutableStateOf(false) }
-    val anim by animateFloatAsState(if (pressed) 0.94f else 1f, spring(0.55f, 550f), label = "ef")
+    val anim by animateFloatAsState(if (pressed) 0.94f else 1f, spring(0.65f, 480f), label = "ef")
 
     // Muted preview gradient — blue→teal, matches dark theme nicely, stays subtle
     val base = MaterialTheme.colorScheme.primary
@@ -275,34 +276,64 @@ private fun EffectChip(
                 .fillMaxWidth()
                 .height(height)
                 .clip(RoundedCornerShape(ChipCorner))
+                .background(
+                    if (selected) SolidColor(Color.Transparent)
+                    else chipBg(false, isDark)
+                )
+                .premiumChipBorder(selected, isDark)
                 .clickable(onClick = onClick)
         ) {
             // Layer 1: gradient base
-            Canvas(modifier = Modifier.matchParentSize()) {
-                val brush = Brush.linearGradient(
-                    colors = previewColors,
-                    start  = Offset(0f, 0f),
-                    end    = Offset(size.width, size.height)
-                )
-                drawRect(brush = brush)
+            // preview only when selected
+            if (selected) {
+
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    val brush = Brush.linearGradient(
+                        colors = previewColors,
+                        start = Offset(0f, 0f),
+                        end = Offset(size.width, size.height)
+                    )
+                    drawRect(brush = brush)
+                }
+
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = if (isDark) 0.22f else 0.08f)
+                            ),
+                            center = Offset(size.width / 2f, size.height / 2f),
+                            radius = size.maxDimension
+                        )
+                    )
+                }
+
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    // pattern rendering
+                }
+
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    // selected ring
+                }
             }
 
-            // subtle vignette to give depth
-            Canvas(modifier = Modifier.matchParentSize()) {
-                drawRect(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = if (isDark) 0.22f else 0.08f)
-                        ),
-                        center = Offset(size.width / 2f, size.height / 2f),
-                        radius = size.maxDimension
-                    )
+// ALWAYS draw label
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = label,
+                    fontSize = labelFs,
+                    fontWeight = FontWeight.SemiBold,
+                    color = chipFg(selected, isDark, true)
                 )
             }
 
             // Layer 2: effect pattern — mirrors BitmapUtils.kt rendering exactly
-            Canvas(modifier = Modifier.matchParentSize().graphicsLayer(alpha = overlayAlpha)) {
+                if (selected) {
+                    Canvas(modifier = Modifier.matchParentSize()) {
                 val w = size.width; val h = size.height
                 when (iconKey) {
 
@@ -314,7 +345,6 @@ private fun EffectChip(
                         for (i in 0 until bandCount) {
 
                             val x = bandW * i
-
                             val alpha = if (i % 2 == 0) 0.10f else 0.04f
 
                             drawRect(
@@ -398,7 +428,7 @@ private fun EffectChip(
             }
 
             // Layer 3: selected ring overlay
-            if (selected) {
+
                 Canvas(modifier = Modifier.matchParentSize()) {
                     drawRoundRect(
                         brush = Brush.radialGradient(
@@ -410,28 +440,19 @@ private fun EffectChip(
                         ),
                         cornerRadius = CornerRadius(ChipCorner.toPx())
                     )
-                    val sw2 = 2.2f.dp.toPx(); val i2 = sw2 / 2f
+                    val sw2 = 2.2f.dp.toPx();
+                    val i2 = sw2 / 2f
                     drawRoundRect(
-                        color        = selectedRing,
-                        topLeft      = Offset(i2, i2),
-                        size = androidx.compose.ui.geometry.Size(this.size.width - sw2, this.size.height - sw2),
+                        color = selectedRing,
+                        topLeft = Offset(i2, i2),
+                        size = androidx.compose.ui.geometry.Size(
+                            this.size.width - sw2,
+                            this.size.height - sw2
+                        ),
                         cornerRadius = CornerRadius(ChipCorner.toPx()),
-                        style        = Stroke(sw2)
+                        style = Stroke(sw2)
                     )
                 }
-            } else {
-                // Unselected border
-                Canvas(modifier = Modifier.matchParentSize()) {
-                    val sw2 = 1.2f.dp.toPx(); val i2 = sw2 / 2f
-                    drawRoundRect(
-                        color        = Color.White.copy(alpha = 0.12f),
-                        topLeft      = Offset(i2, i2),
-                        size = androidx.compose.ui.geometry.Size(this.size.width - sw2, this.size.height - sw2),
-                        cornerRadius = CornerRadius(ChipCorner.toPx()),
-                        style        = Stroke(sw2)
-                    )
-                }
-            }
 
             // Layer 4: label at bottom in frosted pill
             Box(
@@ -441,14 +462,13 @@ private fun EffectChip(
                 Text(
                     text = label,
                     fontSize = labelFs,
-                    fontWeight = FontWeight.Black,
-                    color = if (isDark) Color.Black else Color.White,
-                    letterSpacing = 0.3.sp
+                    fontWeight = FontWeight.SemiBold,
+                    color = chipFg(selected, isDark, true)
                 )
             }
         }
     }
-}
+}}
 
 /* ── Text chip (gradient row) ────────────────────────────────────── */
 @Composable
