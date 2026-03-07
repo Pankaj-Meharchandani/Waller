@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -93,12 +94,12 @@ fun CompactOptionsPanel(
     data class EffectItem(val iconKey: String, val label: String, val selected: Boolean, val onClick: () -> Unit)
     // Effect icon keys — rendered as canvas-drawn shapes, not emoji
     val effects = listOf(
-        EffectItem("glass",   "Glass",   addOverlay,   onOverlayToggle),
-        EffectItem("stripes", "Stripes", addStripes,   onStripesToggle),
-        EffectItem("snow",    "Snow",    addNoise,     onNoiseToggle),
-        EffectItem("geo",     "Geo",     addGeometric, onGeometricToggle),
-        EffectItem("glow",    "Glow",    addGeometric, onGeometricToggle), // temp
-        EffectItem("dust",    "Dust",    addGeometric, onGeometricToggle), // temp
+        EffectItem("glass", stringResource(R.string.effects_nothing_style), addOverlay, onOverlayToggle),
+        EffectItem("stripes", stringResource(R.string.effects_stripes), addStripes, onStripesToggle),
+        EffectItem("snow", stringResource(R.string.effects_snow_effect), addNoise, onNoiseToggle),
+        EffectItem("geo", stringResource(R.string.effect_geometric), addGeometric, onGeometricToggle),
+//        EffectItem("glow", "Glow", addGeometric, onGeometricToggle),
+//        EffectItem("dust", "Dust", addGeometric, onGeometricToggle)
     )
 
     Column(
@@ -231,7 +232,10 @@ fun CompactOptionsPanel(
     }
 }
 
-/* ── Effect chip — canvas-drawn icon, no emoji ───────────────────── */
+/* ── Effect chip — full-chip mini wallpaper thumbnail ────────────── */
+// The entire chip background IS the effect preview — gradient + effect pattern on top.
+// Label sits at the bottom in a frosted pill so it's always readable.
+// This matches exactly what the user sees in the wallpaper grid below.
 @Composable
 private fun EffectChip(
     modifier: Modifier,
@@ -240,13 +244,22 @@ private fun EffectChip(
     selected: Boolean,
     onClick: () -> Unit,
     isDark: Boolean,
-    iconFs: TextUnit,
+    iconFs: TextUnit,  // unused now but kept for API compat
     labelFs: TextUnit,
     height: Dp
 ) {
     var pressed by remember { mutableStateOf(false) }
-    val anim by animateFloatAsState(if (pressed) 0.91f else 1f, spring(0.55f, 550f), label = "ef")
-    val iconColor = chipFg(selected, isDark, true)
+    val anim by animateFloatAsState(if (pressed) 0.94f else 1f, spring(0.55f, 550f), label = "ef")
+
+    // Muted preview gradient — blue→teal, matches dark theme nicely, stays subtle
+    val previewColors = if (isDark) {
+        listOf(Color(0xFF1a237e), Color(0xFF37474f))
+    } else {
+        listOf(Color(0xFF6A7BFF), Color(0xFF8EC5FF))
+    }
+    val overlayAlpha  = if (selected) 1f else 0.75f
+    val patternColor = Color.White.copy(alpha = if (isDark) 0.16f else 0.22f)
+    val selectedRing  = MaterialTheme.colorScheme.primary
 
     Box(modifier = modifier.scale(anim)) {
         Box(
@@ -254,97 +267,221 @@ private fun EffectChip(
                 .fillMaxWidth()
                 .height(height)
                 .clip(RoundedCornerShape(ChipCorner))
-                .background(chipBg(selected, isDark))
-                .premiumChipBorder(selected, isDark)
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center
+                .clickable(onClick = onClick)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.padding(horizontal = 2.dp)
-            ) {
-                // Canvas-drawn icon — crisp at any density, matches reference images
-                val iconSizeDp = androidx.compose.ui.unit.Dp(iconFs.value * 1.1f)
-                Canvas(modifier = Modifier.size(iconSizeDp)) {
-                    val w = size.width; val h = size.height
-                    val paint = androidx.compose.ui.graphics.Paint().apply {
-                        color = iconColor
-                        strokeWidth = (w * 0.08f).coerceAtLeast(1.5f)
-                        style = androidx.compose.ui.graphics.PaintingStyle.Stroke
-                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+            // Layer 1: gradient base
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val brush = Brush.linearGradient(
+                    colors = previewColors,
+                    start  = Offset(0f, 0f),
+                    end    = Offset(size.width, size.height)
+                )
+                drawRect(brush = brush)
+            }
+
+            // subtle vignette to give depth
+            Canvas(modifier = Modifier.matchParentSize()) {
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = if (isDark) 0.22f else 0.08f)
+                        ),
+                        center = Offset(size.width / 2f, size.height / 2f),
+                        radius = size.maxDimension
+                    )
+                )
+            }
+
+            // Layer 2: effect pattern — mirrors BitmapUtils.kt rendering exactly
+            Canvas(modifier = Modifier.matchParentSize().graphicsLayer(alpha = overlayAlpha)) {
+                val w = size.width; val h = size.height
+                when (iconKey) {
+
+                    "glass" -> {
+                        val bandCount = 8
+                        val bandH = h / bandCount
+
+                        for (i in 0 until bandCount) {
+                            val y = bandH * i
+
+                            val alpha = if (i % 2 == 0) 0.12f else 0.05f
+
+                            drawRect(
+                                color = Color.White.copy(alpha = alpha),
+                                topLeft = Offset(0f, y),
+                                size = Size(w, bandH)
+                            )
+                        }
+
+                        val lineSw = (h * 0.006f).coerceAtLeast(0.7f)
+
+                        for (i in 1 until bandCount) {
+                            val y = bandH * i
+
+                            drawLine(
+                                Color.White.copy(alpha = 0.22f),
+                                Offset(0f, y),
+                                Offset(w, y),
+                                strokeWidth = lineSw
+                            )
+                        }
                     }
-                    when (iconKey) {
-                        "glass" -> {
-                            // Straight horizontal lines (venetian blind / glass slats)
-                            val lineCount = 4
-                            val gap = h / (lineCount + 1)
-                            for (i in 1..lineCount) {
-                                drawLine(iconColor, Offset(w * 0.1f, gap * i), Offset(w * 0.9f, gap * i),
-                                    strokeWidth = paint.strokeWidth, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                            }
+
+                    "stripes" -> {
+                        // BitmapUtils: canvas.rotate(-45°) + vertical soft-fade rects
+                        // Replicated as diagonal lines at -45° with soft alpha, spacing = w/10
+                        val spacing = w / 10f
+                        val diag = kotlin.math.sqrt((w * w + h * h).toDouble()).toFloat()
+                        val sw2 = (spacing * 0.45f).coerceAtLeast(1f)
+                        var i = -diag
+                        while (i < diag * 2f) {
+                            // Each stripe: two lines side-by-side for soft-edge effect
+                            val x0 = i;  val y0 = 0f
+                            val x1 = i + h; val y1 = h   // -45° line
+                            drawLine(Color.White.copy(alpha = 0.20f), Offset(x0, y0), Offset(x1, y1),
+                                strokeWidth = sw2, cap = StrokeCap.Butt)
+                            drawLine(Color.White.copy(alpha = 0.06f), Offset(x0 + sw2 * 0.5f, y0),
+                                Offset(x1 + sw2 * 0.5f, y1),
+                                strokeWidth = sw2 * 0.7f, cap = StrokeCap.Butt)
+                            i += spacing
                         }
-                        "stripes" -> {
-                            // Diagonal lines (45°) matching reference image 1
-                            val lineCount = 5
-                            val step = w / lineCount
-                            for (i in -1..lineCount + 1) {
-                                val x = step * i
-                                drawLine(iconColor, Offset(x, h), Offset(x + h, 0f),
-                                    strokeWidth = paint.strokeWidth, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                            }
+                    }
+
+                    "snow" -> {
+                        // BitmapUtils: ~2% of pixels as random white circles, radius 0.6–1.8×basePx
+                        // Fixed seed positions for consistent thumbnail appearance
+                        val dotR = (w * 0.028f).coerceAtLeast(1f)
+                        listOf(
+                            0.07f to 0.06f, 0.21f to 0.13f, 0.44f to 0.04f, 0.63f to 0.11f, 0.82f to 0.08f, 0.95f to 0.17f,
+                            0.03f to 0.27f, 0.16f to 0.33f, 0.31f to 0.24f, 0.52f to 0.31f, 0.70f to 0.26f, 0.88f to 0.35f,
+                            0.11f to 0.48f, 0.27f to 0.54f, 0.43f to 0.44f, 0.60f to 0.51f, 0.76f to 0.46f, 0.91f to 0.55f,
+                            0.05f to 0.67f, 0.20f to 0.72f, 0.37f to 0.63f, 0.55f to 0.69f, 0.73f to 0.74f, 0.87f to 0.65f,
+                            0.13f to 0.85f, 0.29f to 0.90f, 0.48f to 0.82f, 0.66f to 0.88f, 0.83f to 0.83f, 0.97f to 0.91f
+                        ).forEach { (fx, fy) ->
+                            val r = dotR * (0.7f + ((fx * 7 + fy * 13) % 10) * 0.13f)
+                            val a = 0.08f + ((fx * 11 + fy * 7) % 10) * 0.012f
+                            drawCircle(Color.White.copy(alpha = a), r, Offset(w * fx, h * fy))
                         }
-                        "snow" -> {
-                            // Scattered dots (snow/grain) matching reference image 4
-                            val dotR = (w * 0.07f)
-                            val positions = listOf(
-                                Offset(w*0.2f, h*0.25f), Offset(w*0.55f, h*0.15f), Offset(w*0.8f, h*0.35f),
-                                Offset(w*0.15f, h*0.6f), Offset(w*0.45f, h*0.55f), Offset(w*0.75f, h*0.65f),
-                                Offset(w*0.3f,  h*0.82f), Offset(w*0.65f, h*0.85f)
-                            )
-                            positions.forEach { pos ->
-                                drawCircle(iconColor, dotR, pos)
-                            }
+                    }
+
+                    "geo" -> {
+                        // overlay_geometric PNG = grid lines + circles (matches reference image 2 exactly)
+                        val sw = (w * 0.025f).coerceAtLeast(0.8f)
+                        val lineColor = Color.White.copy(alpha = 0.18f)
+                        // 3-column grid
+                        for (i in 1..2) {
+                            drawLine(lineColor, Offset(w * i / 3f, 0f), Offset(w * i / 3f, h), strokeWidth = sw)
                         }
-                        "geo" -> {
-                            // Circle + grid lines (geometric) matching reference image 2
-                            val cx = w / 2f; val cy = h / 2f; val r = w * 0.38f
-                            drawLine(iconColor, Offset(0f, cy), Offset(w, cy), strokeWidth = paint.strokeWidth * 0.7f)
-                            drawLine(iconColor, Offset(cx, 0f), Offset(cx, h), strokeWidth = paint.strokeWidth * 0.7f)
-                            drawCircle(iconColor, r, Offset(cx, cy), style = Stroke(paint.strokeWidth * 0.7f))
+                        // 4-row grid
+                        for (i in 1..3) {
+                            drawLine(lineColor, Offset(0f, h * i / 4f), Offset(w, h * i / 4f), strokeWidth = sw)
                         }
-                        "glow" -> {
-                            // Starburst / 4-point star
-                            val cx = w / 2f; val cy = h / 2f
-                            val outer = w * 0.45f; val inner = w * 0.18f
-                            val path = androidx.compose.ui.graphics.Path()
-                            for (i in 0 until 8) {
-                                val angle = Math.toRadians(i * 45.0 - 90)
-                                val r2 = if (i % 2 == 0) outer else inner
-                                val px = cx + (r2 * Math.cos(angle)).toFloat()
-                                val py = cy + (r2 * Math.sin(angle)).toFloat()
-                                if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
-                            }
-                            path.close()
-                            drawPath(path, iconColor, style = Stroke(paint.strokeWidth * 0.7f))
-                        }
-                        "dust" -> {
-                            // Small scattered dots (finer than snow)
-                            val dotR = (w * 0.05f)
-                            val positions = listOf(
-                                Offset(w*0.15f, h*0.2f), Offset(w*0.4f, h*0.1f), Offset(w*0.7f, h*0.25f), Offset(w*0.88f, h*0.15f),
-                                Offset(w*0.25f, h*0.5f), Offset(w*0.6f,  h*0.45f), Offset(w*0.82f, h*0.55f),
-                                Offset(w*0.1f,  h*0.75f), Offset(w*0.35f, h*0.8f), Offset(w*0.65f, h*0.75f), Offset(w*0.9f, h*0.82f)
-                            )
-                            positions.forEach { pos -> drawCircle(iconColor, dotR, pos) }
+                        // Large circle centered upper portion
+                        drawCircle(lineColor, w * 0.40f, Offset(w * 0.5f, h * 0.32f), style = Stroke(sw))
+                        // Smaller circle centered lower
+                        drawCircle(lineColor, w * 0.30f, Offset(w * 0.5f, h * 0.62f), style = Stroke(sw))
+                    }
+
+                    "glow" -> {
+                        // Radial burst — temp effect, visualise as bright center radial glow
+                        val cx = w / 2f; val cy = h * 0.45f
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(Color.White.copy(alpha = 0.45f), Color.Transparent),
+                                center = Offset(cx, cy),
+                                radius = w * 0.48f
+                            ),
+                            radius = w * 0.48f,
+                            center = Offset(cx, cy)
+                        )
+                        // Inner bright core
+                        drawCircle(Color.White.copy(alpha = 0.30f), w * 0.12f, Offset(cx, cy))
+                    }
+
+                    "dust" -> {
+                        // Fine grain — same as snow but higher density, smaller radius
+                        val dotR = (w * 0.018f).coerceAtLeast(0.8f)
+                        listOf(
+                            0.04f to 0.04f, 0.14f to 0.09f, 0.26f to 0.03f, 0.38f to 0.12f, 0.50f to 0.06f,
+                            0.62f to 0.11f, 0.74f to 0.05f, 0.86f to 0.13f, 0.95f to 0.07f,
+                            0.08f to 0.22f, 0.19f to 0.28f, 0.31f to 0.19f, 0.44f to 0.25f, 0.56f to 0.20f,
+                            0.68f to 0.27f, 0.79f to 0.21f, 0.91f to 0.29f,
+                            0.03f to 0.40f, 0.13f to 0.45f, 0.24f to 0.37f, 0.36f to 0.43f, 0.48f to 0.38f,
+                            0.59f to 0.44f, 0.71f to 0.39f, 0.83f to 0.46f, 0.94f to 0.41f,
+                            0.07f to 0.58f, 0.18f to 0.63f, 0.30f to 0.55f, 0.42f to 0.61f, 0.54f to 0.57f,
+                            0.65f to 0.64f, 0.77f to 0.58f, 0.89f to 0.65f,
+                            0.02f to 0.76f, 0.12f to 0.81f, 0.23f to 0.73f, 0.35f to 0.79f, 0.47f to 0.75f,
+                            0.58f to 0.82f, 0.70f to 0.76f, 0.81f to 0.83f, 0.93f to 0.77f,
+                            0.06f to 0.92f, 0.17f to 0.88f, 0.28f to 0.95f, 0.40f to 0.90f, 0.52f to 0.93f,
+                            0.63f to 0.87f, 0.75f to 0.94f, 0.87f to 0.89f, 0.97f to 0.96f
+                        ).forEach { (fx, fy) ->
+                            val a = 0.06f + ((fx * 13 + fy * 9) % 10) * 0.010f
+                            drawCircle(Color.White.copy(alpha = a), dotR, Offset(w * fx, h * fy))
                         }
                     }
                 }
-                Spacer(Modifier.height(2.dp))
-                Text(text = label, fontSize = labelFs,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    letterSpacing = 0.1.sp, textAlign = TextAlign.Center, maxLines = 1,
-                    color = chipFg(selected, isDark, false))
+            }
+
+            // Layer 3: selected ring overlay
+            if (selected) {
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    drawRoundRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                selectedRing.copy(alpha = 0.25f),
+                                Color.Transparent
+                            ),
+                            radius = size.maxDimension
+                        ),
+                        cornerRadius = CornerRadius(ChipCorner.toPx())
+                    )
+                    val sw2 = 2.2f.dp.toPx(); val i2 = sw2 / 2f
+                    drawRoundRect(
+                        color        = selectedRing,
+                        topLeft      = Offset(i2, i2),
+                        size = androidx.compose.ui.geometry.Size(this.size.width - sw2, this.size.height - sw2),
+                        cornerRadius = CornerRadius(ChipCorner.toPx()),
+                        style        = Stroke(sw2)
+                    )
+                }
+            } else {
+                // Unselected border
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    val sw2 = 1.2f.dp.toPx(); val i2 = sw2 / 2f
+                    drawRoundRect(
+                        color        = Color.White.copy(alpha = 0.12f),
+                        topLeft      = Offset(i2, i2),
+                        size = androidx.compose.ui.geometry.Size(this.size.width - sw2, this.size.height - sw2),
+                        cornerRadius = CornerRadius(ChipCorner.toPx()),
+                        style        = Stroke(sw2)
+                    )
+                }
+            }
+
+            // Layer 4: label at bottom in frosted pill
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 5.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(
+                        if (isDark)
+                            Color.Black.copy(alpha = if (selected) 0.55f else 0.35f)
+                        else
+                            Color.White.copy(alpha = if (selected) 0.85f else 0.75f)
+                    )
+                    .padding(horizontal = 5.dp, vertical = 1.dp)
+            ) {
+                Text(
+                    text          = label,
+                    fontSize      = labelFs,
+                    fontWeight    = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    letterSpacing = 0.1.sp,
+                    textAlign     = TextAlign.Center,
+                    maxLines      = 1,
+                    color         = if (isDark) Color.White else Color.Black
+                )
             }
         }
     }
@@ -401,8 +538,7 @@ private fun ColorSquare(color: Color, size: Dp, onClick: () -> Unit, isDark: Boo
                 drawRoundRect(
                     color = if (isDark) Color.Black.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.4f),
                     topLeft = androidx.compose.ui.geometry.Offset(i, i),
-                    size = Size(this.size.width - sw, this.size.height - sw),
-                    cornerRadius = CornerRadius(12.dp.toPx()), style = Stroke(sw)
+                    size = Size(this.size.width - sw, this.size.height - sw),                    cornerRadius = CornerRadius(12.dp.toPx()), style = Stroke(sw)
                 )
             }
             .clickable(onClick = onClick),
