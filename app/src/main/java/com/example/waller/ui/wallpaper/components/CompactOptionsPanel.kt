@@ -28,11 +28,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.PaintingStyle
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -85,14 +90,15 @@ fun CompactOptionsPanel(
     val spacing  = (ChipSpacing.value * scale).dp
     val rowGap   = (RowSpacing.value * scale).dp
 
-    data class EffectItem(val icon: String, val label: String, val selected: Boolean, val onClick: () -> Unit)
+    data class EffectItem(val iconKey: String, val label: String, val selected: Boolean, val onClick: () -> Unit)
+    // Effect icon keys — rendered as canvas-drawn shapes, not emoji
     val effects = listOf(
-        EffectItem("🪟", "Glass",   addOverlay,   onOverlayToggle),
-        EffectItem("▤",  "Stripes", addStripes,   onStripesToggle),
-        EffectItem("❄",  "Snow",    addNoise,     onNoiseToggle),
-        EffectItem("◈",  "Geo",     addGeometric, onGeometricToggle),
-        EffectItem("✦",  "Glow",    addGeometric, onGeometricToggle), // temp
-        EffectItem("◌",  "Dust",    addGeometric, onGeometricToggle), // temp
+        EffectItem("glass",   "Glass",   addOverlay,   onOverlayToggle),
+        EffectItem("stripes", "Stripes", addStripes,   onStripesToggle),
+        EffectItem("snow",    "Snow",    addNoise,     onNoiseToggle),
+        EffectItem("geo",     "Geo",     addGeometric, onGeometricToggle),
+        EffectItem("glow",    "Glow",    addGeometric, onGeometricToggle), // temp
+        EffectItem("dust",    "Dust",    addGeometric, onGeometricToggle), // temp
     )
 
     Column(
@@ -101,21 +107,21 @@ fun CompactOptionsPanel(
     ) {
 
         /* ── Row 1: Colors ───────────────────────────────────────────── */
-        // Split into two sub-rows so colors + Add Color never crowd Multi-color off screen:
-        //   Line A: color squares  +  "+ Add Color" pill
-        //   Line B (same row, pushed right): "Multi-color" pill
-        // When many colors are present, Add Color disappears (max 5) so line A stays compact.
-        Column(
-            verticalArrangement = Arrangement.spacedBy(spacing * 0.6f),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            // Sub-row: color squares + Add Color + spacer + Multi-color
+        // Space-aware: measures actual available width to decide pill vs icon-only.
+        // Works correctly on phones, tablets, and foldables.
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val availableWidth = maxWidth
+            val colorBlockWidth = (colorH * selectedColors.size) + (spacing * selectedColors.size.coerceAtLeast(1))
+            val multiColorWidth = (90 * scale).dp
+            val pillWidth       = (95 * scale).dp
+            val hasRoomForPill  = selectedColors.size < 5 &&
+                    (colorBlockWidth + pillWidth + multiColorWidth + spacing * 3) <= availableWidth
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(spacing),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Color squares
                 selectedColors.forEachIndexed { index, color ->
                     ColorSquare(
                         color   = color,
@@ -126,29 +132,26 @@ fun CompactOptionsPanel(
                     )
                 }
 
-                // + Add Color — show compact "+" icon-only when 3+ colors to save space
                 if (selectedColors.size < 5) {
-                    if (selectedColors.size >= 3) {
-                        // Icon-only square to save space
-                        AddColorIcon(
-                            onClick = onAddColor,
-                            size    = colorH,
-                            isDark  = isDark,
-                            fontSize = (16 * scale).sp
-                        )
-                    } else {
+                    if (hasRoomForPill) {
                         AddColorPill(
                             onClick  = onAddColor,
                             height   = colorH,
                             isDark   = isDark,
                             fontSize = (12 * scale).sp
                         )
+                    } else {
+                        AddColorIcon(
+                            onClick  = onAddColor,
+                            size     = colorH,
+                            isDark   = isDark,
+                            fontSize = (16 * scale).sp
+                        )
                     }
                 }
 
                 Spacer(Modifier.weight(1f))
 
-                // Multi-color — always has guaranteed space on the right
                 MultiColorPill(
                     isMultiColor = isMultiColor,
                     onToggle = {
@@ -204,7 +207,7 @@ fun CompactOptionsPanel(
                         val labelFs = (maxWidth.value * 0.16f).coerceIn(7f,  13f).sp
                         EffectChip(
                             modifier = Modifier.fillMaxWidth(),
-                            icon     = effect.icon,
+                            iconKey  = effect.iconKey,
                             label    = effect.label,
                             selected = effect.selected,
                             onClick  = { Haptics.light(view); effect.onClick() },
@@ -228,11 +231,11 @@ fun CompactOptionsPanel(
     }
 }
 
-/* ── Effect chip ─────────────────────────────────────────────────── */
+/* ── Effect chip — canvas-drawn icon, no emoji ───────────────────── */
 @Composable
 private fun EffectChip(
     modifier: Modifier,
-    icon: String,
+    iconKey: String,
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -243,6 +246,8 @@ private fun EffectChip(
 ) {
     var pressed by remember { mutableStateOf(false) }
     val anim by animateFloatAsState(if (pressed) 0.91f else 1f, spring(0.55f, 550f), label = "ef")
+    val iconColor = chipFg(selected, isDark, true)
+
     Box(modifier = modifier.scale(anim)) {
         Box(
             modifier = Modifier
@@ -259,8 +264,83 @@ private fun EffectChip(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.padding(horizontal = 2.dp)
             ) {
-                Text(text = icon, fontSize = iconFs,
-                    color = chipFg(selected, isDark, true))
+                // Canvas-drawn icon — crisp at any density, matches reference images
+                val iconSizeDp = androidx.compose.ui.unit.Dp(iconFs.value * 1.1f)
+                Canvas(modifier = Modifier.size(iconSizeDp)) {
+                    val w = size.width; val h = size.height
+                    val paint = androidx.compose.ui.graphics.Paint().apply {
+                        color = iconColor
+                        strokeWidth = (w * 0.08f).coerceAtLeast(1.5f)
+                        style = androidx.compose.ui.graphics.PaintingStyle.Stroke
+                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                    }
+                    when (iconKey) {
+                        "glass" -> {
+                            // Straight horizontal lines (venetian blind / glass slats)
+                            val lineCount = 4
+                            val gap = h / (lineCount + 1)
+                            for (i in 1..lineCount) {
+                                drawLine(iconColor, Offset(w * 0.1f, gap * i), Offset(w * 0.9f, gap * i),
+                                    strokeWidth = paint.strokeWidth, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                            }
+                        }
+                        "stripes" -> {
+                            // Diagonal lines (45°) matching reference image 1
+                            val lineCount = 5
+                            val step = w / lineCount
+                            for (i in -1..lineCount + 1) {
+                                val x = step * i
+                                drawLine(iconColor, Offset(x, h), Offset(x + h, 0f),
+                                    strokeWidth = paint.strokeWidth, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                            }
+                        }
+                        "snow" -> {
+                            // Scattered dots (snow/grain) matching reference image 4
+                            val dotR = (w * 0.07f)
+                            val positions = listOf(
+                                Offset(w*0.2f, h*0.25f), Offset(w*0.55f, h*0.15f), Offset(w*0.8f, h*0.35f),
+                                Offset(w*0.15f, h*0.6f), Offset(w*0.45f, h*0.55f), Offset(w*0.75f, h*0.65f),
+                                Offset(w*0.3f,  h*0.82f), Offset(w*0.65f, h*0.85f)
+                            )
+                            positions.forEach { pos ->
+                                drawCircle(iconColor, dotR, pos)
+                            }
+                        }
+                        "geo" -> {
+                            // Circle + grid lines (geometric) matching reference image 2
+                            val cx = w / 2f; val cy = h / 2f; val r = w * 0.38f
+                            drawLine(iconColor, Offset(0f, cy), Offset(w, cy), strokeWidth = paint.strokeWidth * 0.7f)
+                            drawLine(iconColor, Offset(cx, 0f), Offset(cx, h), strokeWidth = paint.strokeWidth * 0.7f)
+                            drawCircle(iconColor, r, Offset(cx, cy), style = Stroke(paint.strokeWidth * 0.7f))
+                        }
+                        "glow" -> {
+                            // Starburst / 4-point star
+                            val cx = w / 2f; val cy = h / 2f
+                            val outer = w * 0.45f; val inner = w * 0.18f
+                            val path = androidx.compose.ui.graphics.Path()
+                            for (i in 0 until 8) {
+                                val angle = Math.toRadians(i * 45.0 - 90)
+                                val r2 = if (i % 2 == 0) outer else inner
+                                val px = cx + (r2 * Math.cos(angle)).toFloat()
+                                val py = cy + (r2 * Math.sin(angle)).toFloat()
+                                if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
+                            }
+                            path.close()
+                            drawPath(path, iconColor, style = Stroke(paint.strokeWidth * 0.7f))
+                        }
+                        "dust" -> {
+                            // Small scattered dots (finer than snow)
+                            val dotR = (w * 0.05f)
+                            val positions = listOf(
+                                Offset(w*0.15f, h*0.2f), Offset(w*0.4f, h*0.1f), Offset(w*0.7f, h*0.25f), Offset(w*0.88f, h*0.15f),
+                                Offset(w*0.25f, h*0.5f), Offset(w*0.6f,  h*0.45f), Offset(w*0.82f, h*0.55f),
+                                Offset(w*0.1f,  h*0.75f), Offset(w*0.35f, h*0.8f), Offset(w*0.65f, h*0.75f), Offset(w*0.9f, h*0.82f)
+                            )
+                            positions.forEach { pos -> drawCircle(iconColor, dotR, pos) }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(2.dp))
                 Text(text = label, fontSize = labelFs,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                     letterSpacing = 0.1.sp, textAlign = TextAlign.Center, maxLines = 1,
@@ -317,15 +397,11 @@ private fun ColorSquare(color: Color, size: Dp, onClick: () -> Unit, isDark: Boo
             .clip(RoundedCornerShape(12.dp))
             .background(color)
             .drawBehind {
-                val sw = 1.5f.dp.toPx();
-                val i = sw / 2f
+                val sw = 1.5f.dp.toPx(); val i = sw / 2f
                 drawRoundRect(
                     color = if (isDark) Color.Black.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.4f),
                     topLeft = androidx.compose.ui.geometry.Offset(i, i),
-                    size = Size(
-                        this.size.width - sw,
-                        this.size.height - sw
-                    ),
+                    size = Size(this.size.width - sw, this.size.height - sw),
                     cornerRadius = CornerRadius(12.dp.toPx()), style = Stroke(sw)
                 )
             }
@@ -371,8 +447,7 @@ private fun AddColorIcon(onClick: () -> Unit, size: Dp, isDark: Boolean, fontSiz
     val anim by animateFloatAsState(if (pressed) 0.94f else 1f, spring(0.6f, 500f), label = "aci")
     Box(
         modifier = Modifier
-            .scale(anim)
-            .size(size)
+            .scale(anim).size(size)
             .clip(RoundedCornerShape(12.dp))
             .background(if (isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f))
             .premiumAddColorBorder(isDark)
@@ -398,20 +473,14 @@ private fun MultiColorPill(
             .height(height)
             .clip(RoundedCornerShape(12.dp))
             .background(
-                if (isMultiColor) Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
-                    )
-                ) else if (isDark) Brush.verticalGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.07f), Color.White.copy(alpha = 0.05f)
-                    )
-                ) else Brush.verticalGradient(
-                    listOf(
-                        Color.Black.copy(alpha = 0.05f), Color.Black.copy(alpha = 0.03f)
-                    )
-                )
+                if (isMultiColor) Brush.verticalGradient(listOf(
+                    MaterialTheme.colorScheme.primaryContainer,
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+                )) else if (isDark) Brush.verticalGradient(listOf(
+                    Color.White.copy(alpha = 0.07f), Color.White.copy(alpha = 0.05f)
+                )) else Brush.verticalGradient(listOf(
+                    Color.Black.copy(alpha = 0.05f), Color.Black.copy(alpha = 0.03f)
+                ))
             )
             .premiumMultiColorBorder(isMultiColor, isDark)
             .clickable(onClick = onToggle)
@@ -444,8 +513,7 @@ private fun ToneSliderRow(toneMode: ToneMode, onToneChange: (ToneMode) -> Unit, 
         Spacer(Modifier.height(8.dp))
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp)
+                .fillMaxWidth().height(44.dp)
                 .clip(RoundedCornerShape(ChipCorner))
                 .background(if (isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f))
                 .premiumSliderBorder(isDark)
@@ -460,29 +528,17 @@ private fun ToneSliderRow(toneMode: ToneMode, onToneChange: (ToneMode) -> Unit, 
                     val sel = pos == i
                     Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
+                            .weight(1f).fillMaxHeight()
                             .clip(RoundedCornerShape(11.dp))
                             .clickable {
                                 pos = i
-                                onToneChange(
-                                    when (i) {
-                                        0 -> ToneMode.DARK; 1 -> ToneMode.NEUTRAL; else -> ToneMode.LIGHT
-                                    }
-                                )
+                                onToneChange(when (i) { 0 -> ToneMode.DARK; 1 -> ToneMode.NEUTRAL; else -> ToneMode.LIGHT })
                             }
                             .background(
-                                if (sel) Brush.verticalGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                                    )
-                                ) else Brush.verticalGradient(
-                                    listOf(
-                                        Color.Transparent,
-                                        Color.Transparent
-                                    )
-                                )
+                                if (sel) Brush.verticalGradient(listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                                )) else Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
                             ),
                         contentAlignment = Alignment.Center
                     ) {
