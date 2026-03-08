@@ -26,9 +26,11 @@ data class WallFavorite(
     val addStripes: Boolean,
     val addOverlay: Boolean,
     val addGeometric: Boolean,
+    val addBlur: Boolean = false,
 
     val noiseAlpha: Float,
     val stripesAlpha: Float,
     val overlayAlpha: Float,
-    val geometricAlpha: Float
+    val geometricAlpha: Float,
+    val blurAlpha: Float = 1f
 )
