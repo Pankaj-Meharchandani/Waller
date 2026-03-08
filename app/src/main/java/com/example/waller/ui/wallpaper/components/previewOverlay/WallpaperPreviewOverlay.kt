@@ -567,7 +567,7 @@ fun WallpaperPreviewOverlay(
 
             Spacer(Modifier.height(18.dp))
 
-            // Effects chips
+            // Effects chips — row 1: first 3, row 2: last 2 centered
             Box(
                 modifier = Modifier
                     .wrapContentWidth()
@@ -575,36 +575,71 @@ fun WallpaperPreviewOverlay(
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.06f))
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    effects.forEach { effect ->
-                        EffectChip(
-                            label = effect.label,
-                            selected = effect.isEnabled(),
-                            fillProgress = effect.alpha(),
-                            isActive = activeEffect == effect.type,
-                            textColor = overlayTextColor(selectedForButton = effect.isEnabled()),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            when {
-                                !effect.isEnabled() -> {
-                                    effect.setEnabled(true)
-                                    activeEffect = effect.type
-                                }
-                                activeEffect != effect.type -> {
-                                    activeEffect = effect.type
-                                }
-                                else -> {
-                                    effect.setEnabled(false)
-                                    effect.setAlpha(0f)
-                                    activeEffect = null
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Row 1: Glass, Snow, Stripes
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        effects.take(3).forEach { effect ->
+                            EffectChip(
+                                label = effect.label,
+                                selected = effect.isEnabled(),
+                                fillProgress = effect.alpha(),
+                                isActive = activeEffect == effect.type,
+                                textColor = overlayTextColor(selectedForButton = effect.isEnabled()),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                when {
+                                    !effect.isEnabled() -> {
+                                        effect.setEnabled(true)
+                                        activeEffect = effect.type
+                                    }
+                                    activeEffect != effect.type -> {
+                                        activeEffect = effect.type
+                                    }
+                                    else -> {
+                                        effect.setEnabled(false)
+                                        effect.setAlpha(0f)
+                                        activeEffect = null
+                                    }
                                 }
                             }
                         }
                     }
-
+                    // Row 2: Geometry, Blur — centered by wrapping in a centered Row
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Spacer(Modifier.weight(0.5f))
+                        effects.drop(3).forEach { effect ->
+                            EffectChip(
+                                label = effect.label,
+                                selected = effect.isEnabled(),
+                                fillProgress = effect.alpha(),
+                                isActive = activeEffect == effect.type,
+                                textColor = overlayTextColor(selectedForButton = effect.isEnabled()),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                when {
+                                    !effect.isEnabled() -> {
+                                        effect.setEnabled(true)
+                                        activeEffect = effect.type
+                                    }
+                                    activeEffect != effect.type -> {
+                                        activeEffect = effect.type
+                                    }
+                                    else -> {
+                                        effect.setEnabled(false)
+                                        effect.setAlpha(0f)
+                                        activeEffect = null
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(Modifier.weight(0.5f))
+                    }
                 }
             }
 
