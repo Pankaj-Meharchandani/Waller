@@ -13,6 +13,7 @@
 
 package com.example.waller.ui.wallpaper.components.previewOverlay
 
+import android.annotation.SuppressLint
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -52,6 +53,7 @@ import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.Wallpaper
 import kotlin.random.Random
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun PreviewWallpaperRender(
     wallpaper: Wallpaper,
@@ -77,101 +79,36 @@ fun PreviewWallpaperRender(
             .asComposeRenderEffect()
     } else null
 
-    Box(modifier = modifier
-        .clip(RoundedCornerShape(cornerRadius))
-        .graphicsLayer { renderEffect = blurEffect }
-    ) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val widthDp = maxWidth
-            val heightDp = maxHeight
-            val density = LocalDensity.current
-            val widthPx = with(density) { widthDp.toPx() }
-            val heightPx = with(density) { heightDp.toPx() }
+    Box(modifier = modifier.clip(RoundedCornerShape(cornerRadius))) {
+        // Gradient + effects — blurred as a unit, label excluded
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer { renderEffect = blurEffect }
+        ) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val widthDp = maxWidth
+                val heightDp = maxHeight
+                val density = LocalDensity.current
+                val widthPx = with(density) { widthDp.toPx() }
+                val heightPx = with(density) { heightDp.toPx() }
 
-            val androidColors = wallpaper.colors.map { it.toArgb() }.toIntArray()
+                val androidColors = wallpaper.colors.map { it.toArgb() }.toIntArray()
 
-            val brush = remember(wallpaper.colors, previewType, angleDeg, widthPx, heightPx) {
-                createBrushForPreview(wallpaper.colors, previewType, widthPx, heightPx, angleDeg)
-            }
+                val brush = remember(wallpaper.colors, previewType, angleDeg, widthPx, heightPx) {
+                    createBrushForPreview(wallpaper.colors, previewType, widthPx, heightPx, angleDeg)
+                }
 
-            if (previewType == GradientType.Angular) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val sweep =
-                        createRotatedSweepShader(size.width, size.height, androidColors, angleDeg)
-                    val paint = Paint().apply {
-                        isAntiAlias = true
-                        shader = sweep
-                    }
-                    drawContext.canvas.nativeCanvas.drawRect(0f, 0f, size.width, size.height, paint)
-
-                    if (addNoise && noiseAlpha > 0f) {
-                        val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
-                        val numNoisePoints =
-                            (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
-                        repeat(numNoisePoints) {
-                            val x = Random.nextFloat() * size.width
-                            val y = Random.nextFloat() * size.height
-                            val alpha = (Random.nextFloat() * 0.15f) * noiseAlpha
-                            drawCircle(
-                                Color.White.copy(alpha = alpha),
-                                radius = noiseSize,
-                                center = Offset(x, y)
-                            )
+                if (previewType == GradientType.Angular) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val sweep =
+                            createRotatedSweepShader(size.width, size.height, androidColors, angleDeg)
+                        val paint = Paint().apply {
+                            isAntiAlias = true
+                            shader = sweep
                         }
-                    }
+                        drawContext.canvas.nativeCanvas.drawRect(0f, 0f, size.width, size.height, paint)
 
-                    if (addStripes && stripesAlpha > 0f) {
-                        val stripeSpacing = size.width / 12f
-                        val stripeWidth = stripeSpacing / 2f
-
-                        rotate(-45f, pivot = center) {
-
-                            var x = -size.height
-                            while (x < size.width * 2f) {
-
-                                drawRect(
-                                    brush = Brush.horizontalGradient(
-                                        colors = listOf(
-                                            Color.White.copy(alpha = 0.18f * stripesAlpha),
-                                            Color.Transparent
-                                        )
-                                    ),
-                                    topLeft = Offset(x, -size.height * 2f),
-                                    size = Size(stripeWidth, size.height * 4f)
-                                )
-
-                                x += stripeSpacing
-                            }
-                        }
-                    }
-                }
-
-                if (addOverlay && overlayAlpha > 0f) {
-                    Image(
-                        painter = painterResource(id = R.drawable.overlay_stripes),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(alpha = overlayAlpha),
-                        contentScale = ContentScale.FillBounds
-                    )
-                }
-
-                if (addGeometric && geometricAlpha > 0f) {
-                    Image(
-                        painter = painterResource(id = R.drawable.overlay_geometric),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(alpha = geometricAlpha),
-                        contentScale = ContentScale.FillWidth
-                    )
-                }
-
-            } else {
-                Box(modifier = Modifier.fillMaxSize().background(brush)) {
-                    if (addNoise && noiseAlpha > 0f) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
+                        if (addNoise && noiseAlpha > 0f) {
                             val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
                             val numNoisePoints =
                                 (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
@@ -186,13 +123,10 @@ fun PreviewWallpaperRender(
                                 )
                             }
                         }
-                    }
 
-                    if (addStripes && stripesAlpha > 0f) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-
-                            val stripeSpacing = size.width / 10f
-                            val stripeWidth = stripeSpacing * 0.65f
+                        if (addStripes && stripesAlpha > 0f) {
+                            val stripeSpacing = size.width / 12f
+                            val stripeWidth = stripeSpacing / 2f
 
                             rotate(-45f, pivot = center) {
 
@@ -202,12 +136,9 @@ fun PreviewWallpaperRender(
                                     drawRect(
                                         brush = Brush.horizontalGradient(
                                             colors = listOf(
-                                                Color.White.copy(alpha = 0.14f * stripesAlpha),
-                                                Color.White.copy(alpha = 0.08f * stripesAlpha),
+                                                Color.White.copy(alpha = 0.18f * stripesAlpha),
                                                 Color.Transparent
-                                            ),
-                                            startX = x,
-                                            endX = x + stripeWidth * 1.4f
+                                            )
                                         ),
                                         topLeft = Offset(x, -size.height * 2f),
                                         size = Size(stripeWidth, size.height * 4f)
@@ -240,10 +171,86 @@ fun PreviewWallpaperRender(
                             contentScale = ContentScale.FillWidth
                         )
                     }
-                }
-            }
 
-            // Bottom tag — matches card style (gradient bg, plain swatches)
+                } else {
+                    Box(modifier = Modifier.fillMaxSize().background(brush)) {
+                        if (addNoise && noiseAlpha > 0f) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
+                                val numNoisePoints =
+                                    (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                                repeat(numNoisePoints) {
+                                    val x = Random.nextFloat() * size.width
+                                    val y = Random.nextFloat() * size.height
+                                    val alpha = (Random.nextFloat() * 0.15f) * noiseAlpha
+                                    drawCircle(
+                                        Color.White.copy(alpha = alpha),
+                                        radius = noiseSize,
+                                        center = Offset(x, y)
+                                    )
+                                }
+                            }
+                        }
+
+                        if (addStripes && stripesAlpha > 0f) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+
+                                val stripeSpacing = size.width / 10f
+                                val stripeWidth = stripeSpacing * 0.65f
+
+                                rotate(-45f, pivot = center) {
+
+                                    var x = -size.height
+                                    while (x < size.width * 2f) {
+
+                                        drawRect(
+                                            brush = Brush.horizontalGradient(
+                                                colors = listOf(
+                                                    Color.White.copy(alpha = 0.14f * stripesAlpha),
+                                                    Color.White.copy(alpha = 0.08f * stripesAlpha),
+                                                    Color.Transparent
+                                                ),
+                                                startX = x,
+                                                endX = x + stripeWidth * 1.4f
+                                            ),
+                                            topLeft = Offset(x, -size.height * 2f),
+                                            size = Size(stripeWidth, size.height * 4f)
+                                        )
+
+                                        x += stripeSpacing
+                                    }
+                                }
+                            }
+                        }
+
+                        if (addOverlay && overlayAlpha > 0f) {
+                            Image(
+                                painter = painterResource(id = R.drawable.overlay_stripes),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer(alpha = overlayAlpha),
+                                contentScale = ContentScale.FillBounds
+                            )
+                        }
+
+                        if (addGeometric && geometricAlpha > 0f) {
+                            Image(
+                                painter = painterResource(id = R.drawable.overlay_geometric),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer(alpha = geometricAlpha),
+                                contentScale = ContentScale.FillWidth
+                            )
+                        }
+                    }
+                }
+            } // end BoxWithConstraints inside blur
+        } // end blur Box
+
+        // Bottom tag — outside blur layer so it stays sharp
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
@@ -285,6 +292,6 @@ fun PreviewWallpaperRender(
                     }
                 }
             }
-        }
+        } // end label BoxWithConstraints
     }
 }
