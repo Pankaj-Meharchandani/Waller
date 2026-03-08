@@ -337,32 +337,29 @@ private fun EffectChip(
 
                         "glass" -> {
 
-                            val bandCount = 8
-                            val bandW = w / bandCount
+                            val w = size.width
+                            val h = size.height
 
-                            for (i in 0 until bandCount) {
+                            val lineCount = 10
+                            val spacing = w / lineCount
 
-                                val x = bandW * i
-                                val alpha = if (i % 2 == 0) 0.10f else 0.04f
+                            for (i in 0..lineCount) {
+
+                                val x = i * spacing
 
                                 drawRect(
-                                    color = Color.White.copy(alpha = alpha),
-                                    topLeft = Offset(x, 0f),
-                                    size = Size(bandW, h)
-                                )
-                            }
-
-                            val lineSw = (w * 0.006f).coerceAtLeast(0.7f)
-
-                            for (i in 1 until bandCount) {
-
-                                val x = bandW * i
-
-                                drawLine(
-                                    Color.White.copy(alpha = 0.18f),
-                                    Offset(x, 0f),
-                                    Offset(x, h),
-                                    strokeWidth = lineSw
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            Color.White.copy(alpha = 0.22f),
+                                            Color.White.copy(alpha = 0.08f),
+                                            Color.Transparent
+                                        ),
+                                        startX = x - spacing * 0.5f,
+                                        endX = x + spacing * 0.5f
+                                    ),
+                                    topLeft = Offset(x - spacing * 0.25f, 0f),
+                                    size = Size(spacing * 0.5f, h)
                                 )
                             }
                         }
@@ -423,29 +420,40 @@ private fun EffectChip(
                         }
 
                         "blur" -> {
-                            // Frosted glass look: layered semi-transparent white bands fading to center
-                            drawRect(
+
+                            val w = size.width
+                            val h = size.height
+                            val cx = w / 2f
+                            val cy = h / 2f
+
+                            // outer blur halo
+                            drawCircle(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        Color.White.copy(alpha = 0.55f),
-                                        Color.White.copy(alpha = 0.20f),
-                                        Color.White.copy(alpha = 0.08f)
+                                        Color.White.copy(alpha = 0.22f),
+                                        Color.White.copy(alpha = 0.10f),
+                                        Color.Transparent
                                     ),
-                                    center = Offset(w / 2f, h / 2f),
-                                    radius = (w.coerceAtLeast(h)) * 0.75f
-                                )
+                                    center = Offset(cx, cy),
+                                    radius = w * 0.45f
+                                ),
+                                radius = w * 0.45f,
+                                center = Offset(cx, cy)
                             )
-                            // Horizontal frosted bands — simulate motion blur streaks
-                            val bandH = h / 5f
-                            for (i in 0..4) {
-                                val y0 = bandH * i
-                                val bandAlpha = 0.04f + (i % 2) * 0.06f
-                                drawRect(
-                                    color = Color.White.copy(alpha = bandAlpha),
-                                    topLeft = Offset(0f, y0),
-                                    size = Size(w, bandH * 0.6f)
-                                )
-                            }
+
+                            // mid blur layer
+                            drawCircle(
+                                color = Color.White.copy(alpha = 0.18f),
+                                radius = w * 0.25f,
+                                center = Offset(cx, cy)
+                            )
+
+                            // small sharp center
+                            drawCircle(
+                                color = Color.White.copy(alpha = 0.28f),
+                                radius = w * 0.08f,
+                                center = Offset(cx, cy)
+                            )
                         }
 
                     }
