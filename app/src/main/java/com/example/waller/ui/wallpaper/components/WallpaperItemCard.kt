@@ -48,6 +48,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.nativeCanvas
 import com.example.waller.ui.wallpaper.components.previewOverlay.createBrushForPreview
 import com.example.waller.ui.wallpaper.components.previewOverlay.createRotatedSweepShader
@@ -62,12 +63,14 @@ fun WallpaperItemCard(
     addStripes: Boolean,
     addOverlay: Boolean,
     addGeometric: Boolean,
+    addBlur: Boolean = false,
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
     geometricAlpha: Float = 1f,
+    blurAlpha: Float = 1f,
     isFavorite: Boolean,
-    onFavoriteToggle: (Wallpaper, Boolean, Boolean, Boolean, Boolean, Float, Float, Float, Float) -> Unit,
+    onFavoriteToggle: (Wallpaper, Boolean, Boolean, Boolean, Boolean, Boolean, Float, Float, Float, Float, Float) -> Unit,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
@@ -114,10 +117,12 @@ fun WallpaperItemCard(
                 addNothingStripes = addStripes,
                 addOverlay = addOverlay,
                 addGeometric = addGeometric,
+                addBlur = addBlur,
                 noiseAlpha = noiseAlpha,
                 stripesAlpha = stripesAlpha,
                 overlayAlpha = overlayAlpha,
-                geometricAlpha=geometricAlpha
+                geometricAlpha=geometricAlpha,
+                blurAlpha = blurAlpha
             )
 
             // Favourite button
@@ -141,10 +146,12 @@ fun WallpaperItemCard(
                                 addStripes,
                                 addOverlay,
                                 addGeometric,
+                                addBlur,
                                 noiseAlpha,
                                 stripesAlpha,
                                 overlayAlpha,
-                                geometricAlpha
+                                geometricAlpha,
+                                blurAlpha
                             )
                         },
                         modifier = Modifier.size(40.dp)
@@ -171,12 +178,23 @@ fun WallpaperItem(
     addNothingStripes: Boolean,
     addOverlay: Boolean,
     addGeometric: Boolean,
+    addBlur: Boolean = false,
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
-    geometricAlpha: Float = 1f
+    geometricAlpha: Float = 1f,
+    blurAlpha: Float = 1f
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    val blurEffect = if (addBlur && blurAlpha > 0f && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        android.graphics.RenderEffect
+            .createBlurEffect(18f * blurAlpha, 18f * blurAlpha, android.graphics.Shader.TileMode.CLAMP)
+            .asComposeRenderEffect()
+    } else null
+
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .graphicsLayer { renderEffect = blurEffect }
+    ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
 
             val density = LocalDensity.current

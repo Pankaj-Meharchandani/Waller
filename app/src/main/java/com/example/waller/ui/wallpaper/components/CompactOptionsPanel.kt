@@ -74,6 +74,8 @@ fun CompactOptionsPanel(
     onOverlayToggle: () -> Unit,
     addGeometric: Boolean,
     onGeometricToggle: () -> Unit,
+    addBlur: Boolean,
+    onBlurToggle: () -> Unit,
 ) {
     val view   = LocalView.current
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
@@ -96,8 +98,7 @@ fun CompactOptionsPanel(
         EffectItem("stripes", stringResource(R.string.effects_stripes), addStripes, onStripesToggle),
         EffectItem("snow", stringResource(R.string.effects_snow_effect), addNoise, onNoiseToggle),
         EffectItem("geo", stringResource(R.string.effect_geometric), addGeometric, onGeometricToggle),
-//        EffectItem("glow", "Glow", addGeometric, onGeometricToggle),
-//        EffectItem("dust", "Dust", addGeometric, onGeometricToggle)
+        EffectItem("blur", "Blur", addBlur, onBlurToggle),
     )
 
     Column(
@@ -329,102 +330,128 @@ private fun EffectChip(
             }
 
             // Layer 2: effect pattern — mirrors BitmapUtils.kt rendering exactly
-                if (selected) {
-                    Canvas(modifier = Modifier.matchParentSize()) {
-                val w = size.width; val h = size.height
-                when (iconKey) {
+            if (selected) {
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    val w = size.width; val h = size.height
+                    when (iconKey) {
 
-                    "glass" -> {
+                        "glass" -> {
 
-                        val bandCount = 8
-                        val bandW = w / bandCount
+                            val bandCount = 8
+                            val bandW = w / bandCount
 
-                        for (i in 0 until bandCount) {
+                            for (i in 0 until bandCount) {
 
-                            val x = bandW * i
-                            val alpha = if (i % 2 == 0) 0.10f else 0.04f
+                                val x = bandW * i
+                                val alpha = if (i % 2 == 0) 0.10f else 0.04f
 
+                                drawRect(
+                                    color = Color.White.copy(alpha = alpha),
+                                    topLeft = Offset(x, 0f),
+                                    size = Size(bandW, h)
+                                )
+                            }
+
+                            val lineSw = (w * 0.006f).coerceAtLeast(0.7f)
+
+                            for (i in 1 until bandCount) {
+
+                                val x = bandW * i
+
+                                drawLine(
+                                    Color.White.copy(alpha = 0.18f),
+                                    Offset(x, 0f),
+                                    Offset(x, h),
+                                    strokeWidth = lineSw
+                                )
+                            }
+                        }
+
+                        "stripes" -> {
+                            // BitmapUtils: canvas.rotate(-45°) + vertical soft-fade rects
+                            // Replicated as diagonal lines at -45° with soft alpha, spacing = w/10
+                            val spacing = w / 10f
+                            val diag = kotlin.math.sqrt((w * w + h * h).toDouble()).toFloat()
+                            val sw2 = (spacing * 0.45f).coerceAtLeast(1f)
+                            var i = -diag
+                            while (i < diag * 2f) {
+                                // Each stripe: two lines side-by-side for soft-edge effect
+                                val x0 = i;  val y0 = 0f
+                                val x1 = i + h; val y1 = h   // -45° line
+                                drawLine(Color.White.copy(alpha = 0.20f), Offset(x0, y0), Offset(x1, y1),
+                                    strokeWidth = sw2, cap = StrokeCap.Butt)
+                                drawLine(Color.White.copy(alpha = 0.06f), Offset(x0 + sw2 * 0.5f, y0),
+                                    Offset(x1 + sw2 * 0.5f, y1),
+                                    strokeWidth = sw2 * 0.7f, cap = StrokeCap.Butt)
+                                i += spacing
+                            }
+                        }
+
+                        "snow" -> {
+                            // BitmapUtils: ~2% of pixels as random white circles, radius 0.6–1.8×basePx
+                            // Fixed seed positions for consistent thumbnail appearance
+                            val dotR = (w * 0.028f).coerceAtLeast(1f)
+                            listOf(
+                                0.07f to 0.06f, 0.21f to 0.13f, 0.44f to 0.04f, 0.63f to 0.11f, 0.82f to 0.08f, 0.95f to 0.17f,
+                                0.03f to 0.27f, 0.16f to 0.33f, 0.31f to 0.24f, 0.52f to 0.31f, 0.70f to 0.26f, 0.88f to 0.35f,
+                                0.11f to 0.48f, 0.27f to 0.54f, 0.43f to 0.44f, 0.60f to 0.51f, 0.76f to 0.46f, 0.91f to 0.55f,
+                                0.05f to 0.67f, 0.20f to 0.72f, 0.37f to 0.63f, 0.55f to 0.69f, 0.73f to 0.74f, 0.87f to 0.65f,
+                                0.13f to 0.85f, 0.29f to 0.90f, 0.48f to 0.82f, 0.66f to 0.88f, 0.83f to 0.83f, 0.97f to 0.91f
+                            ).forEach { (fx, fy) ->
+                                val r = dotR * (0.7f + ((fx * 7 + fy * 13) % 10) * 0.13f)
+                                val a = 0.08f + ((fx * 11 + fy * 7) % 10) * 0.012f
+                                drawCircle(Color.White.copy(alpha = a), r, Offset(w * fx, h * fy))
+                            }
+                        }
+
+                        "geo" -> {
+                            // overlay_geometric PNG = grid lines + circles (matches reference image 2 exactly)
+                            val sw = (w * 0.025f).coerceAtLeast(0.8f)
+                            val lineColor = Color.White.copy(alpha = 0.18f)
+                            // 3-column grid
+                            for (i in 1..2) {
+                                drawLine(lineColor, Offset(w * i / 3f, 0f), Offset(w * i / 3f, h), strokeWidth = sw)
+                            }
+                            // 4-row grid
+                            for (i in 1..3) {
+                                drawLine(lineColor, Offset(0f, h * i / 4f), Offset(w, h * i / 4f), strokeWidth = sw)
+                            }
+                            // Large circle centered upper portion
+                            drawCircle(lineColor, w * 0.40f, Offset(w * 0.5f, h * 0.32f), style = Stroke(sw))
+                            // Smaller circle centered lower
+                            drawCircle(lineColor, w * 0.30f, Offset(w * 0.5f, h * 0.62f), style = Stroke(sw))
+                        }
+
+                        "blur" -> {
+                            // Frosted glass look: layered semi-transparent white bands fading to center
                             drawRect(
-                                color = Color.White.copy(alpha = alpha),
-                                topLeft = Offset(x, 0f),
-                                size = Size(bandW, h)
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.55f),
+                                        Color.White.copy(alpha = 0.20f),
+                                        Color.White.copy(alpha = 0.08f)
+                                    ),
+                                    center = Offset(w / 2f, h / 2f),
+                                    radius = (w.coerceAtLeast(h)) * 0.75f
+                                )
                             )
+                            // Horizontal frosted bands — simulate motion blur streaks
+                            val bandH = h / 5f
+                            for (i in 0..4) {
+                                val y0 = bandH * i
+                                val bandAlpha = 0.04f + (i % 2) * 0.06f
+                                drawRect(
+                                    color = Color.White.copy(alpha = bandAlpha),
+                                    topLeft = Offset(0f, y0),
+                                    size = Size(w, bandH * 0.6f)
+                                )
+                            }
                         }
 
-                        val lineSw = (w * 0.006f).coerceAtLeast(0.7f)
-
-                        for (i in 1 until bandCount) {
-
-                            val x = bandW * i
-
-                            drawLine(
-                                Color.White.copy(alpha = 0.18f),
-                                Offset(x, 0f),
-                                Offset(x, h),
-                                strokeWidth = lineSw
-                            )
-                        }
                     }
-
-                    "stripes" -> {
-                        // BitmapUtils: canvas.rotate(-45°) + vertical soft-fade rects
-                        // Replicated as diagonal lines at -45° with soft alpha, spacing = w/10
-                        val spacing = w / 10f
-                        val diag = kotlin.math.sqrt((w * w + h * h).toDouble()).toFloat()
-                        val sw2 = (spacing * 0.45f).coerceAtLeast(1f)
-                        var i = -diag
-                        while (i < diag * 2f) {
-                            // Each stripe: two lines side-by-side for soft-edge effect
-                            val x0 = i;  val y0 = 0f
-                            val x1 = i + h; val y1 = h   // -45° line
-                            drawLine(Color.White.copy(alpha = 0.20f), Offset(x0, y0), Offset(x1, y1),
-                                strokeWidth = sw2, cap = StrokeCap.Butt)
-                            drawLine(Color.White.copy(alpha = 0.06f), Offset(x0 + sw2 * 0.5f, y0),
-                                Offset(x1 + sw2 * 0.5f, y1),
-                                strokeWidth = sw2 * 0.7f, cap = StrokeCap.Butt)
-                            i += spacing
-                        }
-                    }
-
-                    "snow" -> {
-                        // BitmapUtils: ~2% of pixels as random white circles, radius 0.6–1.8×basePx
-                        // Fixed seed positions for consistent thumbnail appearance
-                        val dotR = (w * 0.028f).coerceAtLeast(1f)
-                        listOf(
-                            0.07f to 0.06f, 0.21f to 0.13f, 0.44f to 0.04f, 0.63f to 0.11f, 0.82f to 0.08f, 0.95f to 0.17f,
-                            0.03f to 0.27f, 0.16f to 0.33f, 0.31f to 0.24f, 0.52f to 0.31f, 0.70f to 0.26f, 0.88f to 0.35f,
-                            0.11f to 0.48f, 0.27f to 0.54f, 0.43f to 0.44f, 0.60f to 0.51f, 0.76f to 0.46f, 0.91f to 0.55f,
-                            0.05f to 0.67f, 0.20f to 0.72f, 0.37f to 0.63f, 0.55f to 0.69f, 0.73f to 0.74f, 0.87f to 0.65f,
-                            0.13f to 0.85f, 0.29f to 0.90f, 0.48f to 0.82f, 0.66f to 0.88f, 0.83f to 0.83f, 0.97f to 0.91f
-                        ).forEach { (fx, fy) ->
-                            val r = dotR * (0.7f + ((fx * 7 + fy * 13) % 10) * 0.13f)
-                            val a = 0.08f + ((fx * 11 + fy * 7) % 10) * 0.012f
-                            drawCircle(Color.White.copy(alpha = a), r, Offset(w * fx, h * fy))
-                        }
-                    }
-
-                    "geo" -> {
-                        // overlay_geometric PNG = grid lines + circles (matches reference image 2 exactly)
-                        val sw = (w * 0.025f).coerceAtLeast(0.8f)
-                        val lineColor = Color.White.copy(alpha = 0.18f)
-                        // 3-column grid
-                        for (i in 1..2) {
-                            drawLine(lineColor, Offset(w * i / 3f, 0f), Offset(w * i / 3f, h), strokeWidth = sw)
-                        }
-                        // 4-row grid
-                        for (i in 1..3) {
-                            drawLine(lineColor, Offset(0f, h * i / 4f), Offset(w, h * i / 4f), strokeWidth = sw)
-                        }
-                        // Large circle centered upper portion
-                        drawCircle(lineColor, w * 0.40f, Offset(w * 0.5f, h * 0.32f), style = Stroke(sw))
-                        // Smaller circle centered lower
-                        drawCircle(lineColor, w * 0.30f, Offset(w * 0.5f, h * 0.62f), style = Stroke(sw))
-                    }
-                    
                 }
-            }
 
-            // Layer 3: selected ring overlay
+                // Layer 3: selected ring overlay
 
                 Canvas(modifier = Modifier.matchParentSize()) {
                     drawRoundRect(
@@ -451,21 +478,21 @@ private fun EffectChip(
                     )
                 }
 
-            // Layer 4: label at bottom in frosted pill
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = label,
-                    fontSize = labelFs,
-                    fontWeight = FontWeight.Bold,
-                    color = chipFg(selected, isDark, true)
-                )
+                // Layer 4: label at bottom in frosted pill
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        fontSize = labelFs,
+                        fontWeight = FontWeight.Bold,
+                        color = chipFg(selected, isDark, true)
+                    )
+                }
             }
         }
-    }
-}}
+    }}
 
 /* ── Text chip (gradient row) ────────────────────────────────────── */
 @Composable

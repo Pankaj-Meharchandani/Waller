@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
@@ -60,16 +61,26 @@ fun PreviewWallpaperRender(
     addStripes: Boolean,
     addOverlay: Boolean,
     addGeometric: Boolean,
+    addBlur: Boolean = false,
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
     geometricAlpha: Float = 1f,
+    blurAlpha: Float = 1f,
     modifier: Modifier = Modifier,
     showTypeLabel: Boolean = true
 ) {
     val cornerRadius = 12.dp
+    val blurEffect = if (addBlur && blurAlpha > 0f && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        android.graphics.RenderEffect
+            .createBlurEffect(22f * blurAlpha, 22f * blurAlpha, android.graphics.Shader.TileMode.CLAMP)
+            .asComposeRenderEffect()
+    } else null
 
-    Box(modifier = modifier.clip(RoundedCornerShape(cornerRadius))) {
+    Box(modifier = modifier
+        .clip(RoundedCornerShape(cornerRadius))
+        .graphicsLayer { renderEffect = blurEffect }
+    ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val widthDp = maxWidth
             val heightDp = maxHeight
@@ -156,6 +167,7 @@ fun PreviewWallpaperRender(
                         contentScale = ContentScale.FillWidth
                     )
                 }
+
             } else {
                 Box(modifier = Modifier.fillMaxSize().background(brush)) {
                     if (addNoise && noiseAlpha > 0f) {
