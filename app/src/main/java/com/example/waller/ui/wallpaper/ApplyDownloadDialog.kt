@@ -533,6 +533,68 @@ fun ApplyDownloadDialog(
                         Text(stringResource(R.string.share_wall_file))
                     }
 
+                    // ── SVG export (advanced only) ──
+                    FilledTonalButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        onClick = {
+                            showShareOptions = false
+                            val fav = FavoriteWallpaper(
+                                wallpaper = wallpaper,
+                                addNoise = addNoise,
+                                addStripes = addStripes,
+                                addOverlay = addOverlay,
+                                addGeometric = addGeometric,
+                                addBlur = addBlur,
+                                noiseAlpha = noiseAlpha,
+                                stripesAlpha = stripesAlpha,
+                                overlayAlpha = overlayAlpha,
+                                geometricAlpha = geometricAlpha,
+                                blurAlpha = blurAlpha
+                            )
+                            coroutineScope.launch(Dispatchers.IO) {
+                                withContext(Dispatchers.Main) {
+                                    shareAsSvg(context, fav)
+                                }
+                            }
+                        }
+                    ) {
+                        Text("Share as SVG")
+                    }
+
+                    // ── CSS export (advanced only) ──
+                    FilledTonalButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        onClick = {
+                            showShareOptions = false
+                            val fav = FavoriteWallpaper(
+                                wallpaper = wallpaper,
+                                addNoise = addNoise,
+                                addStripes = addStripes,
+                                addOverlay = addOverlay,
+                                addGeometric = addGeometric,
+                                addBlur = addBlur,
+                                noiseAlpha = noiseAlpha,
+                                stripesAlpha = stripesAlpha,
+                                overlayAlpha = overlayAlpha,
+                                geometricAlpha = geometricAlpha,
+                                blurAlpha = blurAlpha
+                            )
+                            coroutineScope.launch(Dispatchers.IO) {
+                                withContext(Dispatchers.Main) {
+                                    shareAsCss(context, fav)
+                                }
+                            }
+                        }
+                    ) {
+                        Text("Share as CSS")
+                    }
+
                     TextButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { showShareOptions = false }
