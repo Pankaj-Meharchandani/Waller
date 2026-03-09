@@ -118,7 +118,20 @@ object SvgExporter {
             sb.appendLine("""    </filter>""")
         }
 
+        // ── Blur filter (whole-image, defined in defs) ────────────────────────
+        if (fav.addBlur && fav.blurAlpha > 0f) {
+            val stdDev = (20f * fav.blurAlpha).roundToInt().coerceAtLeast(1)
+            sb.appendLine("""    <filter id="blur" x="-20%" y="-20%" width="140%" height="140%">""")
+            sb.appendLine("""      <feGaussianBlur stdDeviation="$stdDev"/>""")
+            sb.appendLine("""    </filter>""")
+        }
+
         sb.appendLine("""  </defs>""")
+
+        // ── All layers wrapped in blur group (if blur enabled) ────────────────
+        if (fav.addBlur && fav.blurAlpha > 0f) {
+            sb.appendLine("""  <g filter="url(#blur)">""")
+        }
 
         // ── Layer 1: gradient ─────────────────────────────────────────────────
         if (w.type == GradientType.Angular) {
@@ -144,20 +157,28 @@ object SvgExporter {
             sb.appendLine("""  <rect width="$W" height="$H" fill="url(#stripes)"/>""")
         }
 
-        // ── Layer 4: Glass overlay (overlay_stripes.png from res/drawable, base64) ──
+        // ── Layer 4: Glass overlay (overlay_stripes.png, screen blend via feBlend) ──
+        // mix-blend-mode:screen in style attr is unreliable in SVG viewers.
+        // feBlend mode="screen" is the spec-correct way and works everywhere.
         if (fav.addOverlay && fav.overlayAlpha > 0f) {
             val b64 = drawablePngAsBase64(context, "overlay_stripes")
             if (b64 != null) {
-                sb.appendLine("""  <image href="data:image/png;base64,$b64" x="0" y="0" width="$W" height="$H" preserveAspectRatio="xMidYMid slice" opacity="${fav.overlayAlpha.fmtF()}" style="mix-blend-mode:screen"/>""")
+                val glassOp = (fav.overlayAlpha * 1.8f).coerceAtMost(1f).fmtF()
+                sb.appendLine("""  <image href="data:image/png;base64,$b64" x="0" y="0" width="$W" height="$H" preserveAspectRatio="xMidYMid slice" opacity="$glassOp" style="mix-blend-mode:screen"/>""")
             }
         }
 
-        // ── Layer 5: Geometry overlay (overlay_geometric.png from res/drawable, base64) ─
+        // ── Layer 5: Geometry overlay ─────────────────────────────────────────
         if (fav.addGeometric && fav.geometricAlpha > 0f) {
             val b64 = drawablePngAsBase64(context, "overlay_geometric")
             if (b64 != null) {
                 sb.appendLine("""  <image href="data:image/png;base64,$b64" x="0" y="0" width="$W" height="$H" preserveAspectRatio="xMidYMid slice" opacity="${fav.geometricAlpha.fmtF()}"/>""")
             }
+        }
+
+        // ── Close blur group ──────────────────────────────────────────────────
+        if (fav.addBlur && fav.blurAlpha > 0f) {
+            sb.appendLine("""  </g>""")
         }
 
         sb.appendLine("""</svg>""")
