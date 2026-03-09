@@ -72,11 +72,13 @@ fun ApplyDownloadDialog(
     addStripes: Boolean,
     addOverlay: Boolean,
     addGeometric: Boolean,
+    addBlur: Boolean = false,
     isWorking: Boolean,
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
     geometricAlpha: Float = 1f,
+    blurAlpha: Float = 1f,
     onWorkingChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
@@ -164,10 +166,12 @@ fun ApplyDownloadDialog(
                                                 addStripes,
                                                 addOverlay,
                                                 addGeometric,
+                                                addBlur,
                                                 noiseAlpha,
                                                 stripesAlpha,
                                                 overlayAlpha,
-                                                geometricAlpha
+                                                geometricAlpha,
+                                                blurAlpha
                                             )
 
                                             withContext(Dispatchers.Main) {
@@ -207,10 +211,12 @@ fun ApplyDownloadDialog(
                                 addStripes,
                                 addOverlay,
                                 addGeometric,
+                                addBlur,
                                 noiseAlpha,
                                 stripesAlpha,
                                 overlayAlpha,
-                                geometricAlpha
+                                geometricAlpha,
+                                blurAlpha
                             )
                             val success = tryApplyWallpaper(
                                 context,
@@ -261,10 +267,12 @@ fun ApplyDownloadDialog(
                                     addStripes,
                                     addOverlay,
                                     addGeometric,
+                                    addBlur,
                                     noiseAlpha,
                                     stripesAlpha,
                                     overlayAlpha,
-                                    geometricAlpha
+                                    geometricAlpha,
+                                    blurAlpha
                                 )
                                 val success = tryApplyWallpaper(
                                     context,
@@ -311,10 +319,12 @@ fun ApplyDownloadDialog(
                                     addStripes,
                                     addOverlay,
                                     addGeometric,
+                                    addBlur,
                                     noiseAlpha,
                                     stripesAlpha,
                                     overlayAlpha,
-                                    geometricAlpha
+                                    geometricAlpha,
+                                    blurAlpha
                                 )
                                 val flagLock = getLockFlag()
                                 val success =
@@ -370,10 +380,12 @@ fun ApplyDownloadDialog(
                                 addStripes,
                                 addOverlay,
                                 addGeometric,
+                                addBlur,
                                 noiseAlpha,
                                 stripesAlpha,
                                 overlayAlpha,
-                                geometricAlpha
+                                geometricAlpha,
+                                blurAlpha
                             )
                             val saved = saveBitmapToMediaStore(
                                 context,
@@ -475,10 +487,12 @@ fun ApplyDownloadDialog(
                                     addStripes,
                                     addOverlay,
                                     addGeometric,
+                                    addBlur,
                                     noiseAlpha,
                                     stripesAlpha,
                                     overlayAlpha,
-                                    geometricAlpha
+                                    geometricAlpha,
+                                    blurAlpha
                                 )
 
                                 withContext(Dispatchers.Main) {
@@ -505,10 +519,12 @@ fun ApplyDownloadDialog(
                                 addStripes = addStripes,
                                 addOverlay = addOverlay,
                                 addGeometric = addGeometric,
+                                addBlur = addBlur,
                                 noiseAlpha = noiseAlpha,
                                 stripesAlpha = stripesAlpha,
                                 overlayAlpha = overlayAlpha,
-                                geometricAlpha = geometricAlpha
+                                geometricAlpha = geometricAlpha,
+                                blurAlpha = blurAlpha
                             )
 
                             WallFileManager.shareWall(context, fav)

@@ -63,10 +63,12 @@ fun createGradientBitmap(
     addStripes: Boolean = false,
     addOverlay: Boolean = false,
     addGeometric: Boolean = false,
+    addBlur: Boolean = false,
     noiseAlpha: Float = 1f,
     stripesAlpha: Float = 1f,
     overlayAlpha: Float = 1f,
-    geometricAlpha: Float = 1f
+    geometricAlpha: Float = 1f,
+    blurAlpha: Float = 1f
 ): Bitmap {
     val (width, height) = getScreenSizeForBitmap(context, isPortrait)
     val bmp = createBitmap(width, height)
@@ -291,6 +293,21 @@ fun createGradientBitmap(
         }
     }
 
+    if (addBlur && blurAlpha > 0f) {
+        try {
+            // Blur the fully composited bitmap (gradient + all other effects).
+            // radius 1–25 scaled by blurAlpha so the slider controls blur strength.
+            val radius = (25f * blurAlpha.coerceIn(0f, 1f)).coerceIn(1f, 25f).toInt()
+            val blurred = stackBlur(bmp, radius)
+            // Replace bmp pixels with the blurred result
+            val pixels = IntArray(bmp.width * bmp.height)
+            blurred.getPixels(pixels, 0, bmp.width, 0, 0, bmp.width, bmp.height)
+            bmp.setPixels(pixels, 0, bmp.width, 0, 0, bmp.width, bmp.height)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     return bmp
 }
 
@@ -355,4 +372,97 @@ fun tryApplyWallpaper(
 /** helper to return lock flag (or 0 if not supported) */
 fun getLockFlag(): Int {
     return FLAG_LOCK
+}
+
+/**
+ * Pure-Kotlin Stack Blur — no RenderScript, no external libraries.
+ * Produces a true Gaussian-like blur. Radius 1–25 px.
+ */
+fun stackBlur(src: Bitmap, radius: Int): Bitmap {
+    val r = radius.coerceIn(1, 25)
+    val w = src.width
+    val h = src.height
+    val pix = IntArray(w * h)
+    src.getPixels(pix, 0, w, 0, 0, w, h)
+
+    val wm = w - 1
+    val hm = h - 1
+    val wh = w * h
+    val div = r + r + 1
+
+    val vmin = IntArray(maxOf(w, h))
+    var divSum = (div + 1) shr 1; divSum *= divSum
+    val dv = IntArray(256 * divSum)
+    for (i in dv.indices) dv[i] = i / divSum
+
+    var yw = 0; var yi = 0
+    val stack = Array(div) { IntArray(3) }
+    for (y in 0 until h) {
+        var rSum = 0; var gSum = 0; var bSum = 0
+        var rInSum = 0; var gInSum = 0; var bInSum = 0
+        var rOutSum = 0; var gOutSum = 0; var bOutSum = 0
+        for (i in -r..r) {
+            val p = pix[yi + minOf(wm, maxOf(0, i))]
+            val sir = stack[i + r]
+            sir[0] = (p and 0xff0000) shr 16; sir[1] = (p and 0x00ff00) shr 8; sir[2] = p and 0x0000ff
+            val rbs = r + 1 - kotlin.math.abs(i)
+            rSum += sir[0] * rbs; gSum += sir[1] * rbs; bSum += sir[2] * rbs
+            if (i > 0) { rInSum += sir[0]; gInSum += sir[1]; bInSum += sir[2] }
+            else { rOutSum += sir[0]; gOutSum += sir[1]; bOutSum += sir[2] }
+        }
+        var stackPointer = r
+        for (x in 0 until w) {
+            pix[yi] = (pix[yi] and -0x1000000) or (dv[rSum] shl 16) or (dv[gSum] shl 8) or dv[bSum]
+            rSum -= rOutSum; gSum -= gOutSum; bSum -= bOutSum
+            val stackStart = (stackPointer - r + div) % div
+            val sir2 = stack[stackStart]
+            rOutSum -= sir2[0]; gOutSum -= sir2[1]; bOutSum -= sir2[2]
+            val px = yw + minOf(x + r + 1, wm)
+            sir2[0] = (pix[px] and 0xff0000) shr 16; sir2[1] = (pix[px] and 0x00ff00) shr 8; sir2[2] = pix[px] and 0x0000ff
+            rInSum += sir2[0]; gInSum += sir2[1]; bInSum += sir2[2]
+            rSum += rInSum; gSum += gInSum; bSum += bInSum
+            stackPointer = (stackPointer + 1) % div
+            val sir3 = stack[stackPointer]
+            rOutSum += sir3[0]; gOutSum += sir3[1]; bOutSum += sir3[2]
+            rInSum -= sir3[0]; gInSum -= sir3[1]; bInSum -= sir3[2]
+            yi++
+        }
+        yw += w
+    }
+    for (x in 0 until w) {
+        var rSum = 0; var gSum = 0; var bSum = 0
+        var rInSum = 0; var gInSum = 0; var bInSum = 0
+        var rOutSum = 0; var gOutSum = 0; var bOutSum = 0
+        val yp = -r * w
+        for (i in -r..r) {
+            yi = maxOf(0, yp + i * w) + x
+            val sir = stack[i + r]
+            sir[0] = (pix[yi] and 0xff0000) shr 16; sir[1] = (pix[yi] and 0x00ff00) shr 8; sir[2] = pix[yi] and 0x0000ff
+            val rbs = r + 1 - kotlin.math.abs(i)
+            rSum += sir[0] * rbs; gSum += sir[1] * rbs; bSum += sir[2] * rbs
+            if (i > 0) { rInSum += sir[0]; gInSum += sir[1]; bInSum += sir[2] }
+            else { rOutSum += sir[0]; gOutSum += sir[1]; bOutSum += sir[2] }
+        }
+        yi = x
+        var stackPointer = r
+        for (y in 0 until h) {
+            pix[yi] = (pix[yi] and -0x1000000) or (dv[rSum] shl 16) or (dv[gSum] shl 8) or dv[bSum]
+            rSum -= rOutSum; gSum -= gOutSum; bSum -= bOutSum
+            val stackStart = (stackPointer - r + div) % div
+            val sir2 = stack[stackStart]
+            rOutSum -= sir2[0]; gOutSum -= sir2[1]; bOutSum -= sir2[2]
+            val py = minOf(y + r + 1, hm) * w
+            sir2[0] = (pix[py + x] and 0xff0000) shr 16; sir2[1] = (pix[py + x] and 0x00ff00) shr 8; sir2[2] = pix[py + x] and 0x0000ff
+            rInSum += sir2[0]; gInSum += sir2[1]; bInSum += sir2[2]
+            rSum += rInSum; gSum += gInSum; bSum += bInSum
+            stackPointer = (stackPointer + 1) % div
+            val sir3 = stack[stackPointer]
+            rOutSum += sir3[0]; gOutSum += sir3[1]; bOutSum += sir3[2]
+            rInSum -= sir3[0]; gInSum -= sir3[1]; bInSum -= sir3[2]
+            yi += w
+        }
+    }
+    val out = src.copy(src.config ?: Bitmap.Config.ARGB_8888, true)
+    out.setPixels(pix, 0, w, 0, 0, w, h)
+    return out
 }

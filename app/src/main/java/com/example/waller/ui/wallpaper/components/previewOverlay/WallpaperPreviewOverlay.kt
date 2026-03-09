@@ -56,11 +56,11 @@ import androidx.compose.ui.platform.LocalView
 import com.example.waller.ui.wallpaper.Haptics
 import com.example.waller.ui.wallpaper.InteractionMode
 
-private enum class EffectType { OVERLAY, NOISE, STRIPES, GEOMETRIC }
+private enum class EffectType { OVERLAY, NOISE, STRIPES, GEOMETRIC, BLUR }
 
 private data class EffectConfig(
     val type: EffectType,
-    val labelRes: Int,
+    val label: String,
     val isEnabled: () -> Boolean,
     val setEnabled: (Boolean) -> Unit,
     val alpha: () -> Float,
@@ -77,20 +77,24 @@ fun WallpaperPreviewOverlay(
     globalStripes: Boolean,
     globalOverlay: Boolean,
     globalGeometric: Boolean,
+    globalBlur: Boolean,
     initialNoiseAlpha: Float = initAlphaFor(globalNoise, DEFAULT_NOISE_ALPHA),
     initialStripesAlpha: Float = initAlphaFor(globalStripes, DEFAULT_STRIPES_ALPHA),
     initialOverlayAlpha: Float = initAlphaFor(globalOverlay, DEFAULT_OVERLAY_ALPHA),
     initialGeometricAlpha: Float = initAlphaFor(globalGeometric, DEFAULT_GEOMETRIC_ALPHA),
+    initialBlurAlpha: Float = initAlphaFor(globalBlur, 1f),
     onFavoriteToggle: (
         wallpaper: Wallpaper,
         noise: Boolean,
         stripes: Boolean,
         overlay: Boolean,
         geometric: Boolean,
+        blur: Boolean,
         noiseAlpha: Float,
         stripesAlpha: Float,
         overlayAlpha: Float,
-        geometricAlpha: Float
+        geometricAlpha: Float,
+        blurAlpha: Float
     ) -> Unit,
     onDismiss: () -> Unit,
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
@@ -109,6 +113,7 @@ fun WallpaperPreviewOverlay(
     var stripes by remember { mutableStateOf(globalStripes) }
     var overlay by remember { mutableStateOf(globalOverlay) }
     var geometric by remember { mutableStateOf(globalGeometric) }
+    var blur by remember { mutableStateOf(globalBlur) }
     var activeEffect by remember { mutableStateOf<EffectType?>(null) }
 
     // per-effect opacity state (already present, just used more thoroughly now)
@@ -116,11 +121,12 @@ fun WallpaperPreviewOverlay(
     var stripesAlpha by remember { mutableFloatStateOf(initialStripesAlpha) }
     var overlayAlpha by remember { mutableFloatStateOf(initialOverlayAlpha) }
     var geometricAlpha by remember { mutableFloatStateOf(initialGeometricAlpha) }
+    var blurAlpha by remember { mutableFloatStateOf(initialBlurAlpha) }
 
     val effects = listOf(
         EffectConfig(
             type = EffectType.OVERLAY,
-            labelRes = R.string.preview_effect_nothing,
+            label = stringResource(R.string.preview_effect_nothing),
             isEnabled = { overlay },
             setEnabled = { overlay = it },
             alpha = { overlayAlpha },
@@ -128,7 +134,7 @@ fun WallpaperPreviewOverlay(
         ),
         EffectConfig(
             type = EffectType.NOISE,
-            labelRes = R.string.preview_effect_snow,
+            label = stringResource(R.string.preview_effect_snow),
             isEnabled = { noise },
             setEnabled = { noise = it },
             alpha = { noiseAlpha },
@@ -136,7 +142,7 @@ fun WallpaperPreviewOverlay(
         ),
         EffectConfig(
             type = EffectType.STRIPES,
-            labelRes = R.string.preview_effect_stripes,
+            label = stringResource(R.string.preview_effect_stripes),
             isEnabled = { stripes },
             setEnabled = { stripes = it },
             alpha = { stripesAlpha },
@@ -144,11 +150,19 @@ fun WallpaperPreviewOverlay(
         ),
         EffectConfig(
             type = EffectType.GEOMETRIC,
-            labelRes = R.string.effect_geometric,
+            label = stringResource(R.string.effect_geometric),
             isEnabled = { geometric },
             setEnabled = { geometric = it },
             alpha = { geometricAlpha },
             setAlpha = { geometricAlpha = it }
+        ),
+        EffectConfig(
+            type = EffectType.BLUR,
+            label = "Blur",
+            isEnabled = { blur },
+            setEnabled = { blur = it },
+            alpha = { blurAlpha },
+            setAlpha = { blurAlpha = it }
         )
     )
 
@@ -176,6 +190,7 @@ fun WallpaperPreviewOverlay(
                 noise -> EffectType.NOISE
                 stripes -> EffectType.STRIPES
                 geometric -> EffectType.GEOMETRIC
+                blur -> EffectType.BLUR
                 else -> null
             }
         }
@@ -288,10 +303,12 @@ fun WallpaperPreviewOverlay(
                             addStripes = stripes,
                             addOverlay = overlay,
                             addGeometric = geometric,
+                            addBlur = blur,
                             noiseAlpha = noiseAlpha,
                             stripesAlpha = stripesAlpha,
                             overlayAlpha = overlayAlpha,
                             geometricAlpha = geometricAlpha,
+                            blurAlpha = blurAlpha,
                             overlayTextColor = { overlayTextColor() }
                         ) {
                             onFavoriteToggle(
@@ -300,10 +317,12 @@ fun WallpaperPreviewOverlay(
                                 stripes,
                                 overlay,
                                 geometric,
+                                blur,
                                 noiseAlpha,
                                 stripesAlpha,
                                 overlayAlpha,
-                                geometricAlpha
+                                geometricAlpha,
+                                blurAlpha
                             )
                         }
                     }
@@ -433,10 +452,12 @@ fun WallpaperPreviewOverlay(
                             addStripes = stripes,
                             addOverlay = overlay,
                             addGeometric = geometric,
+                            addBlur = blur,
                             noiseAlpha = noiseAlpha,
                             stripesAlpha = stripesAlpha,
                             overlayAlpha = overlayAlpha,
                             geometricAlpha = geometricAlpha,
+                            blurAlpha = blurAlpha,
                             overlayTextColor = { overlayTextColor() }
                         ) {
                             onFavoriteToggle(
@@ -445,10 +466,12 @@ fun WallpaperPreviewOverlay(
                                 stripes,
                                 overlay,
                                 geometric,
+                                blur,
                                 noiseAlpha,
                                 stripesAlpha,
                                 overlayAlpha,
-                                geometricAlpha
+                                geometricAlpha,
+                                blurAlpha
                             )
                         }
                     }
@@ -544,7 +567,7 @@ fun WallpaperPreviewOverlay(
 
             Spacer(Modifier.height(18.dp))
 
-            // Effects chips
+            // Effects chips — row 1: first 3, row 2: last 2 centered
             Box(
                 modifier = Modifier
                     .wrapContentWidth()
@@ -552,36 +575,71 @@ fun WallpaperPreviewOverlay(
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.06f))
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    effects.forEach { effect ->
-                        EffectChip(
-                            label = stringResource(effect.labelRes),
-                            selected = effect.isEnabled(),
-                            fillProgress = effect.alpha(),
-                            isActive = activeEffect == effect.type,
-                            textColor = overlayTextColor(selectedForButton = effect.isEnabled()),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            when {
-                                !effect.isEnabled() -> {
-                                    effect.setEnabled(true)
-                                    activeEffect = effect.type
-                                }
-                                activeEffect != effect.type -> {
-                                    activeEffect = effect.type
-                                }
-                                else -> {
-                                    effect.setEnabled(false)
-                                    effect.setAlpha(0f)
-                                    activeEffect = null
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Row 1: Glass, Snow, Stripes
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        effects.take(3).forEach { effect ->
+                            EffectChip(
+                                label = effect.label,
+                                selected = effect.isEnabled(),
+                                fillProgress = effect.alpha(),
+                                isActive = activeEffect == effect.type,
+                                textColor = overlayTextColor(selectedForButton = effect.isEnabled()),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                when {
+                                    !effect.isEnabled() -> {
+                                        effect.setEnabled(true)
+                                        activeEffect = effect.type
+                                    }
+                                    activeEffect != effect.type -> {
+                                        activeEffect = effect.type
+                                    }
+                                    else -> {
+                                        effect.setEnabled(false)
+                                        effect.setAlpha(0f)
+                                        activeEffect = null
+                                    }
                                 }
                             }
                         }
                     }
-
+                    // Row 2: Geometry, Blur — centered by wrapping in a centered Row
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Spacer(Modifier.weight(0.5f))
+                        effects.drop(3).forEach { effect ->
+                            EffectChip(
+                                label = effect.label,
+                                selected = effect.isEnabled(),
+                                fillProgress = effect.alpha(),
+                                isActive = activeEffect == effect.type,
+                                textColor = overlayTextColor(selectedForButton = effect.isEnabled()),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                when {
+                                    !effect.isEnabled() -> {
+                                        effect.setEnabled(true)
+                                        activeEffect = effect.type
+                                    }
+                                    activeEffect != effect.type -> {
+                                        activeEffect = effect.type
+                                    }
+                                    else -> {
+                                        effect.setEnabled(false)
+                                        effect.setAlpha(0f)
+                                        activeEffect = null
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(Modifier.weight(0.5f))
+                    }
                 }
             }
 
@@ -638,6 +696,18 @@ fun WallpaperPreviewOverlay(
                     )
                 }
 
+                EffectType.BLUR -> {
+                    EffectOpacitySlider(
+                        label = "Blur Intensity",
+                        value = blurAlpha,
+                        onSliderChange = {
+                            blurAlpha = it
+                            blur = it > 0.001f
+                        },
+                        labelColor = overlayTextColor()
+                    )
+                }
+
                 else -> Unit
             }
         }
@@ -653,10 +723,12 @@ fun WallpaperPreviewOverlay(
                 addStripes = stripes,
                 addOverlay = overlay,
                 addGeometric = geometric,
+                addBlur = blur,
                 noiseAlpha = noiseAlpha,
                 stripesAlpha = stripesAlpha,
                 overlayAlpha = overlayAlpha,
                 geometricAlpha = geometricAlpha,
+                blurAlpha = blurAlpha,
                 isWorking = isBusy,
                 onWorkingChange = { isBusy = it },
                 onDismiss = { showApplyDialog = false },
@@ -679,10 +751,12 @@ private fun PreviewFrame(
     addStripes: Boolean,
     addOverlay: Boolean,
     addGeometric: Boolean,
+    addBlur: Boolean,
     noiseAlpha: Float,
     stripesAlpha: Float,
     overlayAlpha: Float,
     geometricAlpha: Float,
+    blurAlpha: Float,
     overlayTextColor: @Composable () -> Color,
     onFavoriteToggle: () -> Unit
 ) {
@@ -696,10 +770,12 @@ private fun PreviewFrame(
             addStripes = addStripes,
             addOverlay = addOverlay,
             addGeometric = addGeometric,
+            addBlur = addBlur,
             noiseAlpha = noiseAlpha,
             stripesAlpha = stripesAlpha,
             overlayAlpha = overlayAlpha,
             geometricAlpha = geometricAlpha,
+            blurAlpha = blurAlpha,
             modifier = Modifier.fillMaxSize(),
             showTypeLabel = false
         )

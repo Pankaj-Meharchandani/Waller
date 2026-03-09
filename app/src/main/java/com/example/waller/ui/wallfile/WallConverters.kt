@@ -20,11 +20,13 @@ fun FavoriteWallpaper.toWallFavorite(): WallFavorite {
         addStripes = addStripes,
         addOverlay = addOverlay,
         addGeometric = addGeometric,
+        addBlur = addBlur,
 
         noiseAlpha = noiseAlpha,
         stripesAlpha = stripesAlpha,
         overlayAlpha = overlayAlpha,
-        geometricAlpha = geometricAlpha
+        geometricAlpha = geometricAlpha,
+        blurAlpha = blurAlpha
     )
 }
 
@@ -39,9 +41,11 @@ fun WallFavorite.toFavoriteWallpaper(): FavoriteWallpaper {
         addStripes = addStripes,
         addOverlay = addOverlay,
         addGeometric = addGeometric,
+        addBlur = addBlur,
         noiseAlpha = noiseAlpha,
         stripesAlpha = stripesAlpha,
         overlayAlpha = overlayAlpha,
-        geometricAlpha = geometricAlpha
+        geometricAlpha = geometricAlpha,
+        blurAlpha = blurAlpha
     )
 }

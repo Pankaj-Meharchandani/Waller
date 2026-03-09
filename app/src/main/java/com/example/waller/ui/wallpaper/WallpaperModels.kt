@@ -52,8 +52,10 @@ data class FavoriteWallpaper(
     val addStripes: Boolean,
     val addOverlay: Boolean,
     val addGeometric: Boolean,
+    val addBlur: Boolean = false,
     val noiseAlpha: Float = 1f,
     val stripesAlpha: Float = 1f,
     val overlayAlpha: Float = 1f,
-    val geometricAlpha: Float = 1f
+    val geometricAlpha: Float = 1f,
+    val blurAlpha: Float = 1f
 )

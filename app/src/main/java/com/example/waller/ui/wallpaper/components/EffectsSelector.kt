@@ -27,7 +27,9 @@ fun EffectsSelector(
     addOverlay: Boolean,
     onOverlayChange: (Boolean) -> Unit,
     addGeometric: Boolean,
-    onGeometricChange: (Boolean) -> Unit
+    onGeometricChange: (Boolean) -> Unit,
+    addBlur: Boolean,
+    onBlurChange: (Boolean) -> Unit
 ) {
     Column {
         Text(
@@ -98,6 +100,22 @@ fun EffectsSelector(
                 Text(stringResource(id = R.string.effect_geometric))
                 Text(
                     text = "Subtle geometric grid lines",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Blur
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = addBlur, onCheckedChange = onBlurChange)
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text("Blur")
+                Text(
+                    text = "Frosted glass blur over the gradient",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

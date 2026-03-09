@@ -338,6 +338,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
         prefs.edit { putBoolean("default_enable_stripes", value) }
     }
     var geometricEffectEnabled by remember { mutableStateOf(false) }
+    var blurEffectEnabled by remember { mutableStateOf(false) }
 
     // Default tone: DARK / NEUTRAL / LIGHT
     val initialToneMode = remember {
@@ -399,10 +400,12 @@ fun WallerApp(openedWallUri: Uri? = null) {
         addStripes: Boolean,
         addOverlay: Boolean,
         addGeometric: Boolean,
+        addBlur: Boolean = false,
         noiseAlpha: Float = 1f,
         stripesAlpha: Float = 1f,
         overlayAlpha: Float = 1f,
-        geometricAlpha: Float = 1f
+        geometricAlpha: Float = 1f,
+        blurAlpha: Float = 1f
     ) {
         // exact compare (type + angle + color stops)
         fun exactMatch(a: Wallpaper, b: Wallpaper): Boolean =
@@ -430,10 +433,12 @@ fun WallerApp(openedWallUri: Uri? = null) {
                     addStripes = addStripes,
                     addOverlay = addOverlay,
                     addGeometric = addGeometric,
+                    addBlur = addBlur,
                     noiseAlpha = noiseAlpha,
                     stripesAlpha = stripesAlpha,
                     overlayAlpha = overlayAlpha,
-                    geometricAlpha = geometricAlpha
+                    geometricAlpha = geometricAlpha,
+                    blurAlpha = blurAlpha
                 )
             }
         }
@@ -529,14 +534,16 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             onAddGeometricChange = { geometricEffectEnabled = it },
                             addOverlay = overlayEffectEnabled,
                             onAddOverlayChange = { overlayEffectEnabled = it },
+                            addBlur = blurEffectEnabled,
+                            onAddBlurChange = { blurEffectEnabled = it },
                             favouriteWallpapers = favouriteWallpapers,
-                            onToggleFavourite = { w, n, s, o, g, na, sa, oa, ga ->
-                                toggleFavouriteFromHome(w, n, s, o, g,na, sa, oa, ga)
+                            onToggleFavourite = { w, n, s, o, g, bl, na, sa, oa, ga, bla ->
+                                toggleFavouriteFromHome(w, n, s, o, g, bl, na, sa, oa, ga, bla)
                             },
                             isPortrait = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortrait = it },
                             interactionMode = interactionMode,
-                                    onPreviewVisibilityChanged = { isPreviewOpen = it}
+                            onPreviewVisibilityChanged = { isPreviewOpen = it}
                         )
                     }
 
@@ -565,10 +572,12 @@ fun WallerApp(openedWallUri: Uri? = null) {
                                     fav.addStripes,
                                     fav.addOverlay,
                                     fav.addGeometric,
+                                    fav.addBlur,
                                     fav.noiseAlpha,
                                     fav.stripesAlpha,
                                     fav.overlayAlpha,
-                                    fav.geometricAlpha
+                                    fav.geometricAlpha,
+                                    fav.blurAlpha
                                 )
                             },
                             interactionMode = interactionMode
@@ -601,7 +610,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             onInteractionModeChange = { updateInteractionMode(it) },
                             hapticsEnabled = hapticsEnabled,
                             onHapticsEnabledChange = { updateHapticsEnabled(it) }
-                            )
+                        )
                     }
 
                     RootScreen.ABOUT -> {
@@ -696,7 +705,8 @@ fun WallerApp(openedWallUri: Uri? = null) {
                                 existing.addNoise == importedFav.addNoise &&
                                 existing.addStripes == importedFav.addStripes &&
                                 existing.addOverlay == importedFav.addOverlay &&
-                                existing.addGeometric == importedFav.addGeometric
+                                existing.addGeometric == importedFav.addGeometric &&
+                                existing.addBlur == importedFav.addBlur
                     }
                 }
 
@@ -737,14 +747,15 @@ private fun encodeFavourites(list: List<FavoriteWallpaper>): String =
     list.joinToString(";") { fav ->
         val typeName = fav.wallpaper.type.name
         val colorsStr = fav.wallpaper.colors.joinToString(",") { it.toHexString() }
-        val flagsStr = listOf(fav.addNoise, fav.addStripes, fav.addOverlay, fav.addGeometric)
+        val flagsStr = listOf(fav.addNoise, fav.addStripes, fav.addOverlay, fav.addGeometric, fav.addBlur)
             .joinToString(",") { if (it) "1" else "0" }
         val angleInt = fav.wallpaper.angleDeg.roundToInt()
         val na = String.format(Locale.US, "%.3f", fav.noiseAlpha)
         val sa = String.format(Locale.US, "%.3f", fav.stripesAlpha)
         val oa = String.format(Locale.US, "%.3f", fav.overlayAlpha)
         val ga = String.format(Locale.US, "%.3f", fav.geometricAlpha)
-        listOf(typeName, colorsStr, flagsStr, angleInt.toString(), na, sa, oa, ga).joinToString("|")
+        val bla = String.format(Locale.US, "%.3f", fav.blurAlpha)
+        listOf(typeName, colorsStr, flagsStr, angleInt.toString(), na, sa, oa, ga, bla).joinToString("|")
     }
 
 /** Decodes both new (7-part) and old (4-part without alphas) formats. */
@@ -777,12 +788,14 @@ private fun decodeFavourites(raw: String): List<FavoriteWallpaper> =
             val addStripes = flagTokens.getOrNull(1) == "1"
             val addOverlay = flagTokens.getOrNull(2) == "1"
             val addGeometric = flagTokens.getOrNull(3) == "1" // NEW, safe default
+            val addBlur = flagTokens.getOrNull(4) == "1"      // NEW, safe default false
 
             val angleDeg = parts.getOrNull(3)?.toFloatOrNull() ?: 0f
             val noiseAlpha = parts.getOrNull(4)?.toFloatOrNull() ?: 1f
             val stripesAlpha = parts.getOrNull(5)?.toFloatOrNull() ?: 1f
             val overlayAlpha = parts.getOrNull(6)?.toFloatOrNull() ?: 1f
             val geometricAlpha = parts.getOrNull(7)?.toFloatOrNull() ?: 1f
+            val blurAlpha = parts.getOrNull(8)?.toFloatOrNull() ?: 1f
 
             FavoriteWallpaper(
                 wallpaper = Wallpaper(colors = colors, type = type, angleDeg = angleDeg),
@@ -790,9 +803,11 @@ private fun decodeFavourites(raw: String): List<FavoriteWallpaper> =
                 addStripes = addStripes,
                 addOverlay = addOverlay,
                 addGeometric = addGeometric,
+                addBlur = addBlur,
                 noiseAlpha = noiseAlpha,
                 stripesAlpha = stripesAlpha,
                 overlayAlpha = overlayAlpha,
-                geometricAlpha = geometricAlpha
+                geometricAlpha = geometricAlpha,
+                blurAlpha = blurAlpha
             )
         }

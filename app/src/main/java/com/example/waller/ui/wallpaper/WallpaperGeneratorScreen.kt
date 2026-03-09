@@ -100,10 +100,12 @@ fun WallpaperGeneratorScreen(
     onAddOverlayChange: (Boolean) -> Unit,
     addGeometric: Boolean,
     onAddGeometricChange: (Boolean) -> Unit,
+    addBlur: Boolean,
+    onAddBlurChange: (Boolean) -> Unit,
     favouriteWallpapers: List<FavoriteWallpaper>,
     // UPDATED: onToggleFavourite now accepts per-effect alpha floats as well
-    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean, addGeometric: Boolean,
-                        noiseAlpha: Float, stripesAlpha: Float, overlayAlpha: Float, geometricAlpha: Float) -> Unit,
+    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean, addGeometric: Boolean, addBlur: Boolean,
+                        noiseAlpha: Float, stripesAlpha: Float, overlayAlpha: Float, geometricAlpha: Float, blurAlpha: Float) -> Unit,
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit,
     interactionMode: InteractionMode
@@ -364,6 +366,10 @@ fun WallpaperGeneratorScreen(
                     addGeometric = addGeometric,
                     onGeometricToggle = {
                         onAddGeometricChange(!addGeometric)
+                    },
+                    addBlur = addBlur,
+                    onBlurToggle = {
+                        onAddBlurChange(!addBlur)
                     }
                 )
             }
@@ -466,13 +472,15 @@ fun WallpaperGeneratorScreen(
                 addStripes = addStripes,
                 addGeometric = addGeometric,
                 addOverlay = addOverlay,
+                addBlur = addBlur,
                 noiseAlpha = if (addNoise) 1f else 0f,
                 stripesAlpha = if (addStripes) 1f else 0f,
                 overlayAlpha = if (addOverlay) 1f else 0f,
                 geometricAlpha = if (addGeometric) 1f else 0f,
+                blurAlpha = if (addBlur) 1f else 0f,
                 isFavorite = isFavourite,
-                onFavoriteToggle = { w, n, s, o, g, na, sa, oa, ga ->
-                    onToggleFavourite(w, n, s, o, g, na, sa, oa, ga)
+                onFavoriteToggle = { w, n, s, o, g, bl, na, sa, oa, ga, bla ->
+                    onToggleFavourite(w, n, s, o, g, bl, na, sa, oa, ga, bla)
                 },
                 onClick = {
                     when (interactionMode) {
@@ -521,14 +529,16 @@ fun WallpaperGeneratorScreen(
             initialStripesAlpha = if (addStripes) 1f else 0f,
             initialOverlayAlpha = if (addOverlay) 1f else 0f,
             initialGeometricAlpha = if (addGeometric) 1f else 0f,
+            initialBlurAlpha = if (addBlur) 1f else 0f,
             isFavorite = favouriteWallpapers.any { it.wallpaper == preview },
-            onFavoriteToggle = { wallpaperToSave, n, s, o, g, na, sa, oa, ga ->
-                onToggleFavourite(wallpaperToSave, n, s, o, g, na, sa, oa, ga)
+            onFavoriteToggle = { wallpaperToSave, n, s, o, g, bl, na, sa, oa, ga, bla ->
+                onToggleFavourite(wallpaperToSave, n, s, o, g, bl, na, sa, oa, ga, bla)
             },
             globalNoise = addNoise,
             globalStripes = addStripes,
             globalOverlay = addOverlay,
             globalGeometric = addGeometric,
+            globalBlur = addBlur,
             onDismiss = {
                 showPreview = false
                 onPreviewVisibilityChanged(false)},
@@ -548,10 +558,12 @@ fun WallpaperGeneratorScreen(
         addStripes = addStripes,
         addOverlay = addOverlay,
         addGeometric = addGeometric,
+        addBlur = addBlur,
         noiseAlpha = if (addNoise) 1f else 0f, // grid-level default: full or 0
         stripesAlpha = if (addStripes) 1f else 0f,
         overlayAlpha = if (addOverlay) 1f else 0f,
         geometricAlpha = if (addGeometric) 1f else 0f,
+        blurAlpha = if (addBlur) 1f else 0f,
         isWorking = isWorking,
         onWorkingChange = { isWorking = it },
         onDismiss = {
