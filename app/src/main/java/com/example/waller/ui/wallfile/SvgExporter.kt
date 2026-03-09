@@ -157,14 +157,21 @@ object SvgExporter {
             sb.appendLine("""  <rect width="$W" height="$H" fill="url(#stripes)"/>""")
         }
 
-        // ── Layer 4: Glass overlay (overlay_stripes.png, screen blend via feBlend) ──
-        // mix-blend-mode:screen in style attr is unreliable in SVG viewers.
-        // feBlend mode="screen" is the spec-correct way and works everywhere.
+        // ── Layer 4: Glass overlay (overlay_stripes.png, screen blend via SVG filter) ──
+        // mix-blend-mode in style="" is ignored by most SVG renderers.
+        // feBlend mode="screen" against BackgroundImage is the correct SVG spec approach.
         if (fav.addOverlay && fav.overlayAlpha > 0f) {
             val b64 = drawablePngAsBase64(context, "overlay_stripes")
             if (b64 != null) {
-                val glassOp = (fav.overlayAlpha * 1.8f).coerceAtMost(1f).fmtF()
-                sb.appendLine("""  <image href="data:image/png;base64,$b64" x="0" y="0" width="$W" height="$H" preserveAspectRatio="xMidYMid slice" opacity="$glassOp" style="mix-blend-mode:screen"/>""")
+                // Define a filter that composites this image over background using screen blend
+                sb.appendLine("""  <defs>""")
+                sb.appendLine("""    <filter id="glassBlend" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">""")
+                sb.appendLine("""      <feImage href="data:image/png;base64,$b64" result="overlay" preserveAspectRatio="xMidYMid slice"/>""")
+                sb.appendLine("""      <feBlend in="BackgroundImage" in2="overlay" mode="screen" result="blended"/>""")
+                sb.appendLine("""      <feComposite in="blended" in2="SourceGraphic" operator="over"/>""")
+                sb.appendLine("""    </filter>""")
+                sb.appendLine("""  </defs>""")
+                sb.appendLine("""  <rect width="$W" height="$H" fill="transparent" filter="url(#glassBlend)" opacity="${fav.overlayAlpha.fmtF()}" enable-background="new"/>""")
             }
         }
 
