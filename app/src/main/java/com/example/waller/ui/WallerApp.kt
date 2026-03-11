@@ -451,7 +451,33 @@ fun WallerApp(openedWallUri: Uri? = null) {
         persistFavourites()
     }
 
-    // --- NAVIGATION STATE ---
+    // Used by import: adds a FavoriteWallpaper directly without toggle semantics.
+    // Unlike toggleFavouriteFromHome, this checks ALL fields (including effects)
+    // so the same wallpaper with different effects is treated as a different item.
+    fun addFavouriteDirect(fav: FavoriteWallpaper) {
+        val alreadyExists = favouriteWallpapers.any { existing ->
+            existing.wallpaper.type == fav.wallpaper.type &&
+                    existing.wallpaper.angleDeg.compareTo(fav.wallpaper.angleDeg) == 0 &&
+                    existing.wallpaper.colors.size == fav.wallpaper.colors.size &&
+                    existing.wallpaper.colors.zip(fav.wallpaper.colors).all { (x, y) -> x.toHexString() == y.toHexString() } &&
+                    existing.addNoise == fav.addNoise &&
+                    existing.addStripes == fav.addStripes &&
+                    existing.addOverlay == fav.addOverlay &&
+                    existing.addGeometric == fav.addGeometric &&
+                    existing.addBlur == fav.addBlur &&
+                    existing.noiseAlpha == fav.noiseAlpha &&
+                    existing.stripesAlpha == fav.stripesAlpha &&
+                    existing.overlayAlpha == fav.overlayAlpha &&
+                    existing.geometricAlpha == fav.geometricAlpha &&
+                    existing.blurAlpha == fav.blurAlpha
+        }
+        if (!alreadyExists) {
+            favouriteWallpapers = favouriteWallpapers + fav
+            persistFavourites()
+        }
+    }
+
+
     var currentScreen by remember { mutableStateOf(RootScreen.HOME) }
     var isPreviewOpen by remember { mutableStateOf(false) }
 
@@ -566,19 +592,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             onOrientationChange = { sessionIsPortrait = it },
                             onRemoveFavourite = { fav -> removeFavourite(fav) },
                             onAddFavourite = { fav ->
-                                toggleFavouriteFromHome(
-                                    fav.wallpaper,
-                                    fav.addNoise,
-                                    fav.addStripes,
-                                    fav.addOverlay,
-                                    fav.addGeometric,
-                                    fav.addBlur,
-                                    fav.noiseAlpha,
-                                    fav.stripesAlpha,
-                                    fav.overlayAlpha,
-                                    fav.geometricAlpha,
-                                    fav.blurAlpha
-                                )
+                                addFavouriteDirect(fav)
                             },
                             interactionMode = interactionMode
                         )
@@ -701,12 +715,20 @@ fun WallerApp(openedWallUri: Uri? = null) {
 
                     favouriteWallpapers.none { existing ->
 
-                        existing.wallpaper == importedFav.wallpaper &&
+                        existing.wallpaper.type == importedFav.wallpaper.type &&
+                                existing.wallpaper.angleDeg.compareTo(importedFav.wallpaper.angleDeg) == 0 &&
+                                existing.wallpaper.colors.size == importedFav.wallpaper.colors.size &&
+                                existing.wallpaper.colors.zip(importedFav.wallpaper.colors).all { (x, y) -> x.toHexString() == y.toHexString() } &&
                                 existing.addNoise == importedFav.addNoise &&
                                 existing.addStripes == importedFav.addStripes &&
                                 existing.addOverlay == importedFav.addOverlay &&
                                 existing.addGeometric == importedFav.addGeometric &&
-                                existing.addBlur == importedFav.addBlur
+                                existing.addBlur == importedFav.addBlur &&
+                                existing.noiseAlpha == importedFav.noiseAlpha &&
+                                existing.stripesAlpha == importedFav.stripesAlpha &&
+                                existing.overlayAlpha == importedFav.overlayAlpha &&
+                                existing.geometricAlpha == importedFav.geometricAlpha &&
+                                existing.blurAlpha == importedFav.blurAlpha
                     }
                 }
 

@@ -125,8 +125,8 @@ fun PreviewWallpaperRender(
                         }
 
                         if (addStripes && stripesAlpha > 0f) {
-                            val stripeSpacing = size.width / 12f
-                            val stripeWidth = stripeSpacing / 2f
+                            val stripeSpacing = size.width / 10f
+                            val stripeWidth = stripeSpacing * 0.65f
 
                             rotate(-45f, pivot = center) {
 
@@ -136,9 +136,12 @@ fun PreviewWallpaperRender(
                                     drawRect(
                                         brush = Brush.horizontalGradient(
                                             colors = listOf(
-                                                Color.White.copy(alpha = 0.18f * stripesAlpha),
+                                                Color.White.copy(alpha = 0.14f * stripesAlpha),
+                                                Color.White.copy(alpha = 0.08f * stripesAlpha),
                                                 Color.Transparent
-                                            )
+                                            ),
+                                            startX = x,
+                                            endX = x + stripeWidth * 1.4f
                                         ),
                                         topLeft = Offset(x, -size.height * 2f),
                                         size = Size(stripeWidth, size.height * 4f)

@@ -224,24 +224,43 @@ object SvgExporter {
         sb.appendLine("}")
         sb.appendLine()
 
+        // Container — clips children, no background here (gradient is on child div)
         sb.appendLine(".waller-wallpaper {")
         sb.appendLine("  width: ${W}px;")
         sb.appendLine("  height: ${H}px;")
         sb.appendLine("  position: relative;")
         sb.appendLine("  overflow: hidden;")
-        sb.appendLine("  background: $gradientCss;")
-        if (fav.addBlur && fav.blurAlpha > 0f) {
-            sb.appendLine("  filter: blur(${(18f * fav.blurAlpha).roundToInt()}px);")
-        }
         sb.appendLine("}")
         sb.appendLine()
 
-        // Snow/noise
+        // Gradient background child div — blur applied here with filter: blur()
+        // Using a child instead of background on parent lets blur extend past edges
+        // (parent overflow:hidden clips the bleed, just like Android's CLAMP tile mode)
+        if (fav.addBlur && fav.blurAlpha > 0f) {
+            val blurPx = (18f * fav.blurAlpha).roundToInt()
+            sb.appendLine("/* Gradient + blur layer */")
+            sb.appendLine(".waller-gradient {")
+            sb.appendLine("  position: absolute;")
+            sb.appendLine("  inset: -${blurPx * 2}px;") // extend past edges so blur doesn't fade at borders
+            sb.appendLine("  background: $gradientCss;")
+            sb.appendLine("  filter: blur(${blurPx}px);")
+            sb.appendLine("  pointer-events: none;")
+            sb.appendLine("}")
+        } else {
+            sb.appendLine("/* Gradient layer */")
+            sb.appendLine(".waller-gradient {")
+            sb.appendLine("  position: absolute; inset: 0;")
+            sb.appendLine("  background: $gradientCss;")
+            sb.appendLine("  pointer-events: none;")
+            sb.appendLine("}")
+        }
+        sb.appendLine()
+
+        // Snow/noise — named div
         if (fav.addNoise && fav.noiseAlpha > 0f) {
             val opacity = (fav.noiseAlpha * 0.12f).fmtF()
             sb.appendLine("/* Snow/noise overlay */")
-            sb.appendLine(".waller-wallpaper::before {")
-            sb.appendLine("  content: '';")
+            sb.appendLine(".waller-noise {")
             sb.appendLine("  position: absolute; inset: 0;")
             sb.appendLine("  background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 $opacity 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E\");")
             sb.appendLine("  background-size: 200px 200px;")
@@ -251,12 +270,11 @@ object SvgExporter {
             sb.appendLine()
         }
 
-        // Refraction/stripes — matches -45° rotated vertical gradient rects
+        // Stripes — named div (no limit of 2 pseudo-elements)
         if (fav.addStripes && fav.stripesAlpha > 0f) {
             val stripeOpacity = (0.18f * fav.stripesAlpha).fmtF()
             sb.appendLine("/* Refraction/stripes overlay */")
-            sb.appendLine(".waller-wallpaper::after {")
-            sb.appendLine("  content: '';")
+            sb.appendLine(".waller-stripes {")
             sb.appendLine("  position: absolute; inset: 0;")
             sb.appendLine("  background-image: repeating-linear-gradient(")
             sb.appendLine("    -45deg,")
@@ -303,6 +321,9 @@ object SvgExporter {
         sb.appendLine("/*")
         sb.appendLine(" * Usage:")
         sb.appendLine(" * <div class=\"waller-wallpaper\">")
+        sb.appendLine(" *   <div class=\"waller-gradient\"></div>   <!-- always required -->")
+        if (fav.addNoise)     sb.appendLine(" *   <div class=\"waller-noise\"></div>")
+        if (fav.addStripes)   sb.appendLine(" *   <div class=\"waller-stripes\"></div>")
         if (fav.addOverlay)   sb.appendLine(" *   <div class=\"waller-glass\"></div>")
         if (fav.addGeometric) sb.appendLine(" *   <div class=\"waller-geo\"></div>")
         sb.appendLine(" * </div>")

@@ -8,6 +8,8 @@
 package com.example.waller.ui.wallpaper
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -67,13 +69,26 @@ fun FavoritesScreen(
     val gridState = rememberLazyGridState()
     val importWallLauncher =
         rememberLauncherForActivityResult(
-            ActivityResultContracts.OpenMultipleDocuments()
+            object : ActivityResultContracts.OpenMultipleDocuments() {
+                override fun createIntent(context: Context, input: Array<String>): Intent {
+                    return super.createIntent(context, input).apply {
+                        // Hint the picker toward binary/octet files; .wall has no registered MIME
+                        putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/octet-stream", "application/*", "*/*"))
+                    }
+                }
+            }
         ) { uris ->
 
             var importedCount = 0
             val importedKeys = mutableSetOf<String>()
 
-            uris.forEach { uri ->
+            // Filter to only .wall URIs. If the picker hides extensions, fall back to all.
+            val wallUris = uris.filter { uri ->
+                val segment = uri.lastPathSegment ?: uri.toString()
+                segment.endsWith(".wall", ignoreCase = true)
+            }.ifEmpty { uris }
+
+            wallUris.forEach { uri ->
 
                 val imported = WallFileManager.importWallFile(context, uri)
 
