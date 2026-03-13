@@ -166,6 +166,11 @@ fun UpdateAvailableDialog(
 
 private fun formatReleaseNotes(raw: String): String =
     raw
-        .replace(Regex("^#{1,6}\\s*", RegexOption.MULTILINE), "")
-        .replace(Regex("^-\\s*", RegexOption.MULTILINE), "• ")
+        .replace(Regex("^#{1,6}\\s*", RegexOption.MULTILINE), "")  // headers
+        .replace(Regex("^-\\s*", RegexOption.MULTILINE), "• ")      // list items
+        .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")                  // **bold**
+        .replace(Regex("\\*(.+?)\\*"), "$1")                        // *italic*
+        .replace(Regex("`(.+?)`"), "$1")                            // `code`
+        .replace(Regex("^•\\s*--\\s*$", RegexOption.MULTILINE), "─".repeat(30)) // • -- separators
+        .replace(Regex("\n{3,}"), "\n\n")                           // collapse excess blank lines
         .trim()
