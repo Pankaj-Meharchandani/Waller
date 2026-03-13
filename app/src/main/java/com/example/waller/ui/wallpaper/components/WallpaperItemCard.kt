@@ -43,7 +43,6 @@ import com.example.waller.R
 import com.example.waller.ui.wallpaper.EffectMap
 import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.Wallpaper
-import com.example.waller.ui.wallpaper.WallpaperEffects
 import com.example.waller.ui.wallpaper.alpha
 import com.example.waller.ui.wallpaper.isEnabled
 import kotlin.random.Random
@@ -190,17 +189,20 @@ fun WallpaperItem(
                         }
 
                         if (addStripes && stripesAlpha > 0f) {
-                            val stripeSpacing = size.width / 12f
-                            val stripeWidth   = stripeSpacing / 2f
+                            val stripeSpacing = size.width / 10f
+                            val stripeWidth   = stripeSpacing * 0.65f
                             rotate(-45f, pivot = center) {
                                 var x = -size.height
                                 while (x < size.width * 2f) {
                                     drawRect(
                                         brush = Brush.horizontalGradient(
                                             colors = listOf(
-                                                Color.White.copy(alpha = 0.18f * stripesAlpha),
+                                                Color.White.copy(alpha = 0.14f * stripesAlpha),
+                                                Color.White.copy(alpha = 0.08f * stripesAlpha),
                                                 Color.Transparent
-                                            )
+                                            ),
+                                            startX = x,
+                                            endX = x + stripeWidth * 1.4f
                                         ),
                                         topLeft = Offset(x, -size.height * 2f),
                                         size = Size(stripeWidth, size.height * 4f)
