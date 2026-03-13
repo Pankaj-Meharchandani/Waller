@@ -15,7 +15,7 @@
     <string name="effects_subtitle">Noise, stripes, and optional Nothing-style overlay.</string>
     <string name="effects_snow_effect">Snow</string>
     <string name="effects_snow_effect_subtitle">Soft snow texture.</string>
-    <string name="effects_stripes_overlay">Refraction overlay</string>
+    <string name="effects_stripes_overlay">Refraction</string>
     <string name="effects_stripes">Refraction</string>
     <string name="effect_geometric">Geometry</string>
     <string name="effects_stripes_overlay_subtitle">Vertical translucent Refraction.</string>

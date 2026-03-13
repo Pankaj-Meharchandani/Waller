@@ -3,13 +3,10 @@
  *
  * Row 1 — Colors:   [●][●]  [+ Add Color]  ────  [Multi-color]
  * Row 2 — Gradient: [Linear][Radial][Angular][ Diamond]
- * Row 3 — Effects:  [Glass][Stripes][Snow][Geo][Glow][ Dust]
+ * Row 3 — Effects:  chips driven by WallpaperEffects.ALL — no per-effect params
  * Row 4 — Tone:     [Dark Tones][Neutral][Light Tones]
  *
- * Font sizing:
- * - Global scale from screen width (360dp baseline)
- * - Effect chips: BoxWithConstraints → font from actual chip width
- * - Nothing ever overflows — text shrinks to fit
+ * Adding a new effect requires NO change here.
  */
 package com.example.waller.ui.wallpaper.components
 
@@ -47,13 +44,31 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.waller.R
+import com.example.waller.ui.wallpaper.EffectMap
 import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.Haptics
 import com.example.waller.ui.wallpaper.ToneMode
+import com.example.waller.ui.wallpaper.WallpaperEffects
+import com.example.waller.ui.wallpaper.isEnabled
+import com.example.waller.ui.wallpaper.withEnabled
 
 private val ChipCorner  = 14.dp
 private val RowSpacing  = 10.dp
 private val ChipSpacing = 8.dp
+
+/** Maps effect id → canvas icon key used by EffectChip's `when` block. */
+private val EFFECT_ICON_KEYS = mapOf(
+    "noise"     to "snow",
+    "stripes"   to "stripes",
+    "overlay"   to "glass",
+    "geometric" to "geo",
+    "blur"      to "blur"
+)
+
+/** Inline labels for effects whose labelRes == 0. */
+private val EFFECT_INLINE_LABELS = mapOf(
+    "blur" to "Blur"
+)
 
 @Composable
 fun CompactOptionsPanel(
@@ -66,40 +81,43 @@ fun CompactOptionsPanel(
     isMultiColor: Boolean,
     onMultiColorChange: (Boolean) -> Unit,
     onGradientToggle: (GradientType) -> Unit,
-    addNoise: Boolean,
-    onNoiseToggle: () -> Unit,
-    addStripes: Boolean,
-    onStripesToggle: () -> Unit,
-    addOverlay: Boolean,
-    onOverlayToggle: () -> Unit,
-    addGeometric: Boolean,
-    onGeometricToggle: () -> Unit,
-    addBlur: Boolean,
-    onBlurToggle: () -> Unit,
+    effects: EffectMap,
+    onEffectToggle: (EffectMap) -> Unit,
 ) {
     val view   = LocalView.current
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    // Scale factor: 360dp screen = 1.0 baseline
     val screenW = LocalConfiguration.current.screenWidthDp
     val scale   = (screenW / 360f).coerceIn(0.82f, 1.20f)
 
-    // Scaled dimension helpers
-    val gradientChipH = (35 * scale).dp  // gradient row
-    val effectChipH   = (46 * scale).dp  // effects row
-    val colorH = (30 * scale).dp  // color row
-    val spacing  = (ChipSpacing.value * scale).dp
-    val rowGap   = (RowSpacing.value * scale).dp
+    val gradientChipH = (35 * scale).dp
+    val effectChipH   = (46 * scale).dp
+    val colorH        = (30 * scale).dp
+    val spacing       = (ChipSpacing.value * scale).dp
+    val rowGap        = (RowSpacing.value * scale).dp
 
-    data class EffectItem(val iconKey: String, val label: String, val selected: Boolean, val onClick: () -> Unit)
-    // Effect icon keys — rendered as canvas-drawn shapes, not emoji
-    val effects = listOf(
-        EffectItem("glass", stringResource(R.string.effects_nothing_style), addOverlay, onOverlayToggle),
-        EffectItem("stripes", stringResource(R.string.effects_stripes), addStripes, onStripesToggle),
-        EffectItem("snow", stringResource(R.string.effects_snow_effect), addNoise, onNoiseToggle),
-        EffectItem("geo", stringResource(R.string.effect_geometric), addGeometric, onGeometricToggle),
-        EffectItem("blur", "Blur", addBlur, onBlurToggle),
+    data class EffectItem(
+        val id: String,
+        val iconKey: String,
+        val label: String,
+        val selected: Boolean,
+        val onClick: () -> Unit
     )
+
+    val effectItems = WallpaperEffects.ALL.map { def ->
+        val label = if (def.labelRes != 0)
+            stringResource(id = def.labelRes)
+        else
+            EFFECT_INLINE_LABELS[def.id] ?: def.id
+
+        EffectItem(
+            id       = def.id,
+            iconKey  = EFFECT_ICON_KEYS[def.id] ?: def.id,
+            label    = label,
+            selected = effects.isEnabled(def.id),
+            onClick  = { onEffectToggle(effects.withEnabled(def.id, !effects.isEnabled(def.id))) }
+        )
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(rowGap),
@@ -107,10 +125,8 @@ fun CompactOptionsPanel(
     ) {
 
         /* ── Row 1: Colors ───────────────────────────────────────────── */
-        // Space-aware: measures actual available width to decide pill vs icon-only.
-        // Works correctly on phones, tablets, and foldables.
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val availableWidth = maxWidth
+            val availableWidth  = maxWidth
             val colorBlockWidth = (colorH * selectedColors.size) + (spacing * selectedColors.size.coerceAtLeast(1))
             val multiColorWidth = (90 * scale).dp
             val pillWidth       = (95 * scale).dp
@@ -171,7 +187,6 @@ fun CompactOptionsPanel(
             horizontalArrangement = Arrangement.spacedBy(spacing)
         ) {
             GradientType.entries.forEach { type ->
-                // BoxWithConstraints so font shrinks if label is long
                 Box(modifier = Modifier.weight(1f)) {
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                         val fs = (maxWidth.value * 0.20f).coerceIn(10f, 14f).sp
@@ -199,10 +214,9 @@ fun CompactOptionsPanel(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(spacing)
         ) {
-            effects.forEach { effect ->
+            effectItems.forEach { effect ->
                 Box(modifier = Modifier.weight(1f)) {
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        // Font scales with chip width: more chips = narrower = smaller font
                         val iconFs  = (maxWidth.value * 0.28f).coerceIn(11f, 22f).sp
                         val labelFs = (maxWidth.value * 0.16f).coerceIn(7f,  13f).sp
                         EffectChip(
@@ -231,10 +245,7 @@ fun CompactOptionsPanel(
     }
 }
 
-/* ── Effect chip — full-chip mini wallpaper thumbnail ────────────── */
-// The entire chip background IS the effect preview — gradient + effect pattern on top.
-// Label sits at the bottom in a frosted pill so it's always readable.
-// This matches exactly what the user sees in the wallpaper grid below.
+/* ── Effect chip ─────────────────────────────────────────────────── */
 @Composable
 private fun EffectChip(
     modifier: Modifier,
@@ -243,30 +254,20 @@ private fun EffectChip(
     selected: Boolean,
     onClick: () -> Unit,
     isDark: Boolean,
-    iconFs: TextUnit,  // unused now but kept for API compat
+    iconFs: TextUnit,
     labelFs: TextUnit,
     height: Dp
 ) {
     var pressed by remember { mutableStateOf(false) }
     val anim by animateFloatAsState(if (pressed) 0.94f else 1f, spring(0.65f, 480f), label = "ef")
 
-    // Muted preview gradient — blue→teal, matches dark theme nicely, stays subtle
     val base = MaterialTheme.colorScheme.primary
-
     val previewColors = if (isDark) {
-        listOf(
-            base.copy(alpha = 0.85f),
-            base.copy(alpha = 0.45f)
-        )
+        listOf(base.copy(alpha = 0.85f), base.copy(alpha = 0.45f))
     } else {
-        listOf(
-            base.copy(alpha = 0.65f),
-            base.copy(alpha = 0.35f)
-        )
+        listOf(base.copy(alpha = 0.65f), base.copy(alpha = 0.35f))
     }
-    val overlayAlpha  = if (selected) 1f else 0.75f
-    val patternColor = Color.White.copy(alpha = if (isDark) 0.16f else 0.22f)
-    val selectedRing  = MaterialTheme.colorScheme.primary
+    val selectedRing = MaterialTheme.colorScheme.primary
 
     Box(modifier = modifier.scale(anim)) {
         Box(
@@ -281,46 +282,27 @@ private fun EffectChip(
                 .premiumChipBorder(selected, isDark)
                 .clickable(onClick = onClick)
         ) {
-            // Layer 1: gradient base
-            // preview only when selected
             if (selected) {
-
                 Canvas(modifier = Modifier.matchParentSize()) {
-                    val brush = Brush.linearGradient(
+                    drawRect(brush = Brush.linearGradient(
                         colors = previewColors,
-                        start = Offset(0f, 0f),
-                        end = Offset(size.width, size.height)
-                    )
-                    drawRect(brush = brush)
+                        start = Offset(0f, 0f), end = Offset(size.width, size.height)
+                    ))
                 }
-
                 Canvas(modifier = Modifier.matchParentSize()) {
-                    drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = if (isDark) 0.22f else 0.08f)
-                            ),
-                            center = Offset(size.width / 2f, size.height / 2f),
-                            radius = size.maxDimension
-                        )
-                    )
-                }
-
-                Canvas(modifier = Modifier.matchParentSize()) {
-                    // pattern rendering
-                }
-
-                Canvas(modifier = Modifier.matchParentSize()) {
-                    // selected ring
+                    drawRect(brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = if (isDark) 0.22f else 0.08f)
+                        ),
+                        center = Offset(size.width / 2f, size.height / 2f),
+                        radius = size.maxDimension
+                    ))
                 }
             }
 
-// ALWAYS draw label
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            // Always-visible label (unselected state)
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = label,
                     fontSize = labelFs,
@@ -329,24 +311,17 @@ private fun EffectChip(
                 )
             }
 
-            // Layer 2: effect pattern — mirrors BitmapUtils.kt rendering exactly
+            // Effect pattern + selected ring (selected state)
             if (selected) {
                 Canvas(modifier = Modifier.matchParentSize()) {
                     val w = size.width; val h = size.height
                     when (iconKey) {
 
                         "glass" -> {
-
-                            val w = size.width
-                            val h = size.height
-
                             val lineCount = 10
-                            val spacing = w / lineCount
-
+                            val sp = w / lineCount
                             for (i in 0..lineCount) {
-
-                                val x = i * spacing
-
+                                val x = i * sp
                                 drawRect(
                                     brush = Brush.horizontalGradient(
                                         colors = listOf(
@@ -355,45 +330,41 @@ private fun EffectChip(
                                             Color.White.copy(alpha = 0.08f),
                                             Color.Transparent
                                         ),
-                                        startX = x - spacing * 0.5f,
-                                        endX = x + spacing * 0.5f
+                                        startX = x - sp * 0.5f, endX = x + sp * 0.5f
                                     ),
-                                    topLeft = Offset(x - spacing * 0.25f, 0f),
-                                    size = Size(spacing * 0.5f, h)
+                                    topLeft = Offset(x - sp * 0.25f, 0f),
+                                    size = Size(sp * 0.5f, h)
                                 )
                             }
                         }
 
                         "stripes" -> {
-                            // BitmapUtils: canvas.rotate(-45°) + vertical soft-fade rects
-                            // Replicated as diagonal lines at -45° with soft alpha, spacing = w/10
-                            val spacing = w / 10f
+                            val sp2  = w / 10f
                             val diag = kotlin.math.sqrt((w * w + h * h).toDouble()).toFloat()
-                            val sw2 = (spacing * 0.45f).coerceAtLeast(1f)
+                            val sw2  = (sp2 * 0.45f).coerceAtLeast(1f)
                             var i = -diag
                             while (i < diag * 2f) {
-                                // Each stripe: two lines side-by-side for soft-edge effect
-                                val x0 = i;  val y0 = 0f
-                                val x1 = i + h; val y1 = h   // -45° line
-                                drawLine(Color.White.copy(alpha = 0.20f), Offset(x0, y0), Offset(x1, y1),
+                                drawLine(Color.White.copy(alpha = 0.20f),
+                                    Offset(i, 0f), Offset(i + h, h),
                                     strokeWidth = sw2, cap = StrokeCap.Butt)
-                                drawLine(Color.White.copy(alpha = 0.06f), Offset(x0 + sw2 * 0.5f, y0),
-                                    Offset(x1 + sw2 * 0.5f, y1),
+                                drawLine(Color.White.copy(alpha = 0.06f),
+                                    Offset(i + sw2 * 0.5f, 0f), Offset(i + h + sw2 * 0.5f, h),
                                     strokeWidth = sw2 * 0.7f, cap = StrokeCap.Butt)
-                                i += spacing
+                                i += sp2
                             }
                         }
 
                         "snow" -> {
-                            // BitmapUtils: ~2% of pixels as random white circles, radius 0.6–1.8×basePx
-                            // Fixed seed positions for consistent thumbnail appearance
                             val dotR = (w * 0.028f).coerceAtLeast(1f)
                             listOf(
-                                0.07f to 0.06f, 0.21f to 0.13f, 0.44f to 0.04f, 0.63f to 0.11f, 0.82f to 0.08f, 0.95f to 0.17f,
-                                0.03f to 0.27f, 0.16f to 0.33f, 0.31f to 0.24f, 0.52f to 0.31f, 0.70f to 0.26f, 0.88f to 0.35f,
-                                0.11f to 0.48f, 0.27f to 0.54f, 0.43f to 0.44f, 0.60f to 0.51f, 0.76f to 0.46f, 0.91f to 0.55f,
-                                0.05f to 0.67f, 0.20f to 0.72f, 0.37f to 0.63f, 0.55f to 0.69f, 0.73f to 0.74f, 0.87f to 0.65f,
-                                0.13f to 0.85f, 0.29f to 0.90f, 0.48f to 0.82f, 0.66f to 0.88f, 0.83f to 0.83f, 0.97f to 0.91f
+                                0.07f to 0.06f, 0.21f to 0.13f, 0.44f to 0.04f, 0.63f to 0.11f,
+                                0.82f to 0.08f, 0.95f to 0.17f, 0.03f to 0.27f, 0.16f to 0.33f,
+                                0.31f to 0.24f, 0.52f to 0.31f, 0.70f to 0.26f, 0.88f to 0.35f,
+                                0.11f to 0.48f, 0.27f to 0.54f, 0.43f to 0.44f, 0.60f to 0.51f,
+                                0.76f to 0.46f, 0.91f to 0.55f, 0.05f to 0.67f, 0.20f to 0.72f,
+                                0.37f to 0.63f, 0.55f to 0.69f, 0.73f to 0.74f, 0.87f to 0.65f,
+                                0.13f to 0.85f, 0.29f to 0.90f, 0.48f to 0.82f, 0.66f to 0.88f,
+                                0.83f to 0.83f, 0.97f to 0.91f
                             ).forEach { (fx, fy) ->
                                 val r = dotR * (0.7f + ((fx * 7 + fy * 13) % 10) * 0.13f)
                                 val a = 0.08f + ((fx * 11 + fy * 7) % 10) * 0.012f
@@ -402,31 +373,16 @@ private fun EffectChip(
                         }
 
                         "geo" -> {
-                            // overlay_geometric PNG = grid lines + circles (matches reference image 2 exactly)
                             val sw = (w * 0.025f).coerceAtLeast(0.8f)
                             val lineColor = Color.White.copy(alpha = 0.18f)
-                            // 3-column grid
-                            for (i in 1..2) {
-                                drawLine(lineColor, Offset(w * i / 3f, 0f), Offset(w * i / 3f, h), strokeWidth = sw)
-                            }
-                            // 4-row grid
-                            for (i in 1..3) {
-                                drawLine(lineColor, Offset(0f, h * i / 4f), Offset(w, h * i / 4f), strokeWidth = sw)
-                            }
-                            // Large circle centered upper portion
+                            for (i in 1..2) drawLine(lineColor, Offset(w * i / 3f, 0f), Offset(w * i / 3f, h), strokeWidth = sw)
+                            for (i in 1..3) drawLine(lineColor, Offset(0f, h * i / 4f), Offset(w, h * i / 4f), strokeWidth = sw)
                             drawCircle(lineColor, w * 0.40f, Offset(w * 0.5f, h * 0.32f), style = Stroke(sw))
-                            // Smaller circle centered lower
                             drawCircle(lineColor, w * 0.30f, Offset(w * 0.5f, h * 0.62f), style = Stroke(sw))
                         }
 
                         "blur" -> {
-
-                            val w = size.width
-                            val h = size.height
-                            val cx = w / 2f
-                            val cy = h / 2f
-
-                            // outer blur halo
+                            val cx = w / 2f; val cy = h / 2f
                             drawCircle(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -434,63 +390,39 @@ private fun EffectChip(
                                         Color.White.copy(alpha = 0.10f),
                                         Color.Transparent
                                     ),
-                                    center = Offset(cx, cy),
-                                    radius = w * 0.45f
+                                    center = Offset(cx, cy), radius = w * 0.45f
                                 ),
-                                radius = w * 0.45f,
-                                center = Offset(cx, cy)
+                                radius = w * 0.45f, center = Offset(cx, cy)
                             )
-
-                            // mid blur layer
-                            drawCircle(
-                                color = Color.White.copy(alpha = 0.18f),
-                                radius = w * 0.25f,
-                                center = Offset(cx, cy)
-                            )
-
-                            // small sharp center
-                            drawCircle(
-                                color = Color.White.copy(alpha = 0.28f),
-                                radius = w * 0.08f,
-                                center = Offset(cx, cy)
-                            )
+                            drawCircle(Color.White.copy(alpha = 0.18f), w * 0.25f, Offset(cx, cy))
+                            drawCircle(Color.White.copy(alpha = 0.28f), w * 0.08f, Offset(cx, cy))
                         }
 
+                        // ── New effect icon patterns go here ─────────────────
                     }
                 }
 
-                // Layer 3: selected ring overlay
-
+                // Selected ring overlay
                 Canvas(modifier = Modifier.matchParentSize()) {
                     drawRoundRect(
                         brush = Brush.radialGradient(
-                            colors = listOf(
-                                selectedRing.copy(alpha = 0.25f),
-                                Color.Transparent
-                            ),
+                            colors = listOf(selectedRing.copy(alpha = 0.25f), Color.Transparent),
                             radius = size.maxDimension
                         ),
                         cornerRadius = CornerRadius(ChipCorner.toPx())
                     )
-                    val sw2 = 2.2f.dp.toPx();
-                    val i2 = sw2 / 2f
+                    val sw2 = 2.2f.dp.toPx(); val i2 = sw2 / 2f
                     drawRoundRect(
                         color = selectedRing,
                         topLeft = Offset(i2, i2),
-                        size = androidx.compose.ui.geometry.Size(
-                            this.size.width - sw2,
-                            this.size.height - sw2
-                        ),
+                        size = Size(size.width - sw2, size.height - sw2),
                         cornerRadius = CornerRadius(ChipCorner.toPx()),
                         style = Stroke(sw2)
                     )
                 }
 
-                // Layer 4: label at bottom in frosted pill
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                // Label on top of pattern when selected
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
                         text = label,
                         fontSize = labelFs,
@@ -500,26 +432,21 @@ private fun EffectChip(
                 }
             }
         }
-    }}
+    }
+}
 
 /* ── Text chip (gradient row) ────────────────────────────────────── */
 @Composable
 private fun TextChip(
-    modifier: Modifier,
-    selected: Boolean,
-    onClick: () -> Unit,
-    label: String,
-    height: Dp,
-    isDark: Boolean,
-    fontSize: TextUnit
+    modifier: Modifier, selected: Boolean, onClick: () -> Unit,
+    label: String, height: Dp, isDark: Boolean, fontSize: TextUnit
 ) {
     var pressed by remember { mutableStateOf(false) }
     val anim by animateFloatAsState(if (pressed) 0.94f else 1f, spring(0.6f, 500f), label = "tc")
     Box(modifier = modifier.scale(anim)) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(height)
+                .fillMaxWidth().height(height)
                 .clip(RoundedCornerShape(ChipCorner))
                 .background(chipBg(selected, isDark))
                 .premiumChipBorder(selected, isDark)
@@ -544,16 +471,16 @@ private fun ColorSquare(color: Color, size: Dp, onClick: () -> Unit, isDark: Boo
     val anim by animateFloatAsState(if (pressed) 0.87f else 1f, spring(0.55f, 600f), label = "cs")
     Box(
         modifier = Modifier
-            .scale(anim)
-            .size(size)
+            .scale(anim).size(size)
             .clip(RoundedCornerShape(12.dp))
             .background(color)
             .drawBehind {
                 val sw = 1.5f.dp.toPx(); val i = sw / 2f
                 drawRoundRect(
                     color = if (isDark) Color.Black.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.4f),
-                    topLeft = androidx.compose.ui.geometry.Offset(i, i),
-                    size = Size(this.size.width - sw, this.size.height - sw),                    cornerRadius = CornerRadius(12.dp.toPx()), style = Stroke(sw)
+                    topLeft = Offset(i, i),
+                    size = Size(this.size.width - sw, this.size.height - sw),
+                    cornerRadius = CornerRadius(12.dp.toPx()), style = Stroke(sw)
                 )
             }
             .clickable(onClick = onClick),
@@ -574,8 +501,7 @@ private fun AddColorPill(onClick: () -> Unit, height: Dp, isDark: Boolean, fontS
     val anim by animateFloatAsState(if (pressed) 0.94f else 1f, spring(0.6f, 500f), label = "ac")
     Box(
         modifier = Modifier
-            .scale(anim)
-            .height(height)
+            .scale(anim).height(height)
             .clip(RoundedCornerShape(12.dp))
             .background(if (isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f))
             .premiumAddColorBorder(isDark)
@@ -591,7 +517,7 @@ private fun AddColorPill(onClick: () -> Unit, height: Dp, isDark: Boolean, fontS
     }
 }
 
-/* ── Add Color icon-only square (3+ colors) ─────────────────────── */
+/* ── Add Color icon-only square ──────────────────────────────────── */
 @Composable
 private fun AddColorIcon(onClick: () -> Unit, size: Dp, isDark: Boolean, fontSize: TextUnit) {
     var pressed by remember { mutableStateOf(false) }
@@ -605,8 +531,7 @@ private fun AddColorIcon(onClick: () -> Unit, size: Dp, isDark: Boolean, fontSiz
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = "+", fontSize = fontSize, fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary)
+        Text(text = "+", fontSize = fontSize, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -620,8 +545,7 @@ private fun MultiColorPill(
     val anim by animateFloatAsState(if (pressed) 0.94f else 1f, spring(0.6f, 500f), label = "mc")
     Box(
         modifier = Modifier
-            .scale(anim)
-            .height(height)
+            .scale(anim).height(height)
             .clip(RoundedCornerShape(12.dp))
             .background(
                 if (isMultiColor) Brush.verticalGradient(listOf(
@@ -707,7 +631,7 @@ private fun ToneSliderRow(toneMode: ToneMode, onToneChange: (ToneMode) -> Unit, 
     }
 }
 
-/* ── Shared helpers ──────────────────────────────────────────────── */
+/* ── Shared chip helpers ─────────────────────────────────────────── */
 @Composable
 private fun chipBg(selected: Boolean, isDark: Boolean): Brush = when {
     selected -> Brush.verticalGradient(listOf(
@@ -727,14 +651,14 @@ private fun chipFg(selected: Boolean, isDark: Boolean, strong: Boolean): Color =
         MaterialTheme.colorScheme.onSurface.copy(alpha = if (strong) 0.8f else 0.55f)
     }
 
-/* ── Border modifiers — identical to original ────────────────────── */
+/* ── Border modifiers ────────────────────────────────────────────── */
 fun Modifier.premiumChipBorder(selected: Boolean, isDark: Boolean) = composed {
     val c = if (selected) { if (isDark) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.3f) }
     else if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.08f)
     drawBehind {
         val sw = 1.2f.dp.toPx(); val i = sw / 2f
-        drawRoundRect(color = c, topLeft = androidx.compose.ui.geometry.Offset(i, i),
-            size = androidx.compose.ui.geometry.Size(size.width - sw, size.height - sw),
+        drawRoundRect(color = c, topLeft = Offset(i, i),
+            size = Size(size.width - sw, size.height - sw),
             cornerRadius = CornerRadius(14.dp.toPx()), style = Stroke(sw))
     }
 }
@@ -743,8 +667,8 @@ fun Modifier.premiumSliderBorder(isDark: Boolean) = composed {
     val c = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.08f)
     drawBehind {
         val sw = 1.2f.dp.toPx(); val i = sw / 2f
-        drawRoundRect(color = c, topLeft = androidx.compose.ui.geometry.Offset(i, i),
-            size = androidx.compose.ui.geometry.Size(size.width - sw, size.height - sw),
+        drawRoundRect(color = c, topLeft = Offset(i, i),
+            size = Size(size.width - sw, size.height - sw),
             cornerRadius = CornerRadius(14.dp.toPx()), style = Stroke(sw))
     }
 }
@@ -756,8 +680,8 @@ fun Modifier.premiumAddColorBorder(isDark: Boolean) = composed {
     ))
     drawBehind {
         val sw = 1.2f.dp.toPx(); val i = sw / 2f
-        drawRoundRect(brush = b, topLeft = androidx.compose.ui.geometry.Offset(i, i),
-            size = androidx.compose.ui.geometry.Size(size.width - sw, size.height - sw),
+        drawRoundRect(brush = b, topLeft = Offset(i, i),
+            size = Size(size.width - sw, size.height - sw),
             cornerRadius = CornerRadius(12.dp.toPx()), style = Stroke(sw))
     }
 }
@@ -767,8 +691,8 @@ fun Modifier.premiumMultiColorBorder(selected: Boolean, isDark: Boolean) = compo
     else if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.08f)
     drawBehind {
         val sw = 1.2f.dp.toPx(); val i = sw / 2f
-        drawRoundRect(color = c, topLeft = androidx.compose.ui.geometry.Offset(i, i),
-            size = androidx.compose.ui.geometry.Size(size.width - sw, size.height - sw),
+        drawRoundRect(color = c, topLeft = Offset(i, i),
+            size = Size(size.width - sw, size.height - sw),
             cornerRadius = CornerRadius(12.dp.toPx()), style = Stroke(sw))
     }
 }

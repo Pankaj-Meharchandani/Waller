@@ -3,15 +3,14 @@
  *
  * Responsibilities:
  * - Holds UI state (colors, gradient types, tone, multicolor)
- * - Uses shared effect toggles (snow / stripes / glass) from WallerApp
+ * - Uses shared effect state (EffectMap) from WallerApp
  * - Uses shared orientation state from WallerApp (portrait / landscape)
  * - Generates wallpaper preview list
- * - Shows:
- *   - Header
- *   - Compact options panel
- *   - Info row + wallpaper grid + Refresh button
+ * - Shows: Header, CompactOptionsPanel, info row, wallpaper grid, Refresh button
  * - Coordinates color picking dialog calls in MainActivity
  * - Opens the Apply/Download dialog when a wallpaper is clicked
+ *
+ * Adding a new effect requires NO change here.
  */
 
 @file:Suppress("EnumValuesSoftDeprecate", "UNUSED_VALUE")
@@ -27,41 +26,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import com.example.waller.ui.wallpaper.components.previewOverlay.WallpaperPreviewOverlay
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,6 +40,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -77,10 +49,10 @@ import com.example.waller.R
 import com.example.waller.ui.wallpaper.components.CompactOptionsPanel
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
+import com.example.waller.ui.wallpaper.components.Actions
+import com.example.waller.ui.wallpaper.components.previewOverlay.WallpaperPreviewOverlay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import androidx.compose.ui.platform.LocalView
-import com.example.waller.ui.wallpaper.components.Actions
 
 @Composable
 fun WallpaperGeneratorScreen(
@@ -92,142 +64,90 @@ fun WallpaperGeneratorScreen(
     defaultGradientCount: Int,
     defaultToneMode: ToneMode,
     defaultEnableMulticolor: Boolean,
-    addNoise: Boolean,
-    onAddNoiseChange: (Boolean) -> Unit,
-    addStripes: Boolean,
-    onAddStripesChange: (Boolean) -> Unit,
-    addOverlay: Boolean,
-    onAddOverlayChange: (Boolean) -> Unit,
-    addGeometric: Boolean,
-    onAddGeometricChange: (Boolean) -> Unit,
-    addBlur: Boolean,
-    onAddBlurChange: (Boolean) -> Unit,
+    effects: EffectMap,
+    onEffectsChange: (EffectMap) -> Unit,
     favouriteWallpapers: List<FavoriteWallpaper>,
-    // UPDATED: onToggleFavourite now accepts per-effect alpha floats as well
-    onToggleFavourite: (wallpaper: Wallpaper, addNoise: Boolean, addStripes: Boolean, addOverlay: Boolean, addGeometric: Boolean, addBlur: Boolean,
-                        noiseAlpha: Float, stripesAlpha: Float, overlayAlpha: Float, geometricAlpha: Float, blurAlpha: Float) -> Unit,
+    onToggleFavourite: (wallpaper: Wallpaper, effects: EffectMap) -> Unit,
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit,
     interactionMode: InteractionMode
-
 ) {
     val view = LocalView.current
-    // ----------- STATE -----------
+
+    // ── Session state ─────────────────────────────────────────────────────────
     var toneMode by remember { mutableStateOf(sessionState.toneMode) }
     var showPreview by remember { mutableStateOf(false) }
     var previewWallpaper by remember { mutableStateOf<Wallpaper?>(null) }
     val selectedColors = remember(sessionState) {
-        mutableStateListOf<Color>().apply {
-            addAll(sessionState.selectedColors)
-        }
+        mutableStateListOf<Color>().apply { addAll(sessionState.selectedColors) }
     }
     val selectedGradientTypes = remember(sessionState) {
-        mutableStateListOf<GradientType>().apply {
-            addAll(sessionState.selectedGradientTypes)
-        }
+        mutableStateListOf<GradientType>().apply { addAll(sessionState.selectedGradientTypes) }
     }
-
-    // multicolor state, initial from settings
     var isMultiColor by remember { mutableStateOf(sessionState.isMulticolor) }
 
-    val coroutineScope = rememberCoroutineScope()
-    val gridState = rememberLazyGridState(
-        initialFirstVisibleItemIndex = sessionState.scrollIndex
-    )
-    val context = LocalContext.current
+    val coroutineScope  = rememberCoroutineScope()
+    val gridState       = rememberLazyGridState(initialFirstVisibleItemIndex = sessionState.scrollIndex)
+    val context         = LocalContext.current
     val storagePermissionDeniedMessage = stringResource(id = R.string.storage_permission_denied)
 
-    // Permission launcher for WRITE_EXTERNAL_STORAGE (only used for API < Q)
     val writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean> =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { granted ->
-            if (!granted) {
-                android.widget.Toast.makeText(
-                    context,
-                    storagePermissionDeniedMessage,
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-            }
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!granted) android.widget.Toast.makeText(
+                context, storagePermissionDeniedMessage, android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
 
     val spanCount = if (isPortrait) 2 else 1
-    val columns = GridCells.Fixed(spanCount)
+    val columns   = GridCells.Fixed(spanCount)
 
-    // ----------- WALLPAPER GENERATION -----------
-
+    // ── Wallpaper generation ──────────────────────────────────────────────────
     fun generateWallpapers(): List<Wallpaper> {
         val wallpapers = mutableListOf<Wallpaper>()
         var previousType: GradientType? = null
 
         repeat(defaultGradientCount) {
             val colors: List<Color> = if (!isMultiColor) {
-                // ---------- 2-COLOR MODE ----------
                 when (selectedColors.size) {
-                    0 -> listOf(
-                        generateRandomColor(toneMode),
-                        generateRandomColor(toneMode)
-                    )
-
-                    1 -> {
+                    0    -> listOf(generateRandomColor(toneMode), generateRandomColor(toneMode))
+                    1    -> {
                         val base = selectedColors.first()
                         val shadedBase = createShade(base, toneMode, subtle = true)
                         val secondBase = when (toneMode) {
-                            ToneMode.LIGHT -> Color.White
-                            ToneMode.DARK -> Color.Black
+                            ToneMode.LIGHT   -> Color.White
+                            ToneMode.DARK    -> Color.Black
                             ToneMode.NEUTRAL -> Color.Gray
                         }
-                        val shadedSecond = createShade(secondBase, toneMode, subtle = false)
-                        listOf(shadedBase, shadedSecond)
+                        listOf(shadedBase, createShade(secondBase, toneMode, subtle = false))
                     }
-
-                    else -> selectedColors
-                        .shuffled()
-                        .take(2)
-                        .map { createShade(it, toneMode, subtle = true) }
+                    else -> selectedColors.shuffled().take(2).map { createShade(it, toneMode, subtle = true) }
                 }
             } else {
-                // ---------- MULTI-COLOR MODE ----------
                 val targetStops = when (selectedColors.size) {
-                    0 -> 3
-                    1 -> 3
-                    2 -> 3
-                    else -> selectedColors.size.coerceIn(3, 5)
+                    0, 1, 2 -> 3
+                    else    -> selectedColors.size.coerceIn(3, 5)
                 }
-
                 val baseList = mutableListOf<Color>()
-
                 if (selectedColors.isEmpty()) {
-                    repeat(targetStops) {
-                        baseList += generateRandomColor(toneMode)
-                    }
+                    repeat(targetStops) { baseList += generateRandomColor(toneMode) }
                 } else {
-                    val source = selectedColors.shuffled()
-                    var i = 0
+                    val source = selectedColors.shuffled(); var i = 0
                     while (baseList.size < targetStops) {
-                        val src = source[i % source.size]
-                        // first may be slightly stronger, rest more subtle
-                        val subtle = i != 0
-                        baseList += createShade(src, toneMode, subtle = subtle)
-                        i++
+                        baseList += createShade(source[i % source.size], toneMode, subtle = i != 0); i++
                     }
                 }
-
                 baseList.shuffled()
             }
 
             val gradientType = run {
                 val available = when {
-                    selectedGradientTypes.isEmpty() -> GradientType.entries.toList()
-                    selectedGradientTypes.size == 1 -> selectedGradientTypes.toList()
-                    else -> {
-                        val filtered = selectedGradientTypes.filter { it != previousType }
-                        filtered.ifEmpty { selectedGradientTypes.toList() }
-                    }
+                    selectedGradientTypes.isEmpty()  -> GradientType.entries.toList()
+                    selectedGradientTypes.size == 1  -> selectedGradientTypes.toList()
+                    else -> selectedGradientTypes.filter { it != previousType }
+                        .ifEmpty { selectedGradientTypes.toList() }
                 }
                 available.random()
             }
-
             previousType = gradientType
             wallpapers.add(Wallpaper(colors = colors, type = gradientType))
         }
@@ -236,69 +156,51 @@ fun WallpaperGeneratorScreen(
 
     var wallpapers by remember { mutableStateOf(sessionState.wallpapers) }
 
-    LaunchedEffect(
-        toneMode,
-        isMultiColor,
-        selectedColors.size,
-        selectedGradientTypes.size
-    ) {
+    LaunchedEffect(toneMode, isMultiColor, selectedColors.size, selectedGradientTypes.size) {
         if (wallpapers.isEmpty()) {
             val generated = generateWallpapers()
-            wallpapers = generated
-            sessionState.wallpapers = generated
+            wallpapers = generated; sessionState.wallpapers = generated
         }
     }
 
-
-    // ----------- DIALOG STATE -----------
-
+    // ── Dialog state ──────────────────────────────────────────────────────────
     var pendingClickedWallpaper by remember { mutableStateOf<Wallpaper?>(null) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isWorking by remember { mutableStateOf(false) }
 
-    // ----------- LAYOUT -----------
-
     LaunchedEffect(Unit) {
         snapshotFlow { gridState.firstVisibleItemIndex }
             .distinctUntilChanged()
-            .collect { index ->
-                sessionState.scrollIndex = index
-            }
+            .collect { index -> sessionState.scrollIndex = index }
     }
 
+    // ── Layout ────────────────────────────────────────────────────────────────
     LazyVerticalGrid(
         columns = columns,
         state = gridState,
-        modifier = modifier
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .fillMaxSize(),
-        contentPadding = PaddingValues(
-            top = 12.dp,
-            bottom = 12.dp + 96.dp),
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxSize(),
+        contentPadding = PaddingValues(top = 12.dp, bottom = 12.dp + 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header with orientation chip on top-right
+
         item(span = { GridItemSpan(spanCount) }) {
             Header(
                 onThemeChange = onThemeChange,
                 isAppDarkMode = isAppDarkMode,
                 showOrientationToggle = true,
                 isPortrait = isPortrait,
-                onOrientationChange = { newValue -> onOrientationChange(newValue) }
+                onOrientationChange = { onOrientationChange(it) }
             )
         }
 
-        // Compact options panel inside a card
         item(span = { GridItemSpan(spanCount) }) {
             SectionCard {
                 CompactOptionsPanel(
                     toneMode = toneMode,
                     onToneChange = { newMode ->
-                        toneMode = newMode
-                        sessionState.toneMode = newMode
-                        wallpapers = generateWallpapers()
-                        sessionState.wallpapers = wallpapers
+                        toneMode = newMode; sessionState.toneMode = newMode
+                        wallpapers = generateWallpapers(); sessionState.wallpapers = wallpapers
                     },
                     selectedColors = selectedColors,
                     onAddColor = {
@@ -308,8 +210,7 @@ fun WallpaperGeneratorScreen(
                                 if (pickedInt != null && selectedColors.size < 5) {
                                     selectedColors.add(pickedInt.toComposeColor())
                                     sessionState.selectedColors = selectedColors.toList()
-                                    wallpapers = generateWallpapers()
-                                    sessionState.wallpapers = wallpapers
+                                    wallpapers = generateWallpapers(); sessionState.wallpapers = wallpapers
                                 }
                             }
                         }
@@ -318,59 +219,34 @@ fun WallpaperGeneratorScreen(
                         if (idx in selectedColors.indices) {
                             selectedColors.removeAt(idx)
                             sessionState.selectedColors = selectedColors.toList()
-                            wallpapers = generateWallpapers()
-                            sessionState.wallpapers = wallpapers
+                            wallpapers = generateWallpapers(); sessionState.wallpapers = wallpapers
                         }
                     },
                     isMultiColor = isMultiColor,
                     onMultiColorChange = { newValue ->
-                        isMultiColor = newValue
-                        sessionState.isMulticolor = newValue
-                        wallpapers = generateWallpapers()
-                        sessionState.wallpapers = wallpapers
+                        isMultiColor = newValue; sessionState.isMulticolor = newValue
+                        wallpapers = generateWallpapers(); sessionState.wallpapers = wallpapers
                     },
                     selectedGradientTypes = selectedGradientTypes,
                     onGradientToggle = { type ->
                         if (type in selectedGradientTypes) {
                             if (selectedGradientTypes.size == 1) {
                                 android.widget.Toast.makeText(
-                                    context,
-                                    "Select at least one gradient style",
-                                    android.widget.Toast.LENGTH_SHORT
+                                    context, "Select at least one gradient style", android.widget.Toast.LENGTH_SHORT
                                 ).show()
                             } else {
                                 selectedGradientTypes.remove(type)
                                 sessionState.selectedGradientTypes = selectedGradientTypes.toList()
-                                wallpapers = generateWallpapers()
-                                sessionState.wallpapers = wallpapers
+                                wallpapers = generateWallpapers(); sessionState.wallpapers = wallpapers
                             }
                         } else {
                             selectedGradientTypes.add(type)
                             sessionState.selectedGradientTypes = selectedGradientTypes.toList()
-                            wallpapers = generateWallpapers()
-                            sessionState.wallpapers = wallpapers
+                            wallpapers = generateWallpapers(); sessionState.wallpapers = wallpapers
                         }
                     },
-                    addNoise = addNoise,
-                    onNoiseToggle = {
-                        onAddNoiseChange(!addNoise)
-                    },
-                    addStripes = addStripes,
-                    onStripesToggle = {
-                        onAddStripesChange(!addStripes)
-                    },
-                    addOverlay = addOverlay,
-                    onOverlayToggle = {
-                        onAddOverlayChange(!addOverlay)
-                    },
-                    addGeometric = addGeometric,
-                    onGeometricToggle = {
-                        onAddGeometricChange(!addGeometric)
-                    },
-                    addBlur = addBlur,
-                    onBlurToggle = {
-                        onAddBlurChange(!addBlur)
-                    }
+                    effects = effects,
+                    onEffectToggle = { newEffects -> onEffectsChange(newEffects) }
                 )
             }
         }
@@ -378,25 +254,16 @@ fun WallpaperGeneratorScreen(
         // Info row
         item(span = { GridItemSpan(spanCount) }) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val orientation =
-                    if (isPortrait)
-                        stringResource(id = R.string.orientation_portrait)
-                    else
-                        stringResource(id = R.string.orientation_landscape)
-
-                val types =
-                    if (selectedGradientTypes.isEmpty())
-                        stringResource(id = R.string.all)
-                    else
-                        selectedGradientTypes.joinToString(", ") { it.name.lowercase() }
+                val orientation = if (isPortrait) stringResource(R.string.orientation_portrait)
+                else            stringResource(R.string.orientation_landscape)
+                val types = if (selectedGradientTypes.isEmpty()) stringResource(R.string.all)
+                else selectedGradientTypes.joinToString(", ") { it.name.lowercase() }
 
                 Text(
-                    text = stringResource(id = R.string.wallpaper_count, wallpapers.size),
+                    text = stringResource(R.string.wallpaper_count, wallpapers.size),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.weight(1f))
@@ -404,19 +271,11 @@ fun WallpaperGeneratorScreen(
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            RoundedCornerShape(10.dp)
-                        )
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = stringResource(
-                            id = R.string.wallpaper_info,
-                            orientation,
-                            types
-                        ),
+                        text = stringResource(R.string.wallpaper_info, orientation, types),
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -424,64 +283,44 @@ fun WallpaperGeneratorScreen(
                 }
                 Spacer(modifier = Modifier.width(4.dp))
                 val refreshRotation = remember { Animatable(0f) }
-                val refreshScope = rememberCoroutineScope()
+                val refreshScope    = rememberCoroutineScope()
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
                         .clickable {
                             Haptics.light(view)
                             refreshScope.launch {
-                                val start = refreshRotation.value
-                                val target = start + 360f
+                                val target = refreshRotation.value + 360f
                                 refreshRotation.animateTo(
                                     targetValue = target,
                                     animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
                                 )
-                                // regenerate wallpapers after animation
-                                wallpapers = generateWallpapers()
-                                sessionState.wallpapers = wallpapers
+                                wallpapers = generateWallpapers(); sessionState.wallpapers = wallpapers
                             }
                         }
                         .clip(RoundedCornerShape(10.dp))
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            RoundedCornerShape(10.dp)
-                        )
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
                         .padding(horizontal = 4.dp, vertical = 4.dp)
                 ) {
-                    androidx.compose.material3.Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Refresh,
-                        contentDescription = stringResource(id = R.string.actions_refresh_all),
-                        modifier = Modifier
-                            .size(20.dp)
-                            .rotate(refreshRotation.value)
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = stringResource(R.string.actions_refresh_all),
+                        modifier = Modifier.size(20.dp).rotate(refreshRotation.value)
                     )
                 }
             }
         }
 
-        // Wallpapers grid
+        // Wallpaper grid
         items(wallpapers) { wallpaper ->
             val isFavourite = favouriteWallpapers.any { it.wallpaper == wallpaper }
             WallpaperItemCard(
-                wallpaper = wallpaper,
-                isPortrait = isPortrait,
-                addNoise = addNoise,
-                addStripes = addStripes,
-                addGeometric = addGeometric,
-                addOverlay = addOverlay,
-                addBlur = addBlur,
-                noiseAlpha = if (addNoise) 1f else 0f,
-                stripesAlpha = if (addStripes) 1f else 0f,
-                overlayAlpha = if (addOverlay) 1f else 0f,
-                geometricAlpha = if (addGeometric) 1f else 0f,
-                blurAlpha = if (addBlur) 1f else 0f,
-                isFavorite = isFavourite,
-                onFavoriteToggle = { w, n, s, o, g, bl, na, sa, oa, ga, bla ->
-                    onToggleFavourite(w, n, s, o, g, bl, na, sa, oa, ga, bla)
-                },
+                wallpaper       = wallpaper,
+                isPortrait      = isPortrait,
+                effects         = effects,
+                isFavorite      = isFavourite,
+                onFavoriteToggle = { w, fx -> onToggleFavourite(w, fx) },
                 onClick = {
                     when (interactionMode) {
                         InteractionMode.SIMPLE -> {
@@ -495,7 +334,6 @@ fun WallpaperGeneratorScreen(
                         }
                     }
                 },
-
                 onLongClick = {
                     pendingClickedWallpaper = wallpaper
                     showApplyDialog = true
@@ -507,100 +345,58 @@ fun WallpaperGeneratorScreen(
             Actions(
                 onRefreshClick = {
                     Haptics.longPress(view)
-                    wallpapers = generateWallpapers()
-                    sessionState.wallpapers = wallpapers
-                    coroutineScope.launch {
-                        gridState.animateScrollToItem(2)
-                    }
+                    wallpapers = generateWallpapers(); sessionState.wallpapers = wallpapers
+                    coroutineScope.launch { gridState.animateScrollToItem(2) }
                 }
             )
         }
-
     }
 
-    // Inline preview overlay (opened when user taps a wallpaper)
-    // inside WallpaperGeneratorScreen where you show overlay:
+    // ── Preview overlay ───────────────────────────────────────────────────────
     if (showPreview && previewWallpaper != null) {
         val preview = previewWallpaper!!
         WallpaperPreviewOverlay(
-            wallpaper = preview,
-            isPortrait = isPortrait,
-            initialNoiseAlpha = if (addNoise) 1f else 0f,
-            initialStripesAlpha = if (addStripes) 1f else 0f,
-            initialOverlayAlpha = if (addOverlay) 1f else 0f,
-            initialGeometricAlpha = if (addGeometric) 1f else 0f,
-            initialBlurAlpha = if (addBlur) 1f else 0f,
-            isFavorite = favouriteWallpapers.any { it.wallpaper == preview },
-            onFavoriteToggle = { wallpaperToSave, n, s, o, g, bl, na, sa, oa, ga, bla ->
-                onToggleFavourite(wallpaperToSave, n, s, o, g, bl, na, sa, oa, ga, bla)
-            },
-            globalNoise = addNoise,
-            globalStripes = addStripes,
-            globalOverlay = addOverlay,
-            globalGeometric = addGeometric,
-            globalBlur = addBlur,
-            onDismiss = {
-                showPreview = false
-                onPreviewVisibilityChanged(false)},
+            wallpaper       = preview,
+            isPortrait      = isPortrait,
+            isFavorite      = favouriteWallpapers.any { it.wallpaper == preview },
+            initialEffects  = effects,
+            onFavoriteToggle = { w, fx -> onToggleFavourite(w, fx) },
+            onDismiss = { showPreview = false; onPreviewVisibilityChanged(false) },
             writePermissionLauncher = writePermissionLauncher,
-            context = context,
-            coroutineScope = coroutineScope
+            context         = context,
+            coroutineScope  = coroutineScope
         )
     }
 
-    // Apply / Download dialog (legacy — still available if you open it elsewhere)
+    // ── Apply dialog (Simple mode / long-press) ───────────────────────────────
     ApplyDownloadDialog(
-        interactionMode = interactionMode,
-        show = showApplyDialog,
-        wallpaper = pendingClickedWallpaper,
-        isPortrait = isPortrait,
-        addNoise = addNoise,
-        addStripes = addStripes,
-        addOverlay = addOverlay,
-        addGeometric = addGeometric,
-        addBlur = addBlur,
-        noiseAlpha = if (addNoise) 1f else 0f, // grid-level default: full or 0
-        stripesAlpha = if (addStripes) 1f else 0f,
-        overlayAlpha = if (addOverlay) 1f else 0f,
-        geometricAlpha = if (addGeometric) 1f else 0f,
-        blurAlpha = if (addBlur) 1f else 0f,
-        isWorking = isWorking,
-        onWorkingChange = { isWorking = it },
-        onDismiss = {
-            showApplyDialog = false
-            pendingClickedWallpaper = null
-        },
+        interactionMode  = interactionMode,
+        show             = showApplyDialog,
+        wallpaper        = pendingClickedWallpaper,
+        isPortrait       = isPortrait,
+        effects          = effects,
+        isWorking        = isWorking,
+        onWorkingChange  = { isWorking = it },
+        onDismiss        = { showApplyDialog = false; pendingClickedWallpaper = null },
         writePermissionLauncher = writePermissionLauncher,
-        context = context,
-        coroutineScope = coroutineScope
+        context          = context,
+        coroutineScope   = coroutineScope
     )
 }
 
-/* ------------------------------- Section Card ------------------------------- */
-
+/* ── Section card ─────────────────────────────────────────────────── */
 @Composable
-fun SectionCard(
-    content: @Composable ColumnScope.() -> Unit
-) {
+fun SectionCard(content: @Composable ColumnScope.() -> Unit) {
     Card(
         shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
         modifier = Modifier
             .fillMaxWidth()
             .shadow(4.dp, RoundedCornerShape(18.dp), clip = false)
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-                RoundedCornerShape(18.dp)
-            )
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(18.dp))
     ) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 14.dp, vertical = 12.dp)
-        ) {
+        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
             content()
         }
     }

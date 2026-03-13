@@ -18,6 +18,9 @@
  *
  * Glass  (overlay_stripes.png)   → base64 <image>
  * Geo    (overlay_geometric.png) → base64 <image>
+ *
+ * Uses EffectMap — no per-effect named fields. Adding a new effect only requires
+ * a new `when (id)` branch in buildSvg and buildCss below.
  */
 
 package com.example.waller.ui.wallfile
@@ -27,6 +30,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.example.waller.ui.wallpaper.FavoriteWallpaper
 import com.example.waller.ui.wallpaper.GradientType
+import com.example.waller.ui.wallpaper.alpha
+import com.example.waller.ui.wallpaper.isEnabled
 import java.io.File
 import kotlin.math.cos
 import kotlin.math.max
@@ -66,6 +71,18 @@ object SvgExporter {
         val cx       = W / 2f
         val cy       = H / 2f
 
+        // Convenience accessors via EffectMap
+        val addNoise    = fav.effects.isEnabled("noise")
+        val noiseAlpha  = fav.effects.alpha("noise")
+        val addStripes  = fav.effects.isEnabled("stripes")
+        val stripesAlpha = fav.effects.alpha("stripes")
+        val addOverlay  = fav.effects.isEnabled("overlay")
+        val overlayAlpha = fav.effects.alpha("overlay")
+        val addGeo      = fav.effects.isEnabled("geometric")
+        val geoAlpha    = fav.effects.alpha("geometric")
+        val addBlur     = fav.effects.isEnabled("blur")
+        val blurAlpha   = fav.effects.alpha("blur")
+
         val sb = StringBuilder()
         sb.appendLine("""<?xml version="1.0" encoding="UTF-8"?>""")
         sb.appendLine("""<svg xmlns="http://www.w3.org/2000/svg" width="$W" height="$H" viewBox="0 0 $W $H">""")
@@ -98,10 +115,10 @@ object SvgExporter {
         }
 
         // ── Stripes pattern ───────────────────────────────────────────────────
-        if (fav.addStripes && fav.stripesAlpha > 0f) {
+        if (addStripes && stripesAlpha > 0f) {
             val spacing = W / 12f
             val stripeW = spacing / 2f
-            val opacity = (0.18f * fav.stripesAlpha).fmtF()
+            val opacity = (0.18f * stripesAlpha).fmtF()
             sb.appendLine("""    <linearGradient id="sg" x1="0" y1="0" x2="${stripeW.fmt()}" y2="0" gradientUnits="userSpaceOnUse">""")
             sb.appendLine("""      <stop offset="0%" stop-color="white" stop-opacity="$opacity"/>""")
             sb.appendLine("""      <stop offset="100%" stop-color="white" stop-opacity="0"/>""")
@@ -112,15 +129,15 @@ object SvgExporter {
         }
 
         // ── Noise filter ──────────────────────────────────────────────────────
-        if (fav.addNoise && fav.noiseAlpha > 0f) {
+        if (addNoise && noiseAlpha > 0f) {
             sb.appendLine("""    <filter id="noise" x="0%" y="0%" width="100%" height="100%">""")
             sb.appendLine("""      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>""")
             sb.appendLine("""    </filter>""")
         }
 
-        // ── Blur filter (whole-image, defined in defs) ────────────────────────
-        if (fav.addBlur && fav.blurAlpha > 0f) {
-            val stdDev = (20f * fav.blurAlpha).roundToInt().coerceAtLeast(1)
+        // ── Blur filter ───────────────────────────────────────────────────────
+        if (addBlur && blurAlpha > 0f) {
+            val stdDev = (20f * blurAlpha).roundToInt().coerceAtLeast(1)
             sb.appendLine("""    <filter id="blur" x="-20%" y="-20%" width="140%" height="140%">""")
             sb.appendLine("""      <feGaussianBlur stdDeviation="$stdDev"/>""")
             sb.appendLine("""    </filter>""")
@@ -128,8 +145,8 @@ object SvgExporter {
 
         sb.appendLine("""  </defs>""")
 
-        // ── All layers wrapped in blur group (if blur enabled) ────────────────
-        if (fav.addBlur && fav.blurAlpha > 0f) {
+        // ── Blur group wraps all layers ───────────────────────────────────────
+        if (addBlur && blurAlpha > 0f) {
             sb.appendLine("""  <g filter="url(#blur)">""")
         }
 
@@ -147,23 +164,20 @@ object SvgExporter {
         }
 
         // ── Layer 2: Noise ────────────────────────────────────────────────────
-        if (fav.addNoise && fav.noiseAlpha > 0f) {
-            val op = (fav.noiseAlpha * 0.18f).fmtF()
+        if (addNoise && noiseAlpha > 0f) {
+            val op = (noiseAlpha * 0.18f).fmtF()
             sb.appendLine("""  <rect width="$W" height="$H" filter="url(#noise)" opacity="$op" style="mix-blend-mode:screen"/>""")
         }
 
         // ── Layer 3: Stripes ──────────────────────────────────────────────────
-        if (fav.addStripes && fav.stripesAlpha > 0f) {
+        if (addStripes && stripesAlpha > 0f) {
             sb.appendLine("""  <rect width="$W" height="$H" fill="url(#stripes)"/>""")
         }
 
-        // ── Layer 4: Glass overlay (overlay_stripes.png, screen blend via SVG filter) ──
-        // mix-blend-mode in style="" is ignored by most SVG renderers.
-        // feBlend mode="screen" against BackgroundImage is the correct SVG spec approach.
-        if (fav.addOverlay && fav.overlayAlpha > 0f) {
+        // ── Layer 4: Glass overlay ────────────────────────────────────────────
+        if (addOverlay && overlayAlpha > 0f) {
             val b64 = drawablePngAsBase64(context, "overlay_stripes")
             if (b64 != null) {
-                // Define a filter that composites this image over background using screen blend
                 sb.appendLine("""  <defs>""")
                 sb.appendLine("""    <filter id="glassBlend" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">""")
                 sb.appendLine("""      <feImage href="data:image/png;base64,$b64" result="overlay" preserveAspectRatio="xMidYMid slice"/>""")
@@ -171,31 +185,49 @@ object SvgExporter {
                 sb.appendLine("""      <feComposite in="blended" in2="SourceGraphic" operator="over"/>""")
                 sb.appendLine("""    </filter>""")
                 sb.appendLine("""  </defs>""")
-                sb.appendLine("""  <rect width="$W" height="$H" fill="transparent" filter="url(#glassBlend)" opacity="${fav.overlayAlpha.fmtF()}" enable-background="new"/>""")
+                sb.appendLine("""  <rect width="$W" height="$H" fill="transparent" filter="url(#glassBlend)" opacity="${overlayAlpha.fmtF()}" enable-background="new"/>""")
             }
         }
 
         // ── Layer 5: Geometry overlay ─────────────────────────────────────────
-        if (fav.addGeometric && fav.geometricAlpha > 0f) {
+        if (addGeo && geoAlpha > 0f) {
             val b64 = drawablePngAsBase64(context, "overlay_geometric")
             if (b64 != null) {
-                sb.appendLine("""  <image href="data:image/png;base64,$b64" x="0" y="0" width="$W" height="$H" preserveAspectRatio="xMidYMid slice" opacity="${fav.geometricAlpha.fmtF()}"/>""")
+                sb.appendLine("""  <image href="data:image/png;base64,$b64" x="0" y="0" width="$W" height="$H" preserveAspectRatio="xMidYMid slice" opacity="${geoAlpha.fmtF()}"/>""")
             }
         }
 
         // ── Close blur group ──────────────────────────────────────────────────
-        if (fav.addBlur && fav.blurAlpha > 0f) {
+        if (addBlur && blurAlpha > 0f) {
             sb.appendLine("""  </g>""")
         }
+
+        // ── Add new effect SVG layers here ────────────────────────────────────
 
         sb.appendLine("""</svg>""")
         return sb.toString()
     }
 
+    // ─────────────────────────────────────────────
+    // CSS Builder
+    // ─────────────────────────────────────────────
+
     private fun buildCss(context: Context, fav: FavoriteWallpaper): String {
-        val w = fav.wallpaper
-        val hex = w.colors.map { it.toHex() }
+        val w        = fav.wallpaper
+        val hex      = w.colors.map { it.toHex() }
         val angleDeg = w.angleDeg
+
+        // Convenience accessors
+        val addNoise    = fav.effects.isEnabled("noise")
+        val noiseAlpha  = fav.effects.alpha("noise")
+        val addStripes  = fav.effects.isEnabled("stripes")
+        val stripesAlpha = fav.effects.alpha("stripes")
+        val addOverlay  = fav.effects.isEnabled("overlay")
+        val overlayAlpha = fav.effects.alpha("overlay")
+        val addGeo      = fav.effects.isEnabled("geometric")
+        val geoAlpha    = fav.effects.alpha("geometric")
+        val addBlur     = fav.effects.isEnabled("blur")
+        val blurAlpha   = fav.effects.alpha("blur")
 
         fun normAngle(a: Float): Int {
             val v = (a % 360f + 360f) % 360f
@@ -206,21 +238,13 @@ object SvgExporter {
             "$h ${(i.toFloat() / (hex.size - 1) * 100).roundToInt()}%"
         }.joinToString(", ")
 
-        // CSS vs BitmapUtils angle conversion
         val cssAngle = normAngle(90f - angleDeg)
 
         val gradientCss = when (w.type) {
-            GradientType.Linear ->
-                "linear-gradient(${cssAngle}deg, $colorStops)"
-
-            GradientType.Diamond ->
-                "linear-gradient(${normAngle(90f - (angleDeg - 45f))}deg, $colorStops)"
-
-            GradientType.Radial ->
-                "radial-gradient(ellipse at center, $colorStops)"
-
-            GradientType.Angular ->
-                "conic-gradient(from ${angleDeg.roundToInt()}deg at 50% 50%, $colorStops)"
+            GradientType.Linear  -> "linear-gradient(${cssAngle}deg, $colorStops)"
+            GradientType.Diamond -> "linear-gradient(${normAngle(90f - (angleDeg - 45f))}deg, $colorStops)"
+            GradientType.Radial  -> "radial-gradient(ellipse at center, $colorStops)"
+            GradientType.Angular -> "conic-gradient(from ${angleDeg.roundToInt()}deg at 50% 50%, $colorStops)"
         }
 
         val spacing = (W / 12f).roundToInt()
@@ -244,9 +268,8 @@ object SvgExporter {
         sb.appendLine("}")
         sb.appendLine()
 
-        if (fav.addBlur && fav.blurAlpha > 0f) {
-            val blurPx = (18f * fav.blurAlpha).roundToInt()
-
+        if (addBlur && blurAlpha > 0f) {
+            val blurPx = (18f * blurAlpha).roundToInt()
             sb.appendLine("/* Gradient + blur layer */")
             sb.appendLine(".waller-gradient {")
             sb.appendLine("  position: absolute;")
@@ -256,7 +279,6 @@ object SvgExporter {
             sb.appendLine("  pointer-events: none;")
             sb.appendLine("}")
         } else {
-
             sb.appendLine("/* Gradient layer */")
             sb.appendLine(".waller-gradient {")
             sb.appendLine("  position: absolute;")
@@ -265,13 +287,10 @@ object SvgExporter {
             sb.appendLine("  pointer-events: none;")
             sb.appendLine("}")
         }
-
         sb.appendLine()
 
-        if (fav.addNoise && fav.noiseAlpha > 0f) {
-
-            val opacity = (fav.noiseAlpha * 0.12f).fmtF()
-
+        if (addNoise && noiseAlpha > 0f) {
+            val opacity = (noiseAlpha * 0.12f).fmtF()
             sb.appendLine("/* Snow/noise overlay */")
             sb.appendLine(".waller-noise {")
             sb.appendLine("  position: absolute; inset: 0;")
@@ -283,10 +302,8 @@ object SvgExporter {
             sb.appendLine()
         }
 
-        if (fav.addStripes && fav.stripesAlpha > 0f) {
-
-            val stripeOpacity = (0.18f * fav.stripesAlpha).fmtF()
-
+        if (addStripes && stripesAlpha > 0f) {
+            val stripeOpacity = (0.18f * stripesAlpha).fmtF()
             sb.appendLine("/* Refraction/stripes overlay */")
             sb.appendLine(".waller-stripes {")
             sb.appendLine("  position: absolute; inset: 0;")
@@ -301,17 +318,14 @@ object SvgExporter {
             sb.appendLine()
         }
 
-        if (fav.addOverlay && fav.overlayAlpha > 0f) {
-
+        if (addOverlay && overlayAlpha > 0f) {
             val b64 = drawablePngAsBase64(context, "overlay_stripes")
-
             if (!b64.isNullOrEmpty()) {
-
                 sb.appendLine("/* Glass overlay */")
                 sb.appendLine(".waller-glass {")
                 sb.appendLine("  position: absolute; inset: 0;")
                 sb.appendLine("  background: url('data:image/png;base64,$b64') center/cover;")
-                sb.appendLine("  opacity: ${fav.overlayAlpha.fmtF()};")
+                sb.appendLine("  opacity: ${overlayAlpha.fmtF()};")
                 sb.appendLine("  mix-blend-mode: screen;")
                 sb.appendLine("  pointer-events: none;")
                 sb.appendLine("}")
@@ -319,31 +333,30 @@ object SvgExporter {
             }
         }
 
-        if (fav.addGeometric && fav.geometricAlpha > 0f) {
-
+        if (addGeo && geoAlpha > 0f) {
             val b64 = drawablePngAsBase64(context, "overlay_geometric")
-
             if (!b64.isNullOrEmpty()) {
-
                 sb.appendLine("/* Geometry overlay */")
                 sb.appendLine(".waller-geo {")
                 sb.appendLine("  position: absolute; inset: 0;")
                 sb.appendLine("  background: url('data:image/png;base64,$b64') center/cover;")
-                sb.appendLine("  opacity: ${fav.geometricAlpha.fmtF()};")
+                sb.appendLine("  opacity: ${geoAlpha.fmtF()};")
                 sb.appendLine("  pointer-events: none;")
                 sb.appendLine("}")
                 sb.appendLine()
             }
         }
 
+        // ── Add new CSS effect layers here ────────────────────────────────────
+
         sb.appendLine("/*")
         sb.appendLine(" * Usage:")
         sb.appendLine(" * <div class=\"waller-wallpaper\">")
         sb.appendLine(" *   <div class=\"waller-gradient\"></div>")
-        if (fav.addNoise) sb.appendLine(" *   <div class=\"waller-noise\"></div>")
-        if (fav.addStripes) sb.appendLine(" *   <div class=\"waller-stripes\"></div>")
-        if (fav.addOverlay) sb.appendLine(" *   <div class=\"waller-glass\"></div>")
-        if (fav.addGeometric) sb.appendLine(" *   <div class=\"waller-geo\"></div>")
+        if (addNoise)   sb.appendLine(" *   <div class=\"waller-noise\"></div>")
+        if (addStripes) sb.appendLine(" *   <div class=\"waller-stripes\"></div>")
+        if (addOverlay) sb.appendLine(" *   <div class=\"waller-glass\"></div>")
+        if (addGeo)     sb.appendLine(" *   <div class=\"waller-geo\"></div>")
         sb.appendLine(" * </div>")
         sb.appendLine(" */")
 
@@ -362,11 +375,6 @@ object SvgExporter {
         }
     }
 
-    /**
-     * Reads an SVG file from res/raw by name (no extension).
-     * Returns the full SVG text, or null if not found.
-     */
-    /** Reads a PNG from res/drawable by name and returns it as a Base64 string for data-uri embedding. */
     private fun drawablePngAsBase64(context: Context, name: String): String? {
         return try {
             val resId = context.resources.getIdentifier(name, "drawable", context.packageName)
@@ -378,8 +386,8 @@ object SvgExporter {
         }
     }
 
-    private fun Color.toHex(): String = "#%06X".format(this.toArgb() and 0xFFFFFF)
-    private fun Double.fmt(): String  = "%.2f".format(this)
-    private fun Float.fmt(): String   = "%.2f".format(this)
-    private fun Float.fmtF(): String  = "%.3f".format(this)
+    private fun Color.toHex(): String  = "#%06X".format(this.toArgb() and 0xFFFFFF)
+    private fun Double.fmt(): String   = "%.2f".format(this)
+    private fun Float.fmt(): String    = "%.2f".format(this)
+    private fun Float.fmtF(): String   = "%.3f".format(this)
 }

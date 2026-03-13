@@ -10,8 +10,10 @@
  * - Persists and restores user preferences via SharedPreferences
  * - Handles one-time onboarding dialogs and update checks
  *
- * This file acts as the single orchestration layer for the app and
- * intentionally contains no low-level UI or rendering logic.
+ * Adding a new effect requires NO change here — effect state is generic EffectMap.
+ *
+ * Encode/decode format (v2): type|hex1,hex2,...|angleInt|id:enabled:alpha,id:enabled:alpha,...
+ * Legacy v1 format (5-flag, 5-alpha positions) is decoded for backward compatibility.
  */
 
 package com.example.waller.ui
@@ -31,180 +33,120 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
+import com.example.waller.R
+import com.example.waller.ui.onboarding.ModePickerDialog
+import com.example.waller.ui.onboarding.UpdateAvailableDialog
+import com.example.waller.ui.onboarding.UpdateChecker
 import com.example.waller.ui.settings.AboutScreen
 import com.example.waller.ui.settings.AppThemeMode
 import com.example.waller.ui.settings.DefaultOrientation
 import com.example.waller.ui.settings.SettingsScreen
 import com.example.waller.ui.theme.WallerTheme
-import com.example.waller.ui.wallpaper.FavoriteWallpaper
-import com.example.waller.ui.wallpaper.FavoritesScreen
-import com.example.waller.ui.wallpaper.GradientType
-import com.example.waller.ui.wallpaper.ToneMode
-import com.example.waller.ui.wallpaper.Wallpaper
-import com.example.waller.ui.wallpaper.WallpaperGeneratorScreen
-import com.example.waller.ui.wallpaper.colorFromHexOrNull
-import com.example.waller.ui.wallpaper.toHexString
-import androidx.core.content.edit
-import com.example.waller.ui.wallpaper.InteractionMode
-import kotlin.math.roundToInt
-import com.example.waller.ui.onboarding.ModePickerDialog
-import com.example.waller.ui.onboarding.UpdateAvailableDialog
-import com.example.waller.ui.onboarding.UpdateChecker
-import java.util.Locale
-import androidx.compose.ui.platform.LocalConfiguration
-import com.example.waller.ui.wallpaper.WallpaperSessionState
-import com.example.waller.ui.wallpaper.Haptics
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.dp
 import com.example.waller.ui.wallfile.WallFileManager
-import com.example.waller.R
+import com.example.waller.ui.wallpaper.*
 import com.example.waller.ui.wallpaper.components.FloatingNavBar
 import com.example.waller.ui.wallpaper.components.FloatingNavItem
+import java.util.Locale
+import kotlin.math.roundToInt
 
-// Which top-level screen is shown.
 private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
 
-private const val FAVOURITES_KEY = "favourites_v1"
-private const val PREF_KEY_INTERACTION_MODE = "interaction_mode_v1"
+private const val FAVOURITES_KEY              = "favourites_v2"
+private const val FAVOURITES_KEY_LEGACY       = "favourites_v1"
+private const val PREF_KEY_INTERACTION_MODE   = "interaction_mode_v1"
 private const val PREF_KEY_LOCKED_ORIENTATION = "locked_orientation_v1"
-private const val PREF_KEY_HAPTICS_ENABLED = "haptics_enabled_v1"
-
-// New: remember which app version we've shown the mode picker for
+private const val PREF_KEY_HAPTICS_ENABLED    = "haptics_enabled_v1"
 private const val PREF_KEY_MODE_PICKER_SHOWN_VERSION = "mode_picker_shown_version_v1"
 
 @SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun WallerApp(openedWallUri: Uri? = null) {
     val systemIsDark = isSystemInDarkTheme()
-    val context = LocalContext.current
-    val activity = context as Activity
+    val context      = LocalContext.current
+    val activity     = context as Activity
 
-    // --- APP VERSION (read once per app launch) ---
     val appVersion = remember {
-        try {
-            context.packageManager
-                .getPackageInfo(context.packageName, 0)
-                .versionName ?: "-"
-        } catch (_: Exception) {
-            "-"
-        }
+        try { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "-" }
+        catch (_: Exception) { "-" }
     }
 
-    // --- SharedPreferences handle ---
-    val prefs = remember {
-        context.getSharedPreferences("waller_prefs", Context.MODE_PRIVATE)
-    }
-// --- PERSISTED HAPTICS ENABLED ---
-    val initialHapticsEnabled = remember {
-        prefs.getBoolean(PREF_KEY_HAPTICS_ENABLED, true)
-    }
-    var hapticsEnabled by remember { mutableStateOf(initialHapticsEnabled) }
+    val prefs = remember { context.getSharedPreferences("waller_prefs", Context.MODE_PRIVATE) }
 
-    LaunchedEffect(Unit) {
-        Haptics.enabled = hapticsEnabled
+    // ── Haptics ───────────────────────────────────────────────────────────────
+    var hapticsEnabled by remember { mutableStateOf(prefs.getBoolean(PREF_KEY_HAPTICS_ENABLED, true)) }
+    LaunchedEffect(Unit) { Haptics.enabled = hapticsEnabled }
+    fun updateHapticsEnabled(value: Boolean) {
+        hapticsEnabled = value; Haptics.enabled = value
+        prefs.edit { putBoolean(PREF_KEY_HAPTICS_ENABLED, value) }
     }
 
-    // --- PERSISTED THEME ---
-    val initialThemeMode = remember {
-        when (prefs.getString("theme_mode", AppThemeMode.SYSTEM.name)) {
+    // ── Theme ─────────────────────────────────────────────────────────────────
+    var appThemeMode by remember {
+        mutableStateOf(when (prefs.getString("theme_mode", AppThemeMode.SYSTEM.name)) {
             AppThemeMode.LIGHT.name -> AppThemeMode.LIGHT
-            AppThemeMode.DARK.name -> AppThemeMode.DARK
+            AppThemeMode.DARK.name  -> AppThemeMode.DARK
             else -> AppThemeMode.SYSTEM
-        }
+        })
     }
-    var appThemeMode by remember { mutableStateOf(initialThemeMode) }
     fun updateThemeMode(mode: AppThemeMode) {
-        appThemeMode = mode
-        prefs.edit { putString("theme_mode", mode.name) }
+        appThemeMode = mode; prefs.edit { putString("theme_mode", mode.name) }
     }
 
-    // --- PERSISTED GRADIENT BACKGROUND ---
-    val initialGradientBg = remember {
-        prefs.getBoolean("use_gradient_bg", true)
-    }
-    var useGradientBackground by remember { mutableStateOf(initialGradientBg) }
+    // ── Gradient background ───────────────────────────────────────────────────
+    var useGradientBackground by remember { mutableStateOf(prefs.getBoolean("use_gradient_bg", true)) }
     fun updateUseGradientBackground(value: Boolean) {
-        useGradientBackground = value
-        prefs.edit { putBoolean("use_gradient_bg", value) }
+        useGradientBackground = value; prefs.edit { putBoolean("use_gradient_bg", value) }
     }
 
-    // --- PERSISTED INTERACTION MODE (Simple / Advanced) ---
-    val initialInteractionMode = remember {
-        when (prefs.getString(PREF_KEY_INTERACTION_MODE, InteractionMode.SIMPLE.name)) {
-            InteractionMode.ADVANCED.name -> InteractionMode.ADVANCED
-            else -> InteractionMode.SIMPLE
-        }
+    // ── Interaction mode (Simple / Advanced) ──────────────────────────────────
+    var interactionMode by remember {
+        mutableStateOf(
+            if (prefs.getString(PREF_KEY_INTERACTION_MODE, InteractionMode.SIMPLE.name) == InteractionMode.ADVANCED.name)
+                InteractionMode.ADVANCED else InteractionMode.SIMPLE
+        )
     }
-    var interactionMode by remember { mutableStateOf(initialInteractionMode) }
     fun updateInteractionMode(mode: InteractionMode) {
         interactionMode = mode
         prefs.edit { putString(PREF_KEY_INTERACTION_MODE, mode.name) }
-
         if (mode == InteractionMode.ADVANCED) {
-            // compute lockMode based on saved lock or current rotation and persist it
             val savedLock = prefs.getInt(PREF_KEY_LOCKED_ORIENTATION, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
-
-            val lockMode = if (savedLock != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
-                // reapply exact saved lock
-                savedLock
-            } else {
-                val rotation = try {
-                    @Suppress("DEPRECATION")
-                    activity.windowManager.defaultDisplay.rotation
-                } catch (_: Exception) {
-                    if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) Surface.ROTATION_0 else Surface.ROTATION_90
+            val lockMode = if (savedLock != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) savedLock else {
+                @Suppress("DEPRECATION")
+                val rotation = try { activity.windowManager.defaultDisplay.rotation }
+                catch (_: Exception) {
+                    if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT)
+                        Surface.ROTATION_0 else Surface.ROTATION_90
                 }
                 val computed = when (rotation) {
-                    Surface.ROTATION_0 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                    Surface.ROTATION_90 -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    Surface.ROTATION_0   -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    Surface.ROTATION_90  -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
                     Surface.ROTATION_180 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT
                     Surface.ROTATION_270 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
-                    else -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    else                 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                 }
-                prefs.edit { putInt(PREF_KEY_LOCKED_ORIENTATION, computed) }
-                computed
+                prefs.edit { putInt(PREF_KEY_LOCKED_ORIENTATION, computed) }; computed
             }
-
             activity.requestedOrientation = lockMode
         } else {
-            // SIMPLE mode → restore normal rotation and clear saved lock
             activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             prefs.edit { remove(PREF_KEY_LOCKED_ORIENTATION) }
         }
     }
 
-    fun updateHapticsEnabled(value: Boolean) {
-        hapticsEnabled = value
-        Haptics.enabled = value              // 🔴 GLOBAL EFFECT
-        prefs.edit { putBoolean(PREF_KEY_HAPTICS_ENABLED, value) }
-    }
-
-    // --- ONE-TIME MODE PICKER DIALOG WIRING ---
+    // ── Onboarding / update dialogs ───────────────────────────────────────────
     var showModePickerDialog by remember { mutableStateOf(false) }
+    data class UpdateInfo(val version: String, val notes: String, val url: String)
+    var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
 
-    // --- UPDATE CHECK RESULT ---
-    data class UpdateInfo(
-        val version: String,
-        val notes: String,
-        val url: String
-    )
-
-    var updateInfo by remember {
-        mutableStateOf<UpdateInfo?>(null)
-    }
-
-    // --- CHECK FOR APP UPDATES (runs once per launch) ---
     LaunchedEffect(Unit) {
         UpdateChecker.check(
             currentVersion = appVersion,
@@ -219,48 +161,38 @@ fun WallerApp(openedWallUri: Uri? = null) {
         }
     }
 
-    // compute current app versionCode safely (fallback to 1)
     val currentVersionCode: Int = try {
-        val pi = context.packageManager.getPackageInfo(context.packageName, 0)
         @Suppress("DEPRECATION")
-        pi.versionCode
-    } catch (_: Exception) {
-        1
-    }
+        context.packageManager.getPackageInfo(context.packageName, 0).versionCode
+    } catch (_: Exception) { 1 }
 
-    // decide whether to show dialog (first run or first run after update)
     LaunchedEffect(Unit) {
-        val shownFor = prefs.getInt(PREF_KEY_MODE_PICKER_SHOWN_VERSION, -1)
-        if (shownFor != currentVersionCode) {
+        if (prefs.getInt(PREF_KEY_MODE_PICKER_SHOWN_VERSION, -1) != currentVersionCode)
             showModePickerDialog = true
-        }
     }
 
-    // Reapply orientation lock on app startup based on saved values.
+    // Reapply orientation lock on startup
     LaunchedEffect(Unit) {
         val savedModeName = prefs.getString(PREF_KEY_INTERACTION_MODE, InteractionMode.SIMPLE.name)
         val savedMode = if (savedModeName == InteractionMode.ADVANCED.name) InteractionMode.ADVANCED else InteractionMode.SIMPLE
         interactionMode = savedMode
-
         if (savedMode == InteractionMode.ADVANCED) {
             val savedLock = prefs.getInt(PREF_KEY_LOCKED_ORIENTATION, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
             if (savedLock != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
-                // reapply the exact saved lock
                 activity.requestedOrientation = savedLock
             } else {
-                // fallback compute and persist
-                val rotation = try {
-                    @Suppress("DEPRECATION")
-                    activity.windowManager.defaultDisplay.rotation
-                } catch (_: Exception) {
-                    if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) Surface.ROTATION_0 else Surface.ROTATION_90
+                @Suppress("DEPRECATION")
+                val rotation = try { activity.windowManager.defaultDisplay.rotation }
+                catch (_: Exception) {
+                    if (context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT)
+                        Surface.ROTATION_0 else Surface.ROTATION_90
                 }
                 val computed = when (rotation) {
-                    Surface.ROTATION_0 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                    Surface.ROTATION_90 -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    Surface.ROTATION_0   -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    Surface.ROTATION_90  -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
                     Surface.ROTATION_180 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT
                     Surface.ROTATION_270 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
-                    else -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    else                 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                 }
                 activity.requestedOrientation = computed
                 prefs.edit { putInt(PREF_KEY_LOCKED_ORIENTATION, computed) }
@@ -270,237 +202,160 @@ fun WallerApp(openedWallUri: Uri? = null) {
         }
     }
 
-    // Orientation: AUTO / PORTRAIT / LANDSCAPE
-    val initialOrientation = remember {
-        when (prefs.getString("default_orientation", DefaultOrientation.AUTO.name)) {
-            DefaultOrientation.PORTRAIT.name -> DefaultOrientation.PORTRAIT
+    // ── Orientation ───────────────────────────────────────────────────────────
+    var defaultOrientation by remember {
+        mutableStateOf(when (prefs.getString("default_orientation", DefaultOrientation.AUTO.name)) {
+            DefaultOrientation.PORTRAIT.name  -> DefaultOrientation.PORTRAIT
             DefaultOrientation.LANDSCAPE.name -> DefaultOrientation.LANDSCAPE
             else -> DefaultOrientation.AUTO
-        }
+        })
     }
-    var defaultOrientation by remember { mutableStateOf(initialOrientation) }
     fun updateDefaultOrientation(value: DefaultOrientation) {
-        defaultOrientation = value
-        prefs.edit { putString("default_orientation", value.name) }
+        defaultOrientation = value; prefs.edit { putString("default_orientation", value.name) }
     }
 
-    // Session orientation shared between Home + Favourites
     val configuration = LocalConfiguration.current
     val resolvedIsPortrait = remember(defaultOrientation, configuration) {
         when (defaultOrientation) {
-            DefaultOrientation.PORTRAIT -> true
+            DefaultOrientation.PORTRAIT  -> true
             DefaultOrientation.LANDSCAPE -> false
-            DefaultOrientation.AUTO -> {
-                // Phones stay portrait, tablets go landscape
-                configuration.smallestScreenWidthDp < 600
-            }
+            DefaultOrientation.AUTO      -> configuration.smallestScreenWidthDp < 600
         }
     }
-
     var sessionIsPortrait by remember { mutableStateOf(resolvedIsPortrait) }
 
-    // Gradient count: 12, 16, 20
+    // ── Gradient count ────────────────────────────────────────────────────────
     val initialGradientCount = remember {
-        val stored = prefs.getInt("default_gradient_count", 20)
-        if (stored in listOf(12, 16, 20)) stored else 20
+        val s = prefs.getInt("default_gradient_count", 20)
+        if (s in listOf(12, 16, 20)) s else 20
     }
     var defaultGradientCount by remember { mutableIntStateOf(initialGradientCount) }
     fun updateDefaultGradientCount(value: Int) {
-        defaultGradientCount = value
-        prefs.edit { putInt("default_gradient_count", value) }
+        defaultGradientCount = value; prefs.edit { putInt("default_gradient_count", value) }
     }
 
-    // Default effects (for Settings)
-    val initialNothing = remember {
-        prefs.getBoolean("default_enable_nothing", false)
+    // ── Default effects (for Settings screen toggles) ─────────────────────────
+    // These 3 prefs are legacy per-effect booleans kept for Settings UI compatibility.
+    var enableNothingByDefault by remember { mutableStateOf(prefs.getBoolean("default_enable_nothing", false)) }
+    var enableSnowByDefault    by remember { mutableStateOf(prefs.getBoolean("default_enable_snow", false)) }
+    var enableStripesByDefault by remember { mutableStateOf(prefs.getBoolean("default_enable_stripes", false)) }
+
+    // ── Active effects (single EffectMap drives Home screen) ─────────────────
+    // Seeded from per-effect default prefs so existing settings are respected.
+    var activeEffects by remember {
+        mutableStateOf(
+            WallpaperEffects.defaultMap()
+                .withEnabled("noise",   enableSnowByDefault)
+                .withEnabled("stripes", enableStripesByDefault)
+                .withEnabled("overlay", enableNothingByDefault)
+        )
     }
-    var enableNothingByDefault by remember { mutableStateOf(initialNothing) }
+
     fun updateEnableNothing(value: Boolean) {
-        enableNothingByDefault = value
-        prefs.edit { putBoolean("default_enable_nothing", value) }
+        enableNothingByDefault = value; prefs.edit { putBoolean("default_enable_nothing", value) }
+        activeEffects = activeEffects.withEnabled("overlay", value)
     }
-
-    val initialSnow = remember {
-        prefs.getBoolean("default_enable_snow", false)
-    }
-    var enableSnowByDefault by remember { mutableStateOf(initialSnow) }
     fun updateEnableSnow(value: Boolean) {
-        enableSnowByDefault = value
-        prefs.edit { putBoolean("default_enable_snow", value) }
+        enableSnowByDefault = value; prefs.edit { putBoolean("default_enable_snow", value) }
+        activeEffects = activeEffects.withEnabled("noise", value)
     }
-
-    val initialStripes = remember {
-        prefs.getBoolean("default_enable_stripes", false)
-    }
-    var enableStripesByDefault by remember { mutableStateOf(initialStripes) }
     fun updateEnableStripes(value: Boolean) {
-        enableStripesByDefault = value
-        prefs.edit { putBoolean("default_enable_stripes", value) }
+        enableStripesByDefault = value; prefs.edit { putBoolean("default_enable_stripes", value) }
+        activeEffects = activeEffects.withEnabled("stripes", value)
     }
-    var geometricEffectEnabled by remember { mutableStateOf(false) }
-    var blurEffectEnabled by remember { mutableStateOf(false) }
 
-    // Default tone: DARK / NEUTRAL / LIGHT
-    val initialToneMode = remember {
-        when (prefs.getString("default_tone_mode", ToneMode.LIGHT.name)) {
-            ToneMode.DARK.name -> ToneMode.DARK
+    // ── Tone / multicolor defaults ────────────────────────────────────────────
+    var defaultToneMode by remember {
+        mutableStateOf(when (prefs.getString("default_tone_mode", ToneMode.LIGHT.name)) {
+            ToneMode.DARK.name    -> ToneMode.DARK
             ToneMode.NEUTRAL.name -> ToneMode.NEUTRAL
             else -> ToneMode.LIGHT
-        }
+        })
     }
-    var defaultToneMode by remember { mutableStateOf(initialToneMode) }
     fun updateDefaultToneMode(value: ToneMode) {
-        defaultToneMode = value
-        prefs.edit { putString("default_tone_mode", value.name) }
+        defaultToneMode = value; prefs.edit { putString("default_tone_mode", value.name) }
     }
-
-    // Default multicolor: ON / OFF (off by default)
-    val initialMulticolor = remember {
-        prefs.getBoolean("default_enable_multicolor", false)
-    }
-    var enableMulticolorByDefault by remember { mutableStateOf(initialMulticolor) }
+    var enableMulticolorByDefault by remember { mutableStateOf(prefs.getBoolean("default_enable_multicolor", false)) }
     fun updateEnableMulticolor(value: Boolean) {
-        enableMulticolorByDefault = value
-        prefs.edit { putBoolean("default_enable_multicolor", value) }
+        enableMulticolorByDefault = value; prefs.edit { putBoolean("default_enable_multicolor", value) }
     }
 
-    // --- SHARED EFFECT STATE (used by Home + as defaults when app starts) ---
-    var snowEffectEnabled by remember { mutableStateOf(enableSnowByDefault) }
-    var stripesEffectEnabled by remember { mutableStateOf(enableStripesByDefault) }
-    var overlayEffectEnabled by remember { mutableStateOf(enableNothingByDefault) }
 
-    // --- HOME SESSION STATE (kept while app is alive) ---
+    // ── Home session state ────────────────────────────────────────────────────
     val homeSessionState = remember {
-        WallpaperSessionState(
-            toneMode = defaultToneMode,
-            isMulticolor = enableMulticolorByDefault
-        )
+        WallpaperSessionState(toneMode = defaultToneMode, isMulticolor = enableMulticolorByDefault)
     }
 
-    // --- SHARED FAVOURITES (snapshot of wallpaper + effects), PERSISTED ---
+    // ── Favourites ────────────────────────────────────────────────────────────
     var favouriteWallpapers by remember {
         mutableStateOf(
-            prefs.getString(FAVOURITES_KEY, null)
-                ?.let { decodeFavourites(it) }
-                ?: emptyList()
+            // Try v2 key first, fall back to legacy v1 key
+            (prefs.getString(FAVOURITES_KEY, null)?.let { decodeFavourites(it) }
+                ?: prefs.getString(FAVOURITES_KEY_LEGACY, null)?.let { decodeFavouritesLegacy(it) }
+                ?: emptyList())
         )
     }
-
     fun persistFavourites() {
-        prefs.edit {
-            putString(FAVOURITES_KEY, encodeFavourites(favouriteWallpapers))
-        }
+        prefs.edit { putString(FAVOURITES_KEY, encodeFavourites(favouriteWallpapers)) }
     }
 
-    // From Home screen: toggle by wallpaper; snapshot current effects when adding.
-    // Matching strategy: try exact match (colors+type+angle), fallback to colors+type (ignore angle)
-    fun toggleFavouriteFromHome(
-        wallpaper: Wallpaper,
-        addNoise: Boolean,
-        addStripes: Boolean,
-        addOverlay: Boolean,
-        addGeometric: Boolean,
-        addBlur: Boolean = false,
-        noiseAlpha: Float = 1f,
-        stripesAlpha: Float = 1f,
-        overlayAlpha: Float = 1f,
-        geometricAlpha: Float = 1f,
-        blurAlpha: Float = 1f
-    ) {
-        // exact compare (type + angle + color stops)
-        fun exactMatch(a: Wallpaper, b: Wallpaper): Boolean =
-            a.type == b.type &&
-                    a.angleDeg.compareTo(b.angleDeg) == 0 &&
+    // Toggle from Home: snapshot current EffectMap when adding
+    fun toggleFavouriteFromHome(wallpaper: Wallpaper, effects: EffectMap) {
+        fun exactMatch(a: Wallpaper, b: Wallpaper) =
+            a.type == b.type && a.angleDeg.compareTo(b.angleDeg) == 0 &&
                     a.colors.size == b.colors.size &&
                     a.colors.zip(b.colors).all { (x, y) -> x.toHexString() == y.toHexString() }
-
-        // match ignoring angle (back-compat)
-        fun matchIgnoringAngle(a: Wallpaper, b: Wallpaper): Boolean =
-            a.type == b.type &&
-                    a.colors.size == b.colors.size &&
+        fun matchIgnoreAngle(a: Wallpaper, b: Wallpaper) =
+            a.type == b.type && a.colors.size == b.colors.size &&
                     a.colors.zip(b.colors).all { (x, y) -> x.toHexString() == y.toHexString() }
 
-        val existingExact = favouriteWallpapers.find { exactMatch(it.wallpaper, wallpaper) }
-        val existingIgnoreAngle = favouriteWallpapers.find { matchIgnoringAngle(it.wallpaper, wallpaper) }
+        val exactMatch   = favouriteWallpapers.find { exactMatch(it.wallpaper, wallpaper) }
+        val angleMatch   = favouriteWallpapers.find { matchIgnoreAngle(it.wallpaper, wallpaper) }
 
         favouriteWallpapers = when {
-            existingExact != null -> favouriteWallpapers - existingExact
-            existingIgnoreAngle != null -> favouriteWallpapers - existingIgnoreAngle
-            else -> {
-                favouriteWallpapers + FavoriteWallpaper(
-                    wallpaper = wallpaper,
-                    addNoise = addNoise,
-                    addStripes = addStripes,
-                    addOverlay = addOverlay,
-                    addGeometric = addGeometric,
-                    addBlur = addBlur,
-                    noiseAlpha = noiseAlpha,
-                    stripesAlpha = stripesAlpha,
-                    overlayAlpha = overlayAlpha,
-                    geometricAlpha = geometricAlpha,
-                    blurAlpha = blurAlpha
-                )
-            }
+            exactMatch != null -> favouriteWallpapers - exactMatch
+            angleMatch != null -> favouriteWallpapers - angleMatch
+            else -> favouriteWallpapers + FavoriteWallpaper(wallpaper = wallpaper, effects = effects)
         }
         persistFavourites()
     }
 
-    // From Favourites screen: remove that exact favourite entry.
     fun removeFavourite(fav: FavoriteWallpaper) {
         favouriteWallpapers = favouriteWallpapers - fav
         persistFavourites()
     }
 
-    // Used by import: adds a FavoriteWallpaper directly without toggle semantics.
-    // Unlike toggleFavouriteFromHome, this checks ALL fields (including effects)
-    // so the same wallpaper with different effects is treated as a different item.
     fun addFavouriteDirect(fav: FavoriteWallpaper) {
         val alreadyExists = favouriteWallpapers.any { existing ->
             existing.wallpaper.type == fav.wallpaper.type &&
                     existing.wallpaper.angleDeg.compareTo(fav.wallpaper.angleDeg) == 0 &&
                     existing.wallpaper.colors.size == fav.wallpaper.colors.size &&
                     existing.wallpaper.colors.zip(fav.wallpaper.colors).all { (x, y) -> x.toHexString() == y.toHexString() } &&
-                    existing.addNoise == fav.addNoise &&
-                    existing.addStripes == fav.addStripes &&
-                    existing.addOverlay == fav.addOverlay &&
-                    existing.addGeometric == fav.addGeometric &&
-                    existing.addBlur == fav.addBlur &&
-                    existing.noiseAlpha == fav.noiseAlpha &&
-                    existing.stripesAlpha == fav.stripesAlpha &&
-                    existing.overlayAlpha == fav.overlayAlpha &&
-                    existing.geometricAlpha == fav.geometricAlpha &&
-                    existing.blurAlpha == fav.blurAlpha
+                    existing.effects == fav.effects
         }
-        if (!alreadyExists) {
-            favouriteWallpapers = favouriteWallpapers + fav
-            persistFavourites()
-        }
+        if (!alreadyExists) { favouriteWallpapers = favouriteWallpapers + fav; persistFavourites() }
     }
 
-
-    var currentScreen by remember { mutableStateOf(RootScreen.HOME) }
-    var isPreviewOpen by remember { mutableStateOf(false) }
+    var currentScreen  by remember { mutableStateOf(RootScreen.HOME) }
+    var isPreviewOpen  by remember { mutableStateOf(false) }
 
     val isDarkTheme = when (appThemeMode) {
-        AppThemeMode.LIGHT -> false
-        AppThemeMode.DARK -> true
+        AppThemeMode.LIGHT  -> false
+        AppThemeMode.DARK   -> true
         AppThemeMode.SYSTEM -> systemIsDark
     }
-
-    // For bottom bar highlighting: About is grouped under Settings.
     val selectedForNav = when (currentScreen) {
-        RootScreen.HOME -> RootScreen.HOME
+        RootScreen.HOME      -> RootScreen.HOME
         RootScreen.FAVOURITES -> RootScreen.FAVOURITES
         RootScreen.SETTINGS, RootScreen.ABOUT -> RootScreen.SETTINGS
     }
 
-    // --- BACK BUTTON HANDLING ---
     BackHandler(enabled = currentScreen != RootScreen.HOME) {
         currentScreen = when (currentScreen) {
-            RootScreen.ABOUT -> RootScreen.SETTINGS
-            RootScreen.SETTINGS -> RootScreen.HOME
+            RootScreen.ABOUT      -> RootScreen.SETTINGS
+            RootScreen.SETTINGS   -> RootScreen.HOME
             RootScreen.FAVOURITES -> RootScreen.HOME
-            RootScreen.HOME -> RootScreen.HOME
+            RootScreen.HOME       -> RootScreen.HOME
         }
     }
 
@@ -509,22 +364,14 @@ fun WallerApp(openedWallUri: Uri? = null) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    if (useGradientBackground) {
-                        Brush.verticalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
-                                MaterialTheme.colorScheme.background,
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                            )
-                        )
-                    } else {
-                        Brush.verticalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.background,
-                                MaterialTheme.colorScheme.background
-                            )
-                        )
-                    }
+                    if (useGradientBackground) Brush.verticalGradient(listOf(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                    )) else Brush.verticalGradient(listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.background
+                    ))
                 )
         ) {
             Scaffold(
@@ -540,36 +387,23 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             sessionState = homeSessionState,
                             isAppDarkMode = isDarkTheme,
                             onThemeChange = {
-                                val next = when (appThemeMode) {
+                                updateThemeMode(when (appThemeMode) {
                                     AppThemeMode.LIGHT -> AppThemeMode.DARK
-                                    AppThemeMode.DARK -> AppThemeMode.LIGHT
-                                    AppThemeMode.SYSTEM ->
-                                        if (systemIsDark) AppThemeMode.LIGHT
-                                        else AppThemeMode.DARK
-                                }
-                                updateThemeMode(next)
+                                    AppThemeMode.DARK  -> AppThemeMode.LIGHT
+                                    AppThemeMode.SYSTEM -> if (systemIsDark) AppThemeMode.LIGHT else AppThemeMode.DARK
+                                })
                             },
-                            defaultGradientCount = defaultGradientCount,
-                            defaultToneMode = defaultToneMode,
+                            defaultGradientCount    = defaultGradientCount,
+                            defaultToneMode         = defaultToneMode,
                             defaultEnableMulticolor = enableMulticolorByDefault,
-                            addNoise = snowEffectEnabled,
-                            onAddNoiseChange = { snowEffectEnabled = it },
-                            addStripes = stripesEffectEnabled,
-                            onAddStripesChange = { stripesEffectEnabled = it },
-                            addGeometric = geometricEffectEnabled,
-                            onAddGeometricChange = { geometricEffectEnabled = it },
-                            addOverlay = overlayEffectEnabled,
-                            onAddOverlayChange = { overlayEffectEnabled = it },
-                            addBlur = blurEffectEnabled,
-                            onAddBlurChange = { blurEffectEnabled = it },
-                            favouriteWallpapers = favouriteWallpapers,
-                            onToggleFavourite = { w, n, s, o, g, bl, na, sa, oa, ga, bla ->
-                                toggleFavouriteFromHome(w, n, s, o, g, bl, na, sa, oa, ga, bla)
-                            },
-                            isPortrait = sessionIsPortrait,
-                            onOrientationChange = { sessionIsPortrait = it },
-                            interactionMode = interactionMode,
-                            onPreviewVisibilityChanged = { isPreviewOpen = it}
+                            effects                 = activeEffects,
+                            onEffectsChange         = { activeEffects = it },
+                            favouriteWallpapers     = favouriteWallpapers,
+                            onToggleFavourite       = { w, effects -> toggleFavouriteFromHome(w, effects) },
+                            isPortrait              = sessionIsPortrait,
+                            onOrientationChange     = { sessionIsPortrait = it },
+                            interactionMode         = interactionMode,
+                            onPreviewVisibilityChanged = { isPreviewOpen = it }
                         )
                     }
 
@@ -578,23 +412,18 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             modifier = Modifier.padding(innerPadding),
                             isAppDarkMode = isDarkTheme,
                             onThemeChange = {
-                                val next = when (appThemeMode) {
+                                updateThemeMode(when (appThemeMode) {
                                     AppThemeMode.LIGHT -> AppThemeMode.DARK
-                                    AppThemeMode.DARK -> AppThemeMode.LIGHT
-                                    AppThemeMode.SYSTEM ->
-                                        if (systemIsDark) AppThemeMode.LIGHT
-                                        else AppThemeMode.DARK
-                                }
-                                updateThemeMode(next)
+                                    AppThemeMode.DARK  -> AppThemeMode.LIGHT
+                                    AppThemeMode.SYSTEM -> if (systemIsDark) AppThemeMode.LIGHT else AppThemeMode.DARK
+                                })
                             },
-                            favourites = favouriteWallpapers,
-                            isPortrait = sessionIsPortrait,
+                            favourites          = favouriteWallpapers,
+                            isPortrait          = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortrait = it },
-                            onRemoveFavourite = { fav -> removeFavourite(fav) },
-                            onAddFavourite = { fav ->
-                                addFavouriteDirect(fav)
-                            },
-                            interactionMode = interactionMode
+                            onRemoveFavourite   = { removeFavourite(it) },
+                            onAddFavourite      = { addFavouriteDirect(it) },
+                            interactionMode     = interactionMode
                         )
                     }
 
@@ -602,7 +431,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
                         SettingsScreen(
                             modifier = Modifier.padding(innerPadding),
                             appThemeMode = appThemeMode,
-                            onAppThemeModeChange = { mode -> updateThemeMode(mode) },
+                            onAppThemeModeChange = { updateThemeMode(it) },
                             useGradientBackground = useGradientBackground,
                             onUseGradientBackgroundChange = { updateUseGradientBackground(it) },
                             defaultOrientation = defaultOrientation,
@@ -634,202 +463,164 @@ fun WallerApp(openedWallUri: Uri? = null) {
                         )
                     }
                 }
+
                 if (!isPreviewOpen) {
                     FloatingNavBar(
                         selectedItem = when (selectedForNav) {
-                            RootScreen.HOME -> FloatingNavItem.HOME
+                            RootScreen.HOME       -> FloatingNavItem.HOME
                             RootScreen.FAVOURITES -> FloatingNavItem.FAVOURITES
-                            RootScreen.SETTINGS -> FloatingNavItem.SETTINGS
-                            RootScreen.ABOUT -> FloatingNavItem.SETTINGS
+                            else                  -> FloatingNavItem.SETTINGS
                         },
                         onItemSelected = { item ->
                             currentScreen = when (item) {
-                                FloatingNavItem.HOME -> RootScreen.HOME
+                                FloatingNavItem.HOME       -> RootScreen.HOME
                                 FloatingNavItem.FAVOURITES -> RootScreen.FAVOURITES
-                                FloatingNavItem.SETTINGS -> RootScreen.SETTINGS
+                                FloatingNavItem.SETTINGS   -> RootScreen.SETTINGS
                             }
                         },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 48.dp)
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 48.dp)
                     )
                 }
             }
 
-            // Render the one-time ModePickerDialog as an overlay when needed
             if (showModePickerDialog) {
                 ModePickerDialog(
                     initialSelection = interactionMode,
                     onChosen = { chosenMode ->
-                        // persist shown-version so we don't show again for the same app version
                         prefs.edit { putInt(PREF_KEY_MODE_PICKER_SHOWN_VERSION, currentVersionCode) }
-                        // apply chosen mode (this handles orientation lock and persistence)
                         updateInteractionMode(chosenMode)
                         showModePickerDialog = false
                     },
                     onDismiss = {
-                        // user dismissed -> mark as shown for this version so we won't nag again
                         prefs.edit { putInt(PREF_KEY_MODE_PICKER_SHOWN_VERSION, currentVersionCode) }
                         showModePickerDialog = false
                     }
                 )
             }
-            // --- UPDATE AVAILABLE DIALOG ---
+
             if (!showModePickerDialog) {
                 updateInfo?.let { info ->
                     UpdateAvailableDialog(
                         latestVersion = info.version,
-                        releaseNotes = info.notes,
-                        releaseUrl = info.url,
-                        onDismiss = { updateInfo = null }
+                        releaseNotes  = info.notes,
+                        releaseUrl    = info.url,
+                        onDismiss     = { updateInfo = null }
                     )
                 }
             }
-
         }
     }
+
+    // ── Import .wall file ─────────────────────────────────────────────────────
     LaunchedEffect(openedWallUri) {
-
         openedWallUri?.let { uri ->
-
             val imported = WallFileManager.importWallFile(context, uri)
-
             imported?.let { walls ->
-
-                val sanitizedWalls = walls.map { fav ->
-
+                val sanitized = walls.map { fav ->
                     val colors = fav.wallpaper.colors
-
-                    val safeColors =
-                        if (colors.size == 1)
-                            listOf(colors[0], colors[0])
-                        else
-                            colors
-
-                    fav.copy(
-                        wallpaper = fav.wallpaper.copy(colors = safeColors)
-                    )
+                    fav.copy(wallpaper = fav.wallpaper.copy(
+                        colors = if (colors.size == 1) listOf(colors[0], colors[0]) else colors
+                    ))
                 }
-
-                val newWalls = sanitizedWalls.filter { importedFav ->
-
+                val newWalls = sanitized.filter { importedFav ->
                     favouriteWallpapers.none { existing ->
-
                         existing.wallpaper.type == importedFav.wallpaper.type &&
                                 existing.wallpaper.angleDeg.compareTo(importedFav.wallpaper.angleDeg) == 0 &&
                                 existing.wallpaper.colors.size == importedFav.wallpaper.colors.size &&
                                 existing.wallpaper.colors.zip(importedFav.wallpaper.colors).all { (x, y) -> x.toHexString() == y.toHexString() } &&
-                                existing.addNoise == importedFav.addNoise &&
-                                existing.addStripes == importedFav.addStripes &&
-                                existing.addOverlay == importedFav.addOverlay &&
-                                existing.addGeometric == importedFav.addGeometric &&
-                                existing.addBlur == importedFav.addBlur &&
-                                existing.noiseAlpha == importedFav.noiseAlpha &&
-                                existing.stripesAlpha == importedFav.stripesAlpha &&
-                                existing.overlayAlpha == importedFav.overlayAlpha &&
-                                existing.geometricAlpha == importedFav.geometricAlpha &&
-                                existing.blurAlpha == importedFav.blurAlpha
+                                existing.effects == importedFav.effects
                     }
                 }
-
                 if (newWalls.isNotEmpty()) {
                     favouriteWallpapers = favouriteWallpapers + newWalls
                     persistFavourites()
                 }
-
-                val message = when {
-                    newWalls.isEmpty() ->
-                        context.getString(R.string.wallpaper_already_exists)
-
-                    newWalls.size == 1 ->
-                        context.getString(R.string._1_wallpaper_imported)
-
-                    else ->
-                        "${newWalls.size} wallpapers imported"
-                }
-
-                android.widget.Toast
-                    .makeText(context, message, android.widget.Toast.LENGTH_SHORT)
-                    .show()
+                android.widget.Toast.makeText(
+                    context,
+                    when {
+                        newWalls.isEmpty() -> context.getString(R.string.wallpaper_already_exists)
+                        newWalls.size == 1 -> context.getString(R.string._1_wallpaper_imported)
+                        else               -> "${newWalls.size} wallpapers imported"
+                    },
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
             }
-
-            // Prevent re-import if activity recreates
             (context as Activity).intent.data = null
         }
     }
 }
 
-/* --------------------------- Favourites encode/decode --------------------------- */
+// ── Favourites encode / decode (v2) ──────────────────────────────────────────
+//
+// Format per entry: type|hex1,hex2,...|angleInt|id:enabled:alpha,id:enabled:alpha,...
+// Entries joined by ';'
+//
+// Example effects segment: noise:1:0.800,stripes:0:1.000,overlay:0:1.000,geometric:0:1.000,blur:0:1.000
 
-/** Encodes favourites as:
- * type|hex1,hex2,...|flagsCsv|angleInt|noiseAlpha|stripesAlpha|overlayAlpha
- * (joined by ';' between items)
- */
 private fun encodeFavourites(list: List<FavoriteWallpaper>): String =
     list.joinToString(";") { fav ->
-        val typeName = fav.wallpaper.type.name
+        val typeName  = fav.wallpaper.type.name
         val colorsStr = fav.wallpaper.colors.joinToString(",") { it.toHexString() }
-        val flagsStr = listOf(fav.addNoise, fav.addStripes, fav.addOverlay, fav.addGeometric, fav.addBlur)
-            .joinToString(",") { if (it) "1" else "0" }
-        val angleInt = fav.wallpaper.angleDeg.roundToInt()
-        val na = String.format(Locale.US, "%.3f", fav.noiseAlpha)
-        val sa = String.format(Locale.US, "%.3f", fav.stripesAlpha)
-        val oa = String.format(Locale.US, "%.3f", fav.overlayAlpha)
-        val ga = String.format(Locale.US, "%.3f", fav.geometricAlpha)
-        val bla = String.format(Locale.US, "%.3f", fav.blurAlpha)
-        listOf(typeName, colorsStr, flagsStr, angleInt.toString(), na, sa, oa, ga, bla).joinToString("|")
+        val angleInt  = fav.wallpaper.angleDeg.roundToInt()
+        val effectsStr = WallpaperEffects.ALL.joinToString(",") { def ->
+            val enabled = if (fav.effects.isEnabled(def.id)) "1" else "0"
+            val alpha   = String.format(Locale.US, "%.3f", fav.effects.alpha(def.id))
+            "${def.id}:$enabled:$alpha"
+        }
+        "$typeName|$colorsStr|$angleInt|$effectsStr"
     }
 
-/** Decodes both new (7-part) and old (4-part without alphas) formats. */
 private fun decodeFavourites(raw: String): List<FavoriteWallpaper> =
-    raw.split(";")
-        .mapNotNull { item ->
-            if (item.isBlank()) return@mapNotNull null
-            val parts = item.split("|")
-            if (parts.size < 3) return@mapNotNull null
+    raw.split(";").mapNotNull { item ->
+        if (item.isBlank()) return@mapNotNull null
+        val parts = item.split("|")
+        if (parts.size < 4) return@mapNotNull null
 
-            val type = runCatching { GradientType.valueOf(parts[0]) }.getOrNull()
-                ?: return@mapNotNull null
+        val type    = runCatching { GradientType.valueOf(parts[0]) }.getOrNull() ?: return@mapNotNull null
+        val colors  = parts[1].split(",").mapNotNull { colorFromHexOrNull(it) }
+        if (colors.isEmpty()) return@mapNotNull null
+        val safeColors = if (colors.size == 1) listOf(colors[0], colors[0]) else colors
+        val angleDeg   = parts[2].toFloatOrNull() ?: 0f
 
-            val parsedColors = parts[1]
-                .split(",")
-                .mapNotNull { colorFromHexOrNull(it) }
-
-            if (parsedColors.isEmpty()) return@mapNotNull null
-
-            // Ensure minimum 2 colors for gradient system
-            val colors =
-                if (parsedColors.size == 1)
-                    listOf(parsedColors[0], parsedColors[0])
-                else
-                    parsedColors
-
-            val flagTokens = parts[2].split(",")
-
-            val addNoise = flagTokens.getOrNull(0) == "1"
-            val addStripes = flagTokens.getOrNull(1) == "1"
-            val addOverlay = flagTokens.getOrNull(2) == "1"
-            val addGeometric = flagTokens.getOrNull(3) == "1" // NEW, safe default
-            val addBlur = flagTokens.getOrNull(4) == "1"      // NEW, safe default false
-
-            val angleDeg = parts.getOrNull(3)?.toFloatOrNull() ?: 0f
-            val noiseAlpha = parts.getOrNull(4)?.toFloatOrNull() ?: 1f
-            val stripesAlpha = parts.getOrNull(5)?.toFloatOrNull() ?: 1f
-            val overlayAlpha = parts.getOrNull(6)?.toFloatOrNull() ?: 1f
-            val geometricAlpha = parts.getOrNull(7)?.toFloatOrNull() ?: 1f
-            val blurAlpha = parts.getOrNull(8)?.toFloatOrNull() ?: 1f
-
-            FavoriteWallpaper(
-                wallpaper = Wallpaper(colors = colors, type = type, angleDeg = angleDeg),
-                addNoise = addNoise,
-                addStripes = addStripes,
-                addOverlay = addOverlay,
-                addGeometric = addGeometric,
-                addBlur = addBlur,
-                noiseAlpha = noiseAlpha,
-                stripesAlpha = stripesAlpha,
-                overlayAlpha = overlayAlpha,
-                geometricAlpha = geometricAlpha,
-                blurAlpha = blurAlpha
-            )
+        val base    = WallpaperEffects.defaultMap().toMutableMap()
+        parts[3].split(",").forEach { token ->
+            val tk = token.split(":")
+            if (tk.size >= 3) {
+                val id      = tk[0]
+                val enabled = tk[1] == "1"
+                val alpha   = tk[2].toFloatOrNull() ?: 1f
+                if (WallpaperEffects.find(id) != null) base[id] = EffectState(enabled, alpha)
+            }
         }
+
+        FavoriteWallpaper(
+            wallpaper = Wallpaper(colors = safeColors, type = type, angleDeg = angleDeg),
+            effects   = base
+        )
+    }
+
+/** Decode old v1 format: type|hex1,hex2,...|flags5csv|angleInt|na|sa|oa|ga|bla */
+private fun decodeFavouritesLegacy(raw: String): List<FavoriteWallpaper> =
+    raw.split(";").mapNotNull { item ->
+        if (item.isBlank()) return@mapNotNull null
+        val parts = item.split("|")
+        if (parts.size < 3) return@mapNotNull null
+        val type = runCatching { GradientType.valueOf(parts[0]) }.getOrNull() ?: return@mapNotNull null
+        val colors = parts[1].split(",").mapNotNull { colorFromHexOrNull(it) }
+        if (colors.isEmpty()) return@mapNotNull null
+        val safeColors = if (colors.size == 1) listOf(colors[0], colors[0]) else colors
+        val flags     = parts[2].split(",")
+        val angleDeg  = parts.getOrNull(3)?.toFloatOrNull() ?: 0f
+        val idOrder   = listOf("noise", "stripes", "overlay", "geometric", "blur")
+        val alphaIdx  = listOf(4, 5, 6, 7, 8)
+        val base      = WallpaperEffects.defaultMap().toMutableMap()
+        idOrder.forEachIndexed { i, id ->
+            val enabled = flags.getOrNull(i) == "1"
+            val alpha   = parts.getOrNull(alphaIdx[i])?.toFloatOrNull() ?: 1f
+            base[id]    = EffectState(enabled, alpha)
+        }
+        FavoriteWallpaper(
+            wallpaper = Wallpaper(colors = safeColors, type = type, angleDeg = angleDeg),
+            effects   = base
+        )
+    }
