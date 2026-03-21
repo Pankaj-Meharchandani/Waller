@@ -237,7 +237,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
     val defaultGradientCountState = remember { mutableIntStateOf(initialGradientCount) }
     var defaultGradientCount by defaultGradientCountState
     fun updateDefaultGradientCount(value: Int) {
-        defaultGradientCountState.value = value; prefs.edit { putInt("default_gradient_count", value) }
+        defaultGradientCountState.intValue = value; prefs.edit { putInt("default_gradient_count", value) }
     }
 
     // ── Default effects (for Settings screen toggles) ─────────────────────────
