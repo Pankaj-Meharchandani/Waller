@@ -1,13 +1,9 @@
 /**
  * Represents a .wall file used for sharing wallpapers.
  *
- * - version allows future format upgrades
- * - walls contains a list of exported wallpapers
- * - colors are stored as ARGB Ints because Compose Color is not serializable
- *
- * WallFavorite.effectIds / effectAlphas store enabled effects as parallel lists
- * so the file format stays serializable without a custom serializer for Map.
- * Adding a new effect requires no change here.
+ * Backward compatible: old files used named boolean/float fields (addNoise etc).
+ * New files use parallel effectIds/effectEnabled/effectAlphas lists.
+ * Both formats are handled in WallConverters.toFavoriteWallpaper().
  */
 
 package com.example.waller.ui.wallfile
@@ -26,9 +22,21 @@ data class WallFavorite(
     val colors: List<Int>,
     val gradientType: GradientType,
     val angleDeg: Float,
-    // Parallel lists: index N in effectIds corresponds to index N in effectEnabled / effectAlphas.
-    // Unknown ids in older files are silently ignored when converting back.
+
+    // ── New format (v2): generic effect lists ─────────────────────────────────
     val effectIds: List<String> = emptyList(),
     val effectEnabled: List<Boolean> = emptyList(),
-    val effectAlphas: List<Float> = emptyList()
+    val effectAlphas: List<Float> = emptyList(),
+
+    // ── Old format (v1): named fields — kept for backward compat, defaulted ──
+    val addNoise: Boolean = false,
+    val addStripes: Boolean = false,
+    val addOverlay: Boolean = false,
+    val addGeometric: Boolean = false,
+    val addBlur: Boolean = false,
+    val noiseAlpha: Float = 1f,
+    val stripesAlpha: Float = 1f,
+    val overlayAlpha: Float = 1f,
+    val geometricAlpha: Float = 1f,
+    val blurAlpha: Float = 1f
 )

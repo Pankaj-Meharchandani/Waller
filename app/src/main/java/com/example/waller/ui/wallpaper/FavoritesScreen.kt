@@ -53,6 +53,7 @@ fun FavoritesScreen(
     onOrientationChange: (Boolean) -> Unit,
     onRemoveFavourite: (FavoriteWallpaper) -> Unit,
     onAddFavourite: (FavoriteWallpaper) -> Unit,
+    onAddFavourites: (List<FavoriteWallpaper>) -> Unit,
     interactionMode: InteractionMode
 ) {
     val context        = LocalContext.current
@@ -68,39 +69,65 @@ fun FavoritesScreen(
                 }
         }
     ) { uris ->
-        var importedCount = 0
-        val importedKeys  = mutableSetOf<String>()
+        // Resolve display name from ContentResolver to reliably detect .wall files,
+        // because uri.lastPathSegment is often an opaque id on content:// URIs.
+        fun isWallUri(uri: android.net.Uri): Boolean {
+            val name = try {
+                context.contentResolver
+                    .query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+                    ?.use { cursor ->
+                        if (cursor.moveToFirst()) cursor.getString(0) else null
+                    }
+            } catch (_: Exception) { null }
+            // Fall back to last path segment if cursor gave nothing
+            val fileName = name ?: uri.lastPathSegment ?: uri.toString()
+            return fileName.endsWith(".wall", ignoreCase = true)
+        }
 
-        val wallUris = uris.filter { uri ->
-            val segment = uri.lastPathSegment ?: uri.toString()
-            segment.endsWith(".wall", ignoreCase = true)
-        }.ifEmpty { uris }
+        val wallUris    = uris.filter { isWallUri(it) }
+        val nonWallCount = uris.size - wallUris.size
+
+        // If nothing selected was a .wall file show a clear error and stop
+        if (wallUris.isEmpty()) {
+            android.widget.Toast.makeText(
+                context,
+                context.getString(R.string.error_unsupported_file),
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            return@rememberLauncherForActivityResult
+        }
+
+        val importedKeys = mutableSetOf<String>()
+        val toAdd        = mutableListOf<FavoriteWallpaper>()
 
         wallUris.forEach { uri ->
             WallFileManager.importWallFile(context, uri)?.forEach { fav ->
-                val key = "${fav.wallpaper}_${fav.effects}"
-
+                val key = "${fav.wallpaper.type}_${fav.wallpaper.angleDeg}_" +
+                        "${fav.wallpaper.colors.joinToString()}_${fav.effects}"
                 val alreadyExistsInApp = favourites.any { existing ->
                     existing.wallpaper == fav.wallpaper && existing.effects == fav.effects
                 }
-
                 if (!alreadyExistsInApp && !importedKeys.contains(key)) {
                     importedKeys.add(key)
-                    onAddFavourite(fav)
-                    importedCount++
+                    toAdd.add(fav)
                 }
             }
         }
 
-        android.widget.Toast.makeText(
-            context,
+        // One atomic state write for all imported wallpapers
+        val importedCount = toAdd.size
+        if (toAdd.isNotEmpty()) onAddFavourites(toAdd)
+
+        val message = buildString {
             when {
-                importedCount == 0 -> context.getString(R.string.wallpaper_already_exists)
-                importedCount == 1 -> context.getString(R.string._1_wallpaper_imported)
-                else               -> "$importedCount wallpapers imported"
-            },
-            android.widget.Toast.LENGTH_SHORT
-        ).show()
+                importedCount == 0 -> append(context.getString(R.string.wallpaper_already_exists))
+                importedCount == 1 -> append(context.getString(R.string._1_wallpaper_imported))
+                else -> append(context.getString(R.string.wallpapers_imported, importedCount))
+            }
+            if (nonWallCount > 0) append(context.getString(R.string.non_wall_skipped, nonWallCount))
+        }
+
+        android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
     }
 
     val writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean> =
@@ -171,7 +198,7 @@ fun FavoritesScreen(
                                     modifier = Modifier.size(32.dp)
                                 )
                                 Text(
-                                    text = "Import wallpapers",
+                                    text = stringResource(R.string.import_wall),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.primary

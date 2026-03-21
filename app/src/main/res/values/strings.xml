@@ -154,5 +154,8 @@
     <string name="export_favourites">Export favourites</string>
     <string name="_1_wallpaper_imported">1 wallpaper imported</string>
     <string name="wallpaper_already_exists">Wallpaper already exists</string>
+    <string name="error_unsupported_file">Unsupported file. Please select a .wall file.</string>
+    <string name="wallpapers_imported">%1$d wallpapers imported</string>
+    <string name="non_wall_skipped">(%1$d non-.wall file(s) skipped)</string>
 
 </resources>

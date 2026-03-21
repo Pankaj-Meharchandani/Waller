@@ -82,40 +82,44 @@ fun WallerApp(openedWallUri: Uri? = null) {
     val prefs = remember { context.getSharedPreferences("waller_prefs", Context.MODE_PRIVATE) }
 
     // ── Haptics ───────────────────────────────────────────────────────────────
-    var hapticsEnabled by remember { mutableStateOf(prefs.getBoolean(PREF_KEY_HAPTICS_ENABLED, true)) }
+    val hapticsState = remember { mutableStateOf(prefs.getBoolean(PREF_KEY_HAPTICS_ENABLED, true)) }
+    var hapticsEnabled by hapticsState
     LaunchedEffect(Unit) { Haptics.enabled = hapticsEnabled }
     fun updateHapticsEnabled(value: Boolean) {
-        hapticsEnabled = value; Haptics.enabled = value
+        hapticsState.value = value; Haptics.enabled = value
         prefs.edit { putBoolean(PREF_KEY_HAPTICS_ENABLED, value) }
     }
 
     // ── Theme ─────────────────────────────────────────────────────────────────
-    var appThemeMode by remember {
+    val appThemeModeState = remember {
         mutableStateOf(when (prefs.getString("theme_mode", AppThemeMode.SYSTEM.name)) {
             AppThemeMode.LIGHT.name -> AppThemeMode.LIGHT
             AppThemeMode.DARK.name  -> AppThemeMode.DARK
             else -> AppThemeMode.SYSTEM
         })
     }
+    var appThemeMode by appThemeModeState
     fun updateThemeMode(mode: AppThemeMode) {
-        appThemeMode = mode; prefs.edit { putString("theme_mode", mode.name) }
+        appThemeModeState.value = mode; prefs.edit { putString("theme_mode", mode.name) }
     }
 
     // ── Gradient background ───────────────────────────────────────────────────
-    var useGradientBackground by remember { mutableStateOf(prefs.getBoolean("use_gradient_bg", true)) }
+    val useGradientBgState = remember { mutableStateOf(prefs.getBoolean("use_gradient_bg", true)) }
+    var useGradientBackground by useGradientBgState
     fun updateUseGradientBackground(value: Boolean) {
-        useGradientBackground = value; prefs.edit { putBoolean("use_gradient_bg", value) }
+        useGradientBgState.value = value; prefs.edit { putBoolean("use_gradient_bg", value) }
     }
 
     // ── Interaction mode (Simple / Advanced) ──────────────────────────────────
-    var interactionMode by remember {
+    val interactionModeState = remember {
         mutableStateOf(
             if (prefs.getString(PREF_KEY_INTERACTION_MODE, InteractionMode.SIMPLE.name) == InteractionMode.ADVANCED.name)
                 InteractionMode.ADVANCED else InteractionMode.SIMPLE
         )
     }
+    var interactionMode by interactionModeState
     fun updateInteractionMode(mode: InteractionMode) {
-        interactionMode = mode
+        interactionModeState.value = mode
         prefs.edit { putString(PREF_KEY_INTERACTION_MODE, mode.name) }
         if (mode == InteractionMode.ADVANCED) {
             val savedLock = prefs.getInt(PREF_KEY_LOCKED_ORIENTATION, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
@@ -175,7 +179,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
     LaunchedEffect(Unit) {
         val savedModeName = prefs.getString(PREF_KEY_INTERACTION_MODE, InteractionMode.SIMPLE.name)
         val savedMode = if (savedModeName == InteractionMode.ADVANCED.name) InteractionMode.ADVANCED else InteractionMode.SIMPLE
-        interactionMode = savedMode
+        interactionModeState.value = savedMode
         if (savedMode == InteractionMode.ADVANCED) {
             val savedLock = prefs.getInt(PREF_KEY_LOCKED_ORIENTATION, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
             if (savedLock != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
@@ -222,64 +226,71 @@ fun WallerApp(openedWallUri: Uri? = null) {
             DefaultOrientation.AUTO      -> configuration.smallestScreenWidthDp < 600
         }
     }
-    var sessionIsPortrait by remember { mutableStateOf(resolvedIsPortrait) }
+    val sessionIsPortraitState = remember { mutableStateOf(resolvedIsPortrait) }
+    var sessionIsPortrait by sessionIsPortraitState
 
     // ── Gradient count ────────────────────────────────────────────────────────
     val initialGradientCount = remember {
         val s = prefs.getInt("default_gradient_count", 20)
         if (s in listOf(12, 16, 20)) s else 20
     }
-    var defaultGradientCount by remember { mutableIntStateOf(initialGradientCount) }
+    val defaultGradientCountState = remember { mutableIntStateOf(initialGradientCount) }
+    var defaultGradientCount by defaultGradientCountState
     fun updateDefaultGradientCount(value: Int) {
-        defaultGradientCount = value; prefs.edit { putInt("default_gradient_count", value) }
+        defaultGradientCountState.value = value; prefs.edit { putInt("default_gradient_count", value) }
     }
 
     // ── Default effects (for Settings screen toggles) ─────────────────────────
-    // These 3 prefs are legacy per-effect booleans kept for Settings UI compatibility.
-    var enableNothingByDefault by remember { mutableStateOf(prefs.getBoolean("default_enable_nothing", false)) }
-    var enableSnowByDefault    by remember { mutableStateOf(prefs.getBoolean("default_enable_snow", false)) }
-    var enableStripesByDefault by remember { mutableStateOf(prefs.getBoolean("default_enable_stripes", false)) }
-
-    // ── Active effects (single EffectMap drives Home screen) ─────────────────
-    // Seeded from per-effect default prefs so existing settings are respected.
-    var activeEffects by remember {
-        mutableStateOf(
-            WallpaperEffects.defaultMap()
-                .withEnabled("noise",   enableSnowByDefault)
-                .withEnabled("stripes", enableStripesByDefault)
-                .withEnabled("overlay", enableNothingByDefault)
-        )
-    }
-
-    fun updateEnableNothing(value: Boolean) {
-        enableNothingByDefault = value; prefs.edit { putBoolean("default_enable_nothing", value) }
-        activeEffects = activeEffects.withEnabled("overlay", value)
-    }
-    fun updateEnableSnow(value: Boolean) {
-        enableSnowByDefault = value; prefs.edit { putBoolean("default_enable_snow", value) }
-        activeEffects = activeEffects.withEnabled("noise", value)
-    }
-    fun updateEnableStripes(value: Boolean) {
-        enableStripesByDefault = value; prefs.edit { putBoolean("default_enable_stripes", value) }
-        activeEffects = activeEffects.withEnabled("stripes", value)
-    }
+    // Use explicit MutableState so local functions can write .value without
+    // the "captured var delegate" compiler restriction.
+    val enableNothingState   = remember { mutableStateOf(prefs.getBoolean("default_enable_nothing", false)) }
+    val enableSnowState      = remember { mutableStateOf(prefs.getBoolean("default_enable_snow", false)) }
+    val enableStripesState   = remember { mutableStateOf(prefs.getBoolean("default_enable_stripes", false)) }
+    var enableNothingByDefault   by enableNothingState
+    var enableSnowByDefault      by enableSnowState
+    var enableStripesByDefault   by enableStripesState
 
     // ── Tone / multicolor defaults ────────────────────────────────────────────
-    var defaultToneMode by remember {
+    val defaultToneModeState = remember {
         mutableStateOf(when (prefs.getString("default_tone_mode", ToneMode.LIGHT.name)) {
             ToneMode.DARK.name    -> ToneMode.DARK
             ToneMode.NEUTRAL.name -> ToneMode.NEUTRAL
             else -> ToneMode.LIGHT
         })
     }
+    var defaultToneMode by defaultToneModeState
     fun updateDefaultToneMode(value: ToneMode) {
-        defaultToneMode = value; prefs.edit { putString("default_tone_mode", value.name) }
+        defaultToneModeState.value = value; prefs.edit { putString("default_tone_mode", value.name) }
     }
-    var enableMulticolorByDefault by remember { mutableStateOf(prefs.getBoolean("default_enable_multicolor", false)) }
+    val enableMulticolorState = remember { mutableStateOf(prefs.getBoolean("default_enable_multicolor", false)) }
+    var enableMulticolorByDefault by enableMulticolorState
     fun updateEnableMulticolor(value: Boolean) {
-        enableMulticolorByDefault = value; prefs.edit { putBoolean("default_enable_multicolor", value) }
+        enableMulticolorState.value = value; prefs.edit { putBoolean("default_enable_multicolor", value) }
     }
 
+    // ── Active effects (single EffectMap drives Home screen) ─────────────────
+    val activeEffectsState = remember {
+        mutableStateOf(
+            WallpaperEffects.defaultMap()
+                .withEnabled("noise",   enableSnowState.value)
+                .withEnabled("stripes", enableStripesState.value)
+                .withEnabled("overlay", enableNothingState.value)
+        )
+    }
+    var activeEffects by activeEffectsState
+
+    fun updateEnableNothing(value: Boolean) {
+        enableNothingState.value = value; prefs.edit { putBoolean("default_enable_nothing", value) }
+        activeEffectsState.value = activeEffectsState.value.withEnabled("overlay", value)
+    }
+    fun updateEnableSnow(value: Boolean) {
+        enableSnowState.value = value; prefs.edit { putBoolean("default_enable_snow", value) }
+        activeEffectsState.value = activeEffectsState.value.withEnabled("noise", value)
+    }
+    fun updateEnableStripes(value: Boolean) {
+        enableStripesState.value = value; prefs.edit { putBoolean("default_enable_stripes", value) }
+        activeEffectsState.value = activeEffectsState.value.withEnabled("stripes", value)
+    }
 
     // ── Home session state ────────────────────────────────────────────────────
     val homeSessionState = remember {
@@ -287,16 +298,17 @@ fun WallerApp(openedWallUri: Uri? = null) {
     }
 
     // ── Favourites ────────────────────────────────────────────────────────────
-    var favouriteWallpapers by remember {
+    val favouriteWallpapersState = remember {
         mutableStateOf(
             // Try v2 key first, fall back to legacy v1 key
             (prefs.getString(FAVOURITES_KEY, null)?.let { decodeFavourites(it) }
                 ?: prefs.getString(FAVOURITES_KEY_LEGACY, null)?.let { decodeFavouritesLegacy(it) }
-                ?: emptyList())
+                ?: emptyList<FavoriteWallpaper>())
         )
     }
+    var favouriteWallpapers by favouriteWallpapersState
     fun persistFavourites() {
-        prefs.edit { putString(FAVOURITES_KEY, encodeFavourites(favouriteWallpapers)) }
+        prefs.edit { putString(FAVOURITES_KEY, encodeFavourites(favouriteWallpapersState.value)) }
     }
 
     // Toggle from Home: snapshot current EffectMap when adding
@@ -312,7 +324,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
         val exactMatch   = favouriteWallpapers.find { exactMatch(it.wallpaper, wallpaper) }
         val angleMatch   = favouriteWallpapers.find { matchIgnoreAngle(it.wallpaper, wallpaper) }
 
-        favouriteWallpapers = when {
+        favouriteWallpapersState.value = when {
             exactMatch != null -> favouriteWallpapers - exactMatch
             angleMatch != null -> favouriteWallpapers - angleMatch
             else -> favouriteWallpapers + FavoriteWallpaper(wallpaper = wallpaper, effects = effects)
@@ -321,7 +333,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
     }
 
     fun removeFavourite(fav: FavoriteWallpaper) {
-        favouriteWallpapers = favouriteWallpapers - fav
+        favouriteWallpapersState.value = favouriteWallpapers - fav
         persistFavourites()
     }
 
@@ -333,7 +345,24 @@ fun WallerApp(openedWallUri: Uri? = null) {
                     existing.wallpaper.colors.zip(fav.wallpaper.colors).all { (x, y) -> x.toHexString() == y.toHexString() } &&
                     existing.effects == fav.effects
         }
-        if (!alreadyExists) { favouriteWallpapers = favouriteWallpapers + fav; persistFavourites() }
+        if (!alreadyExists) { favouriteWallpapersState.value = favouriteWallpapers + fav; persistFavourites() }
+    }
+
+    // Batch import: one state write + one persist for any number of items.
+    fun addFavouritesBatch(favs: List<FavoriteWallpaper>) {
+        val newItems = favs.filter { fav ->
+            favouriteWallpapers.none { existing ->
+                existing.wallpaper.type == fav.wallpaper.type &&
+                        existing.wallpaper.angleDeg.compareTo(fav.wallpaper.angleDeg) == 0 &&
+                        existing.wallpaper.colors.size == fav.wallpaper.colors.size &&
+                        existing.wallpaper.colors.zip(fav.wallpaper.colors).all { (x, y) -> x.toHexString() == y.toHexString() } &&
+                        existing.effects == fav.effects
+            }
+        }
+        if (newItems.isNotEmpty()) {
+            favouriteWallpapersState.value = favouriteWallpapers + newItems
+            persistFavourites()
+        }
     }
 
     var currentScreen  by remember { mutableStateOf(RootScreen.HOME) }
@@ -401,7 +430,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             favouriteWallpapers     = favouriteWallpapers,
                             onToggleFavourite       = { w, effects -> toggleFavouriteFromHome(w, effects) },
                             isPortrait              = sessionIsPortrait,
-                            onOrientationChange     = { sessionIsPortrait = it },
+                            onOrientationChange     = { sessionIsPortraitState.value = it },
                             interactionMode         = interactionMode,
                             onPreviewVisibilityChanged = { isPreviewOpen = it }
                         )
@@ -420,9 +449,10 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             },
                             favourites          = favouriteWallpapers,
                             isPortrait          = sessionIsPortrait,
-                            onOrientationChange = { sessionIsPortrait = it },
+                            onOrientationChange = { sessionIsPortraitState.value = it },
                             onRemoveFavourite   = { removeFavourite(it) },
                             onAddFavourite      = { addFavouriteDirect(it) },
+                            onAddFavourites     = { addFavouritesBatch(it) },
                             interactionMode     = interactionMode
                         )
                     }
@@ -532,7 +562,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
                     }
                 }
                 if (newWalls.isNotEmpty()) {
-                    favouriteWallpapers = favouriteWallpapers + newWalls
+                    favouriteWallpapersState.value = favouriteWallpapers + newWalls
                     persistFavourites()
                 }
                 android.widget.Toast.makeText(
