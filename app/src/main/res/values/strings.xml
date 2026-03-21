@@ -157,5 +157,15 @@
     <string name="error_unsupported_file">Unsupported file. Please select a .wall file.</string>
     <string name="wallpapers_imported">%1$d wallpapers imported</string>
     <string name="non_wall_skipped">(%1$d non-.wall file(s) skipped)</string>
+    <string name="share_svg_file">Share as SVG</string>
+    <string name="share_css_file">Share as CSS</string>
+
+    <!-- Share dialog subtitles & compact button labels -->
+    <string name="share_wall_file_subtitle">Re-importable · keeps all effects</string>
+    <string name="share_png_subtitle">Image · works anywhere</string>
+    <string name="share_svg_label">SVG</string>
+    <string name="share_svg_sublabel">Vector</string>
+    <string name="share_css_label">CSS</string>
+    <string name="share_css_sublabel">Web code</string>
 
 </resources>

@@ -20,6 +20,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -114,7 +116,7 @@ fun ApplyDownloadDialog(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
-                                contentDescription = "Share",
+                                contentDescription = stringResource(R.string.share_wallpaper),
                                 modifier = Modifier.size(20.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -250,26 +252,79 @@ fun ApplyDownloadDialog(
         }
     }
 
-    // Share options dialog
+    // ── Share options dialog — same card style as Apply dialog ──────────────────
     if (showShareOptions && wallpaper != null) {
         Dialog(onDismissRequest = { showShareOptions = false }) {
+            val isDarkShare = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
-                    .border(3.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(20.dp)),
+                    .border(
+                        width = 3.dp,
+                        color = if (isDarkShare) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                        else             MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
+                        shape = RoundedCornerShape(20.dp)
+                    ),
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 14.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(text = stringResource(R.string.share_wallpaper), style = MaterialTheme.typography.titleMedium)
 
+                    // Title
+                    Text(
+                        text = stringResource(R.string.share_wallpaper),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.2.sp
+                    )
+
+                    Spacer(Modifier.height(4.dp))
+
+                    // ── Primary: .wall — matches Button style ─────────────────
+                    Button(
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        onClick = {
+                            showShareOptions = false
+                            WallFileManager.shareWall(context, FavoriteWallpaper(wallpaper, effects))
+                        }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FolderOpen,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.share_wall_file),
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = stringResource(R.string.share_wall_file_subtitle),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
+                                )
+                            }
+                        }
+                    }
+
+                    // ── Secondary: PNG — matches FilledTonalButton style ──────
                     FilledTonalButton(
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(14.dp),
                         onClick = {
                             showShareOptions = false
                             coroutineScope.launch(Dispatchers.IO) {
@@ -277,45 +332,94 @@ fun ApplyDownloadDialog(
                                 withContext(Dispatchers.Main) { shareBitmapAsPng(context, bmp) }
                             }
                         }
-                    ) { Text(stringResource(R.string.share_png)) }
-
-                    FilledTonalButton(
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        onClick = {
-                            showShareOptions = false
-                            WallFileManager.shareWall(context, FavoriteWallpaper(wallpaper, effects))
-                        }
-                    ) { Text(stringResource(R.string.share_wall_file)) }
-
-                    FilledTonalButton(
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        onClick = {
-                            showShareOptions = false
-                            coroutineScope.launch(Dispatchers.IO) {
-                                withContext(Dispatchers.Main) {
-                                    shareAsSvg(context, FavoriteWallpaper(wallpaper, effects))
-                                }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Image,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.share_png),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = stringResource(R.string.share_png_subtitle),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                )
                             }
                         }
-                    ) { Text("Share as SVG") }
+                    }
 
-                    FilledTonalButton(
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        onClick = {
-                            showShareOptions = false
-                            coroutineScope.launch(Dispatchers.IO) {
-                                withContext(Dispatchers.Main) {
-                                    shareAsCss(context, FavoriteWallpaper(wallpaper, effects))
+                    // ── Compact pair: SVG + CSS — matches OutlinedButton style ─
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+
+                        OutlinedButton(
+                            onClick = {
+                                showShareOptions = false
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    withContext(Dispatchers.Main) {
+                                        shareAsSvg(context, FavoriteWallpaper(wallpaper, effects))
+                                    }
                                 }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f).height(52.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = stringResource(R.string.share_svg_label),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = stringResource(R.string.share_svg_sublabel),
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
-                    ) { Text("Share as CSS") }
 
-                    TextButton(modifier = Modifier.fillMaxWidth(), onClick = { showShareOptions = false }) {
-                        Text(stringResource(R.string.cancel))
+                        OutlinedButton(
+                            onClick = {
+                                showShareOptions = false
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    withContext(Dispatchers.Main) {
+                                        shareAsCss(context, FavoriteWallpaper(wallpaper, effects))
+                                    }
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f).height(52.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = stringResource(R.string.share_css_label),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = stringResource(R.string.share_css_sublabel),
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    // Cancel
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { showShareOptions = false }
+                    ) {
+                        Text(text = stringResource(R.string.cancel), fontSize = 14.sp)
                     }
                 }
             }
