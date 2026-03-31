@@ -5,9 +5,9 @@
  * - Apply to lock screen
  * - Apply to both
  * - Download as PNG
+ * - Share as PNG / .wall / SVG / CSS
  *
- * Includes a loading indicator for heavy bitmap operations.
- * Uses BitmapUtils for actual generation and storage tasks.
+ * Uses EffectMap — adding a new effect requires no change here.
  */
 
 package com.example.waller.ui.wallpaper
@@ -17,50 +17,29 @@ import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.waller.R
+import com.example.waller.ui.wallfile.WallFileManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Icon
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-import com.example.waller.ui.wallfile.WallFileManager
 
 @Composable
 fun ApplyDownloadDialog(
@@ -68,17 +47,8 @@ fun ApplyDownloadDialog(
     show: Boolean,
     wallpaper: Wallpaper?,
     isPortrait: Boolean,
-    addNoise: Boolean,
-    addStripes: Boolean,
-    addOverlay: Boolean,
-    addGeometric: Boolean,
-    addBlur: Boolean = false,
+    effects: EffectMap,
     isWorking: Boolean,
-    noiseAlpha: Float = 1f,
-    stripesAlpha: Float = 1f,
-    overlayAlpha: Float = 1f,
-    geometricAlpha: Float = 1f,
-    blurAlpha: Float = 1f,
     onWorkingChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
@@ -87,36 +57,26 @@ fun ApplyDownloadDialog(
 ) {
     if (!show || wallpaper == null) return
     var showShareOptions by remember { mutableStateOf(false) }
-    Dialog(onDismissRequest = onDismiss) {
 
-        val isDark =
-            MaterialTheme.colorScheme.background.luminance() < 0.5f
+    Dialog(onDismissRequest = onDismiss) {
+        val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .border(
                     width = 3.dp,
-                    color = if (isDark) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-                    } else {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
-                    },
+                    color = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    else        MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
                     shape = RoundedCornerShape(20.dp)
                 ),
             shape = RoundedCornerShape(20.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 14.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
+                modifier = Modifier.fillMaxWidth().padding(24.dp)
             ) {
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -124,68 +84,39 @@ fun ApplyDownloadDialog(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = stringResource(R.string.apply_download_title),
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.2.sp
+                            fontSize = 20.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.2.sp
                         )
-
                         Spacer(modifier = Modifier.height(4.dp))
-
                         Text(
                             text = stringResource(R.string.apply_download_subtitle),
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
                         modifier = Modifier.size(44.dp)
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clickable {
-
                                     if (interactionMode == InteractionMode.ADVANCED) {
                                         showShareOptions = true
                                     } else {
-
                                         coroutineScope.launch(Dispatchers.IO) {
-
-                                            val bmp = createGradientBitmap(
-                                                context,
-                                                wallpaper,
-                                                isPortrait,
-                                                addNoise,
-                                                addStripes,
-                                                addOverlay,
-                                                addGeometric,
-                                                addBlur,
-                                                noiseAlpha,
-                                                stripesAlpha,
-                                                overlayAlpha,
-                                                geometricAlpha,
-                                                blurAlpha
-                                            )
-
-                                            withContext(Dispatchers.Main) {
-                                                shareBitmapAsPng(context, bmp)
-                                            }
+                                            val bmp = createGradientBitmap(context, wallpaper, isPortrait, effects)
+                                            withContext(Dispatchers.Main) { shareBitmapAsPng(context, bmp) }
                                         }
-
                                     }
                                 },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
-                                contentDescription = "Share",
+                                contentDescription = stringResource(R.string.share_wallpaper),
                                 modifier = Modifier.size(20.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -195,411 +126,300 @@ fun ApplyDownloadDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Apply to both screens
                 Button(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
                     shape = RoundedCornerShape(14.dp),
                     onClick = {
                         onWorkingChange(true)
                         coroutineScope.launch(Dispatchers.IO) {
-                            val bmp = createGradientBitmap(
-                                context,
-                                wallpaper,
-                                isPortrait,
-                                addNoise,
-                                addStripes,
-                                addOverlay,
-                                addGeometric,
-                                addBlur,
-                                noiseAlpha,
-                                stripesAlpha,
-                                overlayAlpha,
-                                geometricAlpha,
-                                blurAlpha
-                            )
+                            val bmp = createGradientBitmap(context, wallpaper, isPortrait, effects)
                             val success = tryApplyWallpaper(
-                                context,
-                                bmp,
+                                context, bmp,
                                 android.app.WallpaperManager.FLAG_SYSTEM or getLockFlag()
                             )
                             withContext(Dispatchers.Main) {
                                 onWorkingChange(false)
-                                Toast
-                                    .makeText(
-                                        context,
-                                        if (success)
-                                            context.getString(R.string.apply_success_both)
-                                        else
-                                            context.getString(R.string.apply_failed),
-                                        Toast.LENGTH_SHORT
-                                    )
-                                    .show()
+                                Toast.makeText(
+                                    context,
+                                    if (success) context.getString(R.string.apply_success_both)
+                                    else         context.getString(R.string.apply_failed),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 onDismiss()
                             }
                         }
                     }
                 ) {
-                    Text(
-                        text = stringResource(R.string.apply_both_screens),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Text(text = stringResource(R.string.apply_both_screens), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
+                    // Apply to home screen
                     FilledTonalButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(12.dp),
                         onClick = {
                             onWorkingChange(true)
                             coroutineScope.launch(Dispatchers.IO) {
-                                val bmp = createGradientBitmap(
-                                    context,
-                                    wallpaper,
-                                    isPortrait,
-                                    addNoise,
-                                    addStripes,
-                                    addOverlay,
-                                    addGeometric,
-                                    addBlur,
-                                    noiseAlpha,
-                                    stripesAlpha,
-                                    overlayAlpha,
-                                    geometricAlpha,
-                                    blurAlpha
-                                )
-                                val success = tryApplyWallpaper(
-                                    context,
-                                    bmp,
-                                    android.app.WallpaperManager.FLAG_SYSTEM
-                                )
+                                val bmp = createGradientBitmap(context, wallpaper, isPortrait, effects)
+                                val success = tryApplyWallpaper(context, bmp, android.app.WallpaperManager.FLAG_SYSTEM)
                                 withContext(Dispatchers.Main) {
                                     onWorkingChange(false)
-                                    Toast
-                                        .makeText(
-                                            context,
-                                            if (success)
-                                                context.getString(R.string.apply_success_home)
-                                            else
-                                                context.getString(R.string.apply_failed),
-                                            Toast.LENGTH_SHORT
-                                        )
-                                        .show()
+                                    Toast.makeText(
+                                        context,
+                                        if (success) context.getString(R.string.apply_success_home)
+                                        else         context.getString(R.string.apply_failed),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                     onDismiss()
                                 }
                             }
                         }
                     ) {
-                        Text(
-                            text = stringResource(R.string.apply_home_screen),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Text(text = stringResource(R.string.apply_home_screen), fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     }
 
+                    // Apply to lock screen
                     FilledTonalButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(12.dp),
                         onClick = {
                             onWorkingChange(true)
                             coroutineScope.launch(Dispatchers.IO) {
-                                val bmp = createGradientBitmap(
-                                    context,
-                                    wallpaper,
-                                    isPortrait,
-                                    addNoise,
-                                    addStripes,
-                                    addOverlay,
-                                    addGeometric,
-                                    addBlur,
-                                    noiseAlpha,
-                                    stripesAlpha,
-                                    overlayAlpha,
-                                    geometricAlpha,
-                                    blurAlpha
-                                )
+                                val bmp = createGradientBitmap(context, wallpaper, isPortrait, effects)
                                 val flagLock = getLockFlag()
-                                val success =
-                                    if (flagLock != 0)
-                                        tryApplyWallpaper(context, bmp, flagLock)
-                                    else
-                                        tryApplyWallpaper(
-                                            context,
-                                            bmp,
-                                            android.app.WallpaperManager.FLAG_SYSTEM
-                                        )
-
+                                val success = if (flagLock != 0) tryApplyWallpaper(context, bmp, flagLock)
+                                else tryApplyWallpaper(context, bmp, android.app.WallpaperManager.FLAG_SYSTEM)
                                 withContext(Dispatchers.Main) {
                                     onWorkingChange(false)
-                                    Toast
-                                        .makeText(
-                                            context,
-                                            if (success)
-                                                context.getString(R.string.apply_success_lock)
-                                            else
-                                                context.getString(R.string.apply_failed),
-                                            Toast.LENGTH_SHORT
-                                        )
-                                        .show()
+                                    Toast.makeText(
+                                        context,
+                                        if (success) context.getString(R.string.apply_success_lock)
+                                        else         context.getString(R.string.apply_failed),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                     onDismiss()
                                 }
                             }
                         }
                     ) {
-                        Text(
-                            text = stringResource(R.string.apply_lock_screen),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Text(text = stringResource(R.string.apply_lock_screen), fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(18.dp))
 
+                // Download
                 OutlinedButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = RoundedCornerShape(12.dp),
                     onClick = {
                         onWorkingChange(true)
                         coroutineScope.launch(Dispatchers.IO) {
-                            val bmp = createGradientBitmap(
-                                context,
-                                wallpaper,
-                                isPortrait,
-                                addNoise,
-                                addStripes,
-                                addOverlay,
-                                addGeometric,
-                                addBlur,
-                                noiseAlpha,
-                                stripesAlpha,
-                                overlayAlpha,
-                                geometricAlpha,
-                                blurAlpha
-                            )
-                            val saved = saveBitmapToMediaStore(
-                                context,
-                                bmp,
-                                "waller_${System.currentTimeMillis()}.png"
-                            )
+                            val bmp = createGradientBitmap(context, wallpaper, isPortrait, effects)
+                            val saved = saveBitmapToMediaStore(context, bmp, "waller_${System.currentTimeMillis()}.png")
                             withContext(Dispatchers.Main) {
                                 onWorkingChange(false)
-                                Toast
-                                    .makeText(
-                                        context,
-                                        if (saved)
-                                            context.getString(R.string.save_success)
-                                        else
-                                            context.getString(R.string.save_failed),
-                                        Toast.LENGTH_SHORT
-                                    )
-                                    .show()
+                                Toast.makeText(
+                                    context,
+                                    if (saved) context.getString(R.string.save_success)
+                                    else       context.getString(R.string.save_failed),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 onDismiss()
                             }
                         }
                     }
                 ) {
-                    Text(
-                        text = stringResource(R.string.download),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text(text = stringResource(R.string.download), fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 }
 
-                TextButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { onDismiss() }
-                ) {
-                    Text(
-                        text = stringResource(R.string.cancel),
-                        fontSize = 14.sp
-                    )
+                TextButton(modifier = Modifier.fillMaxWidth(), onClick = { onDismiss() }) {
+                    Text(text = stringResource(R.string.cancel), fontSize = 14.sp)
                 }
 
                 if (isWorking) {
                     Spacer(modifier = Modifier.height(12.dp))
                     LinearProgressIndicator(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp))
+                        modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp))
                     )
                 }
             }
         }
     }
 
+    // ── Share options dialog — same card style as Apply dialog ──────────────────
     if (showShareOptions && wallpaper != null) {
-
         Dialog(onDismissRequest = { showShareOptions = false }) {
+            val isDarkShare = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
                     .border(
                         width = 3.dp,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                        color = if (isDarkShare) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                        else             MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
                         shape = RoundedCornerShape(20.dp)
                     ),
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 14.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-
                 Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
 
+                    // Title
                     Text(
                         text = stringResource(R.string.share_wallpaper),
-                        style = MaterialTheme.typography.titleMedium
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.2.sp
                     )
 
-                    FilledTonalButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
+                    Spacer(Modifier.height(4.dp))
+
+                    // ── Primary: .wall — matches Button style ─────────────────
+                    Button(
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(14.dp),
                         onClick = {
-
                             showShareOptions = false
-
-                            coroutineScope.launch(Dispatchers.IO) {
-
-                                val bmp = createGradientBitmap(
-                                    context,
-                                    wallpaper,
-                                    isPortrait,
-                                    addNoise,
-                                    addStripes,
-                                    addOverlay,
-                                    addGeometric,
-                                    addBlur,
-                                    noiseAlpha,
-                                    stripesAlpha,
-                                    overlayAlpha,
-                                    geometricAlpha,
-                                    blurAlpha
+                            WallFileManager.shareWall(context, FavoriteWallpaper(wallpaper, effects))
+                        }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FolderOpen,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.share_wall_file),
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold
                                 )
-
-                                withContext(Dispatchers.Main) {
-                                    shareBitmapAsPng(context, bmp)
-                                }
+                                Text(
+                                    text = stringResource(R.string.share_wall_file_subtitle),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
+                                )
                             }
                         }
-                    ) {
-                        Text(stringResource(R.string.share_png))
                     }
 
+                    // ── Secondary: PNG — matches FilledTonalButton style ──────
                     FilledTonalButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        onClick = {
-
-                            showShareOptions = false
-
-                            val fav = FavoriteWallpaper(
-                                wallpaper = wallpaper,
-                                addNoise = addNoise,
-                                addStripes = addStripes,
-                                addOverlay = addOverlay,
-                                addGeometric = addGeometric,
-                                addBlur = addBlur,
-                                noiseAlpha = noiseAlpha,
-                                stripesAlpha = stripesAlpha,
-                                overlayAlpha = overlayAlpha,
-                                geometricAlpha = geometricAlpha,
-                                blurAlpha = blurAlpha
-                            )
-
-                            WallFileManager.shareWall(context, fav)
-                        }
-                    ) {
-                        Text(stringResource(R.string.share_wall_file))
-                    }
-
-                    // ── SVG export (advanced only) ──
-                    FilledTonalButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(14.dp),
                         onClick = {
                             showShareOptions = false
-                            val fav = FavoriteWallpaper(
-                                wallpaper = wallpaper,
-                                addNoise = addNoise,
-                                addStripes = addStripes,
-                                addOverlay = addOverlay,
-                                addGeometric = addGeometric,
-                                addBlur = addBlur,
-                                noiseAlpha = noiseAlpha,
-                                stripesAlpha = stripesAlpha,
-                                overlayAlpha = overlayAlpha,
-                                geometricAlpha = geometricAlpha,
-                                blurAlpha = blurAlpha
-                            )
                             coroutineScope.launch(Dispatchers.IO) {
-                                withContext(Dispatchers.Main) {
-                                    shareAsSvg(context, fav)
-                                }
+                                val bmp = createGradientBitmap(context, wallpaper, isPortrait, effects)
+                                withContext(Dispatchers.Main) { shareBitmapAsPng(context, bmp) }
                             }
                         }
                     ) {
-                        Text("Share as SVG")
-                    }
-
-                    // ── CSS export (advanced only) ──
-                    FilledTonalButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        onClick = {
-                            showShareOptions = false
-                            val fav = FavoriteWallpaper(
-                                wallpaper = wallpaper,
-                                addNoise = addNoise,
-                                addStripes = addStripes,
-                                addOverlay = addOverlay,
-                                addGeometric = addGeometric,
-                                addBlur = addBlur,
-                                noiseAlpha = noiseAlpha,
-                                stripesAlpha = stripesAlpha,
-                                overlayAlpha = overlayAlpha,
-                                geometricAlpha = geometricAlpha,
-                                blurAlpha = blurAlpha
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Image,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
                             )
-                            coroutineScope.launch(Dispatchers.IO) {
-                                withContext(Dispatchers.Main) {
-                                    shareAsCss(context, fav)
-                                }
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.share_png),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = stringResource(R.string.share_png_subtitle),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                )
                             }
                         }
-                    ) {
-                        Text("Share as CSS")
                     }
 
+                    // ── Compact pair: SVG + CSS — matches OutlinedButton style ─
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+
+                        OutlinedButton(
+                            onClick = {
+                                showShareOptions = false
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    withContext(Dispatchers.Main) {
+                                        shareAsSvg(context, FavoriteWallpaper(wallpaper, effects))
+                                    }
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f).height(52.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = stringResource(R.string.share_svg_label),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = stringResource(R.string.share_svg_sublabel),
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                showShareOptions = false
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    withContext(Dispatchers.Main) {
+                                        shareAsCss(context, FavoriteWallpaper(wallpaper, effects))
+                                    }
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f).height(52.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = stringResource(R.string.share_css_label),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = stringResource(R.string.share_css_sublabel),
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    // Cancel
                     TextButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { showShareOptions = false }
                     ) {
-                        Text(stringResource(R.string.cancel))
+                        Text(text = stringResource(R.string.cancel), fontSize = 14.sp)
                     }
                 }
             }

@@ -8,7 +8,8 @@
  * - Uses Canvas and images to compose the final preview output
  * - Displays the bottom tag showing gradient type and colors
  *
- * This composable is stateless and contains no screen or interaction logic.
+ * Effect rendering is driven by EffectMap — no per-effect params needed.
+ * This file does not need to change when new effects are added.
  */
 
 package com.example.waller.ui.wallpaper.components.previewOverlay
@@ -49,8 +50,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.waller.R
+import com.example.waller.ui.wallpaper.EffectMap
 import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.Wallpaper
+import com.example.waller.ui.wallpaper.WallpaperEffects
+import com.example.waller.ui.wallpaper.alpha
+import com.example.waller.ui.wallpaper.isEnabled
 import kotlin.random.Random
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -59,20 +64,23 @@ fun PreviewWallpaperRender(
     wallpaper: Wallpaper,
     previewType: GradientType,
     angleDeg: Float,
-    addNoise: Boolean,
-    addStripes: Boolean,
-    addOverlay: Boolean,
-    addGeometric: Boolean,
-    addBlur: Boolean = false,
-    noiseAlpha: Float = 1f,
-    stripesAlpha: Float = 1f,
-    overlayAlpha: Float = 1f,
-    geometricAlpha: Float = 1f,
-    blurAlpha: Float = 1f,
+    effects: EffectMap,
     modifier: Modifier = Modifier,
     showTypeLabel: Boolean = true
 ) {
     val cornerRadius = 12.dp
+
+    val addBlur   = effects.isEnabled("blur")
+    val blurAlpha = effects.alpha("blur")
+    val addNoise  = effects.isEnabled("noise")
+    val noiseAlpha = effects.alpha("noise")
+    val addStripes = effects.isEnabled("stripes")
+    val stripesAlpha = effects.alpha("stripes")
+    val addOverlay = effects.isEnabled("overlay")
+    val overlayAlpha = effects.alpha("overlay")
+    val addGeo     = effects.isEnabled("geometric")
+    val geoAlpha   = effects.alpha("geometric")
+
     val blurEffect = if (addBlur && blurAlpha > 0f && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
         android.graphics.RenderEffect
             .createBlurEffect(22f * blurAlpha, 22f * blurAlpha, android.graphics.Shader.TileMode.CLAMP)
@@ -81,17 +89,13 @@ fun PreviewWallpaperRender(
 
     Box(modifier = modifier.clip(RoundedCornerShape(cornerRadius))) {
         // Gradient + effects — blurred as a unit, label excluded
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .graphicsLayer { renderEffect = blurEffect }
-        ) {
+        Box(modifier = Modifier.fillMaxSize().graphicsLayer { renderEffect = blurEffect }) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val widthDp = maxWidth
+                val widthDp  = maxWidth
                 val heightDp = maxHeight
-                val density = LocalDensity.current
-                val widthPx = with(density) { widthDp.toPx() }
+                val density  = LocalDensity.current
+                val widthPx  = with(density) { widthDp.toPx() }
                 val heightPx = with(density) { heightDp.toPx() }
-
                 val androidColors = wallpaper.colors.map { it.toArgb() }.toIntArray()
 
                 val brush = remember(wallpaper.colors, previewType, angleDeg, widthPx, heightPx) {
@@ -100,39 +104,27 @@ fun PreviewWallpaperRender(
 
                 if (previewType == GradientType.Angular) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
-                        val sweep =
-                            createRotatedSweepShader(size.width, size.height, androidColors, angleDeg)
-                        val paint = Paint().apply {
-                            isAntiAlias = true
-                            shader = sweep
-                        }
+                        val sweep = createRotatedSweepShader(size.width, size.height, androidColors, angleDeg)
+                        val paint = Paint().apply { isAntiAlias = true; shader = sweep }
                         drawContext.canvas.nativeCanvas.drawRect(0f, 0f, size.width, size.height, paint)
 
                         if (addNoise && noiseAlpha > 0f) {
                             val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
-                            val numNoisePoints =
-                                (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
-                            repeat(numNoisePoints) {
+                            val numPoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                            repeat(numPoints) {
                                 val x = Random.nextFloat() * size.width
                                 val y = Random.nextFloat() * size.height
-                                val alpha = (Random.nextFloat() * 0.15f) * noiseAlpha
-                                drawCircle(
-                                    Color.White.copy(alpha = alpha),
-                                    radius = noiseSize,
-                                    center = Offset(x, y)
-                                )
+                                val a = (Random.nextFloat() * 0.15f) * noiseAlpha
+                                drawCircle(Color.White.copy(alpha = a), radius = noiseSize, center = Offset(x, y))
                             }
                         }
 
                         if (addStripes && stripesAlpha > 0f) {
                             val stripeSpacing = size.width / 10f
-                            val stripeWidth = stripeSpacing * 0.65f
-
+                            val stripeWidth   = stripeSpacing * 0.65f
                             rotate(-45f, pivot = center) {
-
                                 var x = -size.height
                                 while (x < size.width * 2f) {
-
                                     drawRect(
                                         brush = Brush.horizontalGradient(
                                             colors = listOf(
@@ -140,13 +132,11 @@ fun PreviewWallpaperRender(
                                                 Color.White.copy(alpha = 0.08f * stripesAlpha),
                                                 Color.Transparent
                                             ),
-                                            startX = x,
-                                            endX = x + stripeWidth * 1.4f
+                                            startX = x, endX = x + stripeWidth * 1.4f
                                         ),
                                         topLeft = Offset(x, -size.height * 2f),
                                         size = Size(stripeWidth, size.height * 4f)
                                     )
-
                                     x += stripeSpacing
                                 }
                             }
@@ -157,55 +147,43 @@ fun PreviewWallpaperRender(
                         Image(
                             painter = painterResource(id = R.drawable.overlay_stripes),
                             contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer(alpha = overlayAlpha),
+                            modifier = Modifier.fillMaxSize().graphicsLayer(alpha = overlayAlpha),
                             contentScale = ContentScale.FillBounds
                         )
                     }
 
-                    if (addGeometric && geometricAlpha > 0f) {
+                    if (addGeo && geoAlpha > 0f) {
                         Image(
                             painter = painterResource(id = R.drawable.overlay_geometric),
                             contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer(alpha = geometricAlpha),
+                            modifier = Modifier.fillMaxSize().graphicsLayer(alpha = geoAlpha),
                             contentScale = ContentScale.FillWidth
                         )
                     }
 
                 } else {
                     Box(modifier = Modifier.fillMaxSize().background(brush)) {
+
                         if (addNoise && noiseAlpha > 0f) {
                             Canvas(modifier = Modifier.fillMaxSize()) {
                                 val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
-                                val numNoisePoints =
-                                    (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
-                                repeat(numNoisePoints) {
+                                val numPoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                                repeat(numPoints) {
                                     val x = Random.nextFloat() * size.width
                                     val y = Random.nextFloat() * size.height
-                                    val alpha = (Random.nextFloat() * 0.15f) * noiseAlpha
-                                    drawCircle(
-                                        Color.White.copy(alpha = alpha),
-                                        radius = noiseSize,
-                                        center = Offset(x, y)
-                                    )
+                                    val a = (Random.nextFloat() * 0.15f) * noiseAlpha
+                                    drawCircle(Color.White.copy(alpha = a), radius = noiseSize, center = Offset(x, y))
                                 }
                             }
                         }
 
                         if (addStripes && stripesAlpha > 0f) {
                             Canvas(modifier = Modifier.fillMaxSize()) {
-
                                 val stripeSpacing = size.width / 10f
-                                val stripeWidth = stripeSpacing * 0.65f
-
+                                val stripeWidth   = stripeSpacing * 0.65f
                                 rotate(-45f, pivot = center) {
-
                                     var x = -size.height
                                     while (x < size.width * 2f) {
-
                                         drawRect(
                                             brush = Brush.horizontalGradient(
                                                 colors = listOf(
@@ -213,13 +191,11 @@ fun PreviewWallpaperRender(
                                                     Color.White.copy(alpha = 0.08f * stripesAlpha),
                                                     Color.Transparent
                                                 ),
-                                                startX = x,
-                                                endX = x + stripeWidth * 1.4f
+                                                startX = x, endX = x + stripeWidth * 1.4f
                                             ),
                                             topLeft = Offset(x, -size.height * 2f),
                                             size = Size(stripeWidth, size.height * 4f)
                                         )
-
                                         x += stripeSpacing
                                     }
                                 }
@@ -230,27 +206,23 @@ fun PreviewWallpaperRender(
                             Image(
                                 painter = painterResource(id = R.drawable.overlay_stripes),
                                 contentDescription = null,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .graphicsLayer(alpha = overlayAlpha),
+                                modifier = Modifier.fillMaxSize().graphicsLayer(alpha = overlayAlpha),
                                 contentScale = ContentScale.FillBounds
                             )
                         }
 
-                        if (addGeometric && geometricAlpha > 0f) {
+                        if (addGeo && geoAlpha > 0f) {
                             Image(
                                 painter = painterResource(id = R.drawable.overlay_geometric),
                                 contentDescription = null,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .graphicsLayer(alpha = geometricAlpha),
+                                modifier = Modifier.fillMaxSize().graphicsLayer(alpha = geoAlpha),
                                 contentScale = ContentScale.FillWidth
                             )
                         }
                     }
                 }
-            } // end BoxWithConstraints inside blur
-        } // end blur Box
+            }
+        }
 
         // Bottom tag — outside blur layer so it stays sharp
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -260,10 +232,7 @@ fun PreviewWallpaperRender(
                     .padding(10.dp)
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.70f),
-                                Color.Black.copy(alpha = 0.80f)
-                            )
+                            colors = listOf(Color.Black.copy(alpha = 0.70f), Color.Black.copy(alpha = 0.80f))
                         ),
                         shape = RoundedCornerShape(8.dp)
                     )
@@ -272,9 +241,7 @@ fun PreviewWallpaperRender(
             ) {
                 if (showTypeLabel) {
                     Text(
-                        text = previewType.name
-                            .lowercase()
-                            .replaceFirstChar { it.uppercase() },
+                        text = previewType.name.lowercase().replaceFirstChar { it.uppercase() },
                         color = Color.White,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
@@ -290,11 +257,9 @@ fun PreviewWallpaperRender(
                             .clip(RoundedCornerShape(4.dp))
                             .background(color)
                     )
-                    if (index != wallpaper.colors.lastIndex) {
-                        Spacer(Modifier.width(5.dp))
-                    }
+                    if (index != wallpaper.colors.lastIndex) Spacer(Modifier.width(5.dp))
                 }
             }
-        } // end label BoxWithConstraints
+        }
     }
 }

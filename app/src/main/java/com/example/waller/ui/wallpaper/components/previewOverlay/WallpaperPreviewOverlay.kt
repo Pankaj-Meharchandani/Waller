@@ -8,8 +8,8 @@
  * - Handles portrait / landscape layout differences
  * - Wires user actions to apply, download, and favourite logic
  *
- * This file coordinates the preview feature but does not perform
- * low-level rendering or drawing.
+ * Effect state is held in a single EffectMap — no per-effect state vars.
+ * Adding a new effect requires NO change here.
  */
 
 @file:Suppress("DEPRECATION", "COMPOSE_APPLIER_CALL_MISMATCH")
@@ -43,28 +43,42 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.ApplyDownloadDialog
-import com.example.waller.ui.wallpaper.Wallpaper
+import com.example.waller.ui.wallpaper.EffectMap
+import com.example.waller.ui.wallpaper.EffectState
+import com.example.waller.ui.wallpaper.FavoriteWallpaper
 import com.example.waller.ui.wallpaper.GradientType
-import kotlinx.coroutines.CoroutineScope
-import kotlin.math.abs
-import androidx.compose.ui.platform.LocalView
 import com.example.waller.ui.wallpaper.Haptics
 import com.example.waller.ui.wallpaper.InteractionMode
+import com.example.waller.ui.wallpaper.Wallpaper
+import com.example.waller.ui.wallpaper.WallpaperEffects
+import com.example.waller.ui.wallpaper.alpha
+import com.example.waller.ui.wallpaper.isEnabled
+import com.example.waller.ui.wallpaper.withAlpha
+import com.example.waller.ui.wallpaper.withEnabled
+import kotlinx.coroutines.CoroutineScope
+import kotlin.math.abs
+import androidx.compose.ui.res.stringResource as str
 
-private enum class EffectType { OVERLAY, NOISE, STRIPES, GEOMETRIC, BLUR }
+/** Inline labels for effects whose labelRes == 0. */
+private val EFFECT_PREVIEW_LABELS = mapOf(
+    "blur" to "Blur"
+)
 
-private data class EffectConfig(
-    val type: EffectType,
-    val label: String,
-    val isEnabled: () -> Boolean,
-    val setEnabled: (Boolean) -> Unit,
-    val alpha: () -> Float,
-    val setAlpha: (Float) -> Unit
+/** Opacity slider labels per effect id. */
+private val EFFECT_SLIDER_LABELS = mapOf(
+    "overlay"   to R.string.preview_opacity_nothing,
+    "noise"     to R.string.preview_opacity_snow,
+    "stripes"   to R.string.preview_opacity_stripes,
+    "geometric" to R.string.preview_opacity_geometric
+)
+private val EFFECT_SLIDER_INLINE = mapOf(
+    "blur" to "Blur Intensity"
 )
 
 @SuppressLint("ConfigurationScreenWidthHeight")
@@ -73,167 +87,72 @@ fun WallpaperPreviewOverlay(
     wallpaper: Wallpaper,
     isPortrait: Boolean,
     isFavorite: Boolean,
-    globalNoise: Boolean,
-    globalStripes: Boolean,
-    globalOverlay: Boolean,
-    globalGeometric: Boolean,
-    globalBlur: Boolean,
-    initialNoiseAlpha: Float = initAlphaFor(globalNoise, DEFAULT_NOISE_ALPHA),
-    initialStripesAlpha: Float = initAlphaFor(globalStripes, DEFAULT_STRIPES_ALPHA),
-    initialOverlayAlpha: Float = initAlphaFor(globalOverlay, DEFAULT_OVERLAY_ALPHA),
-    initialGeometricAlpha: Float = initAlphaFor(globalGeometric, DEFAULT_GEOMETRIC_ALPHA),
-    initialBlurAlpha: Float = initAlphaFor(globalBlur, 1f),
-    onFavoriteToggle: (
-        wallpaper: Wallpaper,
-        noise: Boolean,
-        stripes: Boolean,
-        overlay: Boolean,
-        geometric: Boolean,
-        blur: Boolean,
-        noiseAlpha: Float,
-        stripesAlpha: Float,
-        overlayAlpha: Float,
-        geometricAlpha: Float,
-        blurAlpha: Float
-    ) -> Unit,
+    /** Initial effect state to seed the preview from the global toggles. */
+    initialEffects: EffectMap,
+    onFavoriteToggle: (wallpaper: Wallpaper, effects: EffectMap) -> Unit,
     onDismiss: () -> Unit,
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     context: Context,
     coroutineScope: CoroutineScope
 ) {
-    // small local helpers
     @Composable
-    fun overlayTextColor(selectedForButton: Boolean = false): Color {
-        // This overlay always renders on a dark scrim, so white is always correct.
-        // Exception: selected gradient chips use primaryContainer bg, so need onPrimaryContainer.
-        return Color.White
-    }
+    fun overlayTextColor(selectedForButton: Boolean = false): Color = Color.White
+
     val view = LocalView.current
-    var noise by remember { mutableStateOf(globalNoise) }
-    var stripes by remember { mutableStateOf(globalStripes) }
-    var overlay by remember { mutableStateOf(globalOverlay) }
-    var geometric by remember { mutableStateOf(globalGeometric) }
-    var blur by remember { mutableStateOf(globalBlur) }
-    var activeEffect by remember { mutableStateOf<EffectType?>(null) }
 
-    // per-effect opacity state (already present, just used more thoroughly now)
-    var noiseAlpha by remember { mutableFloatStateOf(initialNoiseAlpha) }
-    var stripesAlpha by remember { mutableFloatStateOf(initialStripesAlpha) }
-    var overlayAlpha by remember { mutableFloatStateOf(initialOverlayAlpha) }
-    var geometricAlpha by remember { mutableFloatStateOf(initialGeometricAlpha) }
-    var blurAlpha by remember { mutableFloatStateOf(initialBlurAlpha) }
+    // Single EffectMap drives all effect state
+    var localEffects by remember { mutableStateOf(initialEffects) }
+    // Which effect's slider is currently visible (by id), null = none
+    var activeEffectId by remember { mutableStateOf<String?>(null) }
 
-    val effects = listOf(
-        EffectConfig(
-            type = EffectType.OVERLAY,
-            label = stringResource(R.string.preview_effect_nothing),
-            isEnabled = { overlay },
-            setEnabled = { overlay = it },
-            alpha = { overlayAlpha },
-            setAlpha = { overlayAlpha = it }
-        ),
-        EffectConfig(
-            type = EffectType.NOISE,
-            label = stringResource(R.string.preview_effect_snow),
-            isEnabled = { noise },
-            setEnabled = { noise = it },
-            alpha = { noiseAlpha },
-            setAlpha = { noiseAlpha = it }
-        ),
-        EffectConfig(
-            type = EffectType.STRIPES,
-            label = stringResource(R.string.preview_effect_stripes),
-            isEnabled = { stripes },
-            setEnabled = { stripes = it },
-            alpha = { stripesAlpha },
-            setAlpha = { stripesAlpha = it }
-        ),
-        EffectConfig(
-            type = EffectType.GEOMETRIC,
-            label = stringResource(R.string.effect_geometric),
-            isEnabled = { geometric },
-            setEnabled = { geometric = it },
-            alpha = { geometricAlpha },
-            setAlpha = { geometricAlpha = it }
-        ),
-        EffectConfig(
-            type = EffectType.BLUR,
-            label = "Blur",
-            isEnabled = { blur },
-            setEnabled = { blur = it },
-            alpha = { blurAlpha },
-            setAlpha = { blurAlpha = it }
-        )
-    )
-
+    // Init active effect to the first enabled one (mirrors original behaviour)
+    LaunchedEffect(Unit) {
+        if (activeEffectId == null) {
+            activeEffectId = WallpaperEffects.ALL.firstOrNull { localEffects.isEnabled(it.id) }?.id
+        }
+    }
 
     var selectedGradient by remember(wallpaper) {
-        mutableStateOf(
-            when (wallpaper.type.name.lowercase()) {
-                "angular" -> GradientType.Angular
-                "radial" -> GradientType.Radial
-                "diamond" -> GradientType.Diamond
-                else -> GradientType.Linear
-            }
-        )
+        mutableStateOf(when (wallpaper.type.name.lowercase()) {
+            "angular" -> GradientType.Angular
+            "radial"  -> GradientType.Radial
+            "diamond" -> GradientType.Diamond
+            else      -> GradientType.Linear
+        })
     }
 
-    // angle initialized from wallpaper (so overlay respects stored angle)
     var gradientAngle by remember(wallpaper) { mutableFloatStateOf(wallpaper.angleDeg) }
     var lastAngleCheckpoint by remember { mutableStateOf<Int?>(null) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isBusy by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        if (activeEffect == null) {
-            activeEffect = when {
-                overlay -> EffectType.OVERLAY
-                noise -> EffectType.NOISE
-                stripes -> EffectType.STRIPES
-                geometric -> EffectType.GEOMETRIC
-                blur -> EffectType.BLUR
-                else -> null
-            }
-        }
-    }
-
-    BackHandler { onDismiss() }
 
     val statusBarPadding: Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val aspectRatio = if (isPortrait) 9f / 16f else 16f / 9f
 
-    // preview snapshot that reflects current style + angle
     val previewWallpaper = remember(wallpaper, selectedGradient, gradientAngle) {
         wallpaper.copy(type = selectedGradient, angleDeg = gradientAngle)
     }
 
+    BackHandler { onDismiss() }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // scrim (captures outside taps)
+        // Scrim
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            awaitPointerEvent()
-                        }
-                    }
-                }
+                .pointerInput(Unit) { awaitPointerEventScope { while (true) { awaitPointerEvent() } } }
                 .background(Color.Black.copy(alpha = 0.85f))
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.radialGradient(
-                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.32f)),
-                            radius = 1000f
-                        )
-                    )
-            )
+            Box(modifier = Modifier.fillMaxSize().background(
+                Brush.radialGradient(
+                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.32f)),
+                    radius = 1000f
+                )
+            ))
         }
 
-        // ==================== HEADER (X + APPLY BUTTON) ====================
+        // ── Header (X + Apply) ────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -241,43 +160,29 @@ fun WallpaperPreviewOverlay(
                 .padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Close button (X) with contrast surface
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.20f),
                 modifier = Modifier.height(46.dp)
             ) {
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(46.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Close,
+                IconButton(onClick = onDismiss, modifier = Modifier.size(46.dp)) {
+                    Icon(Icons.Default.Close,
                         contentDescription = stringResource(id = R.string.preview_close),
-                        tint = overlayTextColor()
-                    )
+                        tint = overlayTextColor())
                 }
             }
-
             Spacer(modifier = Modifier.weight(1f))
-
-            // Apply button (right)
             TextButton(
                 onClick = { if (!isBusy) showApplyDialog = true },
                 modifier = Modifier.height(44.dp)
             ) {
-                Text(
-                    text = stringResource(id = R.string.preview_done),
-                    color = overlayTextColor()
-                )
+                Text(text = stringResource(id = R.string.preview_done), color = overlayTextColor())
             }
         }
 
-        // Main overlay UI (on top)
+        // ── Main content ──────────────────────────────────────────────────────
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 18.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -287,44 +192,20 @@ fun WallpaperPreviewOverlay(
 
                     Box(
                         modifier = Modifier
-                            .width(previewWidth)
-                            .aspectRatio(aspectRatio)
-                            .clip(RoundedCornerShape(14.dp))
-                            .shadow(6.dp)
+                            .width(previewWidth).aspectRatio(aspectRatio)
+                            .clip(RoundedCornerShape(14.dp)).shadow(6.dp)
                             .background(MaterialTheme.colorScheme.surface)
                     ) {
                         PreviewFrame(
                             previewWallpaper = previewWallpaper,
                             selectedGradient = selectedGradient,
-                            gradientAngle = gradientAngle,
-                            isFavorite = isFavorite,
-                            isBusy = isBusy,
-                            addNoise = noise,
-                            addStripes = stripes,
-                            addOverlay = overlay,
-                            addGeometric = geometric,
-                            addBlur = blur,
-                            noiseAlpha = noiseAlpha,
-                            stripesAlpha = stripesAlpha,
-                            overlayAlpha = overlayAlpha,
-                            geometricAlpha = geometricAlpha,
-                            blurAlpha = blurAlpha,
-                            overlayTextColor = { overlayTextColor() }
-                        ) {
-                            onFavoriteToggle(
-                                previewWallpaper,
-                                noise,
-                                stripes,
-                                overlay,
-                                geometric,
-                                blur,
-                                noiseAlpha,
-                                stripesAlpha,
-                                overlayAlpha,
-                                geometricAlpha,
-                                blurAlpha
-                            )
-                        }
+                            gradientAngle    = gradientAngle,
+                            isFavorite       = isFavorite,
+                            isBusy           = isBusy,
+                            effects          = localEffects,
+                            overlayTextColor = { overlayTextColor() },
+                            onFavoriteToggle = { onFavoriteToggle(previewWallpaper, localEffects) }
+                        )
                     }
 
                     Spacer(Modifier.width(14.dp))
@@ -334,232 +215,85 @@ fun WallpaperPreviewOverlay(
                             .widthIn(min = 180.dp, max = 320.dp)
                             .verticalScroll(rememberScrollState())
                     ) {
-                        Text(
-                            stringResource(id = R.string.gradient_style_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = overlayTextColor()
-                        )
+                        Text(stringResource(id = R.string.gradient_style_title),
+                            style = MaterialTheme.typography.titleMedium, color = overlayTextColor())
                         Spacer(Modifier.height(8.dp))
 
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            GradientTypeItemFull(
-                                label = stringResource(id = R.string.gradient_style_linear),
-                                selected = selectedGradient == GradientType.Linear,
-                                textColor = overlayTextColor(selectedForButton = selectedGradient == GradientType.Linear)
-                            ) {
-                                selectedGradient = GradientType.Linear
-                                Haptics.light(view)
-                            }
-
-                            GradientTypeItemFull(
-                                label = stringResource(id = R.string.gradient_style_radial),
-                                selected = selectedGradient == GradientType.Radial,
-                                textColor = overlayTextColor(selectedForButton = selectedGradient == GradientType.Radial)
-                            ) {
-                                selectedGradient = GradientType.Radial
-                                Haptics.light(view)
-                            }
-
-                            GradientTypeItemFull(
-                                label = stringResource(id = R.string.gradient_style_angular),
-                                selected = selectedGradient == GradientType.Angular,
-                                textColor = overlayTextColor(selectedForButton = selectedGradient == GradientType.Angular)
-                            ) {
-                                selectedGradient = GradientType.Angular
-                                Haptics.light(view)
-                            }
-
-                            GradientTypeItemFull(
-                                label = stringResource(id = R.string.gradient_style_diamond),
-                                selected = selectedGradient == GradientType.Diamond,
-                                textColor = overlayTextColor(selectedForButton = selectedGradient == GradientType.Diamond)
-                            ) {
-                                selectedGradient = GradientType.Diamond
-                                Haptics.light(view)
+                            listOf(
+                                GradientType.Linear  to stringResource(R.string.gradient_style_linear),
+                                GradientType.Radial  to stringResource(R.string.gradient_style_radial),
+                                GradientType.Angular to stringResource(R.string.gradient_style_angular),
+                                GradientType.Diamond to stringResource(R.string.gradient_style_diamond)
+                            ).forEach { (type, label) ->
+                                GradientTypeItemFull(
+                                    label    = label,
+                                    selected = selectedGradient == type,
+                                    textColor = overlayTextColor(selectedForButton = selectedGradient == type)
+                                ) { selectedGradient = type; Haptics.light(view) }
                             }
                         }
 
                         Spacer(Modifier.height(12.dp))
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "${gradientAngle.toInt()}°",
-                                modifier = Modifier.width(44.dp),
-                                color = overlayTextColor()
-                            )
-                            Slider(
-                                value = gradientAngle,
-                                onValueChange = { value ->
-                                    gradientAngle = value
-
-                                    // 🔹 HAPTIC WHILE DRAGGING
-                                    val checkpoints = listOf(0, 90, 180, 270, 360)
-                                    val crossed = checkpoints.firstOrNull { cp ->
-                                        abs(cp - value) <= 3f
-                                    }
-
-                                    if (crossed != null && crossed != lastAngleCheckpoint) {
-                                        lastAngleCheckpoint = crossed
-                                        Haptics.light(view)
-                                    }
-                                },
-                                onValueChangeFinished = {
-                                    // 🔹 SNAP ON RELEASE (+ optional haptic)
-                                    val checkpoints = listOf(0f, 90f, 180f, 270f, 360f)
-                                    val nearest = checkpoints.minByOrNull {
-                                        abs(it - gradientAngle)
-                                    } ?: return@Slider
-
-                                    if (abs(nearest - gradientAngle) <= 8f) {
-                                        gradientAngle = nearest
-                                        Haptics.light(view) // allowed double haptic
-                                    }
-
-                                    // reset so next drag can trigger again
-                                    lastAngleCheckpoint = null
-                                },
-                                valueRange = 0f..360f,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
-                            )
+                        AngleSliderRow(gradientAngle, overlayTextColor(), view) { v, cp ->
+                            gradientAngle = v
+                            if (cp != null && cp != lastAngleCheckpoint) {
+                                lastAngleCheckpoint = cp
+                                Haptics.light(view)
+                            }
                         }
                     }
                 }
             } else {
-                // Landscape path (kept compact)
+                // Landscape
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val previewWidth = (screenWidth * 0.72f).coerceAtMost(900.dp)
                     Box(
                         modifier = Modifier
-                            .width(previewWidth)
-                            .aspectRatio(aspectRatio)
-                            .clip(RoundedCornerShape(14.dp))
-                            .shadow(6.dp)
+                            .width(previewWidth).aspectRatio(aspectRatio)
+                            .clip(RoundedCornerShape(14.dp)).shadow(6.dp)
                             .background(MaterialTheme.colorScheme.surface)
                     ) {
                         PreviewFrame(
                             previewWallpaper = previewWallpaper,
                             selectedGradient = selectedGradient,
-                            gradientAngle = gradientAngle,
-                            isFavorite = isFavorite,
-                            isBusy = isBusy,
-                            addNoise = noise,
-                            addStripes = stripes,
-                            addOverlay = overlay,
-                            addGeometric = geometric,
-                            addBlur = blur,
-                            noiseAlpha = noiseAlpha,
-                            stripesAlpha = stripesAlpha,
-                            overlayAlpha = overlayAlpha,
-                            geometricAlpha = geometricAlpha,
-                            blurAlpha = blurAlpha,
-                            overlayTextColor = { overlayTextColor() }
-                        ) {
-                            onFavoriteToggle(
-                                previewWallpaper,
-                                noise,
-                                stripes,
-                                overlay,
-                                geometric,
-                                blur,
-                                noiseAlpha,
-                                stripesAlpha,
-                                overlayAlpha,
-                                geometricAlpha,
-                                blurAlpha
-                            )
-                        }
+                            gradientAngle    = gradientAngle,
+                            isFavorite       = isFavorite,
+                            isBusy           = isBusy,
+                            effects          = localEffects,
+                            overlayTextColor = { overlayTextColor() },
+                            onFavoriteToggle = { onFavoriteToggle(previewWallpaper, localEffects) }
+                        )
                     }
 
                     Spacer(Modifier.height(14.dp))
 
-                    // Chips row (compact)
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            stringResource(id = R.string.gradient_style_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = overlayTextColor()
-                        )
+                        Text(stringResource(id = R.string.gradient_style_title),
+                            style = MaterialTheme.typography.titleMedium, color = overlayTextColor())
                         Spacer(Modifier.height(12.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            GradientTypeItemRect(
-                                label = stringResource(id = R.string.gradient_style_linear),
-                                selected = selectedGradient == GradientType.Linear,
-                                textColor = overlayTextColor(selectedForButton = selectedGradient == GradientType.Linear)
-                            ) { selectedGradient = GradientType.Linear }
-
-                            GradientTypeItemRect(
-                                label = stringResource(id = R.string.gradient_style_radial),
-                                selected = selectedGradient == GradientType.Radial,
-                                textColor = overlayTextColor(selectedForButton = selectedGradient == GradientType.Radial)
-                            ) { selectedGradient = GradientType.Radial }
-
-                            GradientTypeItemRect(
-                                label = stringResource(id = R.string.gradient_style_angular),
-                                selected = selectedGradient == GradientType.Angular,
-                                textColor = overlayTextColor(selectedForButton = selectedGradient == GradientType.Angular)
-                            ) { selectedGradient = GradientType.Angular }
-
-                            GradientTypeItemRect(
-                                label = stringResource(id = R.string.gradient_style_diamond),
-                                selected = selectedGradient == GradientType.Diamond,
-                                textColor = overlayTextColor(selectedForButton = selectedGradient == GradientType.Diamond)
-                            ) { selectedGradient = GradientType.Diamond }
+                            listOf(
+                                GradientType.Linear  to stringResource(R.string.gradient_style_linear),
+                                GradientType.Radial  to stringResource(R.string.gradient_style_radial),
+                                GradientType.Angular to stringResource(R.string.gradient_style_angular),
+                                GradientType.Diamond to stringResource(R.string.gradient_style_diamond)
+                            ).forEach { (type, label) ->
+                                GradientTypeItemRect(
+                                    label    = label,
+                                    selected = selectedGradient == type,
+                                    textColor = overlayTextColor(selectedForButton = selectedGradient == type)
+                                ) { selectedGradient = type }
+                            }
                         }
 
                         Spacer(Modifier.height(12.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "${gradientAngle.toInt()}°",
-                                modifier = Modifier.width(44.dp),
-                                color = overlayTextColor()
-                            )
-                            Slider(
-                                value = gradientAngle,
-                                onValueChange = { value ->
-                                    gradientAngle = value
-
-                                    // 🔹 HAPTIC WHILE DRAGGING
-                                    val checkpoints = listOf(0, 90, 180, 270, 360)
-                                    val crossed = checkpoints.firstOrNull { cp ->
-                                        abs(cp - value) <= 3f
-                                    }
-
-                                    if (crossed != null && crossed != lastAngleCheckpoint) {
-                                        lastAngleCheckpoint = crossed
-                                        Haptics.light(view)
-                                    }
-                                },
-                                onValueChangeFinished = {
-                                    // 🔹 SNAP ON RELEASE (+ optional haptic)
-                                    val checkpoints = listOf(0f, 90f, 180f, 270f, 360f)
-                                    val nearest = checkpoints.minByOrNull {
-                                        abs(it - gradientAngle)
-                                    } ?: return@Slider
-
-                                    if (abs(nearest - gradientAngle) <= 8f) {
-                                        gradientAngle = nearest
-                                        Haptics.light(view) // allowed double haptic
-                                    }
-
-                                    // reset so next drag can trigger again
-                                    lastAngleCheckpoint = null
-                                },
-                                valueRange = 0f..360f,
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
-                            )
+                        AngleSliderRow(gradientAngle, overlayTextColor(), view) { v, cp ->
+                            gradientAngle = v
+                            if (cp != null && cp != lastAngleCheckpoint) {
+                                lastAngleCheckpoint = cp
+                                Haptics.light(view)
+                            }
                         }
                     }
                 }
@@ -567,7 +301,8 @@ fun WallpaperPreviewOverlay(
 
             Spacer(Modifier.height(18.dp))
 
-            // Effects chips — row 1: first 3, row 2: last 2 centered
+            // ── Effect chips (loop — no per-effect code) ──────────────────────
+            val allDefs = WallpaperEffects.ALL
             Box(
                 modifier = Modifier
                     .wrapContentWidth()
@@ -576,64 +311,62 @@ fun WallpaperPreviewOverlay(
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Row 1: Glass, Snow, Stripes
+                    // Row 1: first 3 effects
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        effects.take(3).forEach { effect ->
+                        allDefs.take(3).forEach { def ->
+                            val label = if (def.labelRes != 0) stringResource(def.labelRes)
+                            else EFFECT_PREVIEW_LABELS[def.id] ?: def.id
                             EffectChip(
-                                label = effect.label,
-                                selected = effect.isEnabled(),
-                                fillProgress = effect.alpha(),
-                                isActive = activeEffect == effect.type,
-                                textColor = overlayTextColor(selectedForButton = effect.isEnabled()),
-                                modifier = Modifier.weight(1f)
+                                label        = label,
+                                selected     = localEffects.isEnabled(def.id),
+                                fillProgress = localEffects.alpha(def.id),
+                                isActive     = activeEffectId == def.id,
+                                textColor    = overlayTextColor(selectedForButton = localEffects.isEnabled(def.id)),
+                                modifier     = Modifier.weight(1f)
                             ) {
-                                when {
-                                    !effect.isEnabled() -> {
-                                        effect.setEnabled(true)
-                                        activeEffect = effect.type
+                                localEffects = when {
+                                    !localEffects.isEnabled(def.id) -> {
+                                        activeEffectId = def.id
+                                        localEffects.withEnabled(def.id, true)
                                     }
-                                    activeEffect != effect.type -> {
-                                        activeEffect = effect.type
-                                    }
+                                    activeEffectId != def.id -> { activeEffectId = def.id; localEffects }
                                     else -> {
-                                        effect.setEnabled(false)
-                                        effect.setAlpha(0f)
-                                        activeEffect = null
+                                        activeEffectId = null
+                                        localEffects.withEnabled(def.id, false).withAlpha(def.id, 0f)
                                     }
                                 }
                             }
                         }
                     }
-                    // Row 2: Geometry, Blur — centered by wrapping in a centered Row
+                    // Row 2: remaining effects, centered
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Spacer(Modifier.weight(0.5f))
-                        effects.drop(3).forEach { effect ->
+                        allDefs.drop(3).forEach { def ->
+                            val label = if (def.labelRes != 0) stringResource(def.labelRes)
+                            else EFFECT_PREVIEW_LABELS[def.id] ?: def.id
                             EffectChip(
-                                label = effect.label,
-                                selected = effect.isEnabled(),
-                                fillProgress = effect.alpha(),
-                                isActive = activeEffect == effect.type,
-                                textColor = overlayTextColor(selectedForButton = effect.isEnabled()),
-                                modifier = Modifier.weight(1f)
+                                label        = label,
+                                selected     = localEffects.isEnabled(def.id),
+                                fillProgress = localEffects.alpha(def.id),
+                                isActive     = activeEffectId == def.id,
+                                textColor    = overlayTextColor(selectedForButton = localEffects.isEnabled(def.id)),
+                                modifier     = Modifier.weight(1f)
                             ) {
-                                when {
-                                    !effect.isEnabled() -> {
-                                        effect.setEnabled(true)
-                                        activeEffect = effect.type
+                                localEffects = when {
+                                    !localEffects.isEnabled(def.id) -> {
+                                        activeEffectId = def.id
+                                        localEffects.withEnabled(def.id, true)
                                     }
-                                    activeEffect != effect.type -> {
-                                        activeEffect = effect.type
-                                    }
+                                    activeEffectId != def.id -> { activeEffectId = def.id; localEffects }
                                     else -> {
-                                        effect.setEnabled(false)
-                                        effect.setAlpha(0f)
-                                        activeEffect = null
+                                        activeEffectId = null
+                                        localEffects.withEnabled(def.id, false).withAlpha(def.id, 0f)
                                     }
                                 }
                             }
@@ -645,101 +378,84 @@ fun WallpaperPreviewOverlay(
 
             Spacer(Modifier.height(12.dp))
 
-// Active effect slider (only ONE at a time)
-            when (activeEffect) {
+            // ── Active effect slider (loop replaces the `when` block) ─────────
+            activeEffectId?.let { id ->
+                val sliderLabelRes = EFFECT_SLIDER_LABELS[id]
+                val sliderLabel = if (sliderLabelRes != null) stringResource(sliderLabelRes)
+                else EFFECT_SLIDER_INLINE[id] ?: id
 
-                EffectType.OVERLAY -> {
-                    EffectOpacitySlider(
-                        label = stringResource(id = R.string.preview_opacity_nothing),
-                        value = overlayAlpha,
-                        onSliderChange = {
-                            overlayAlpha = it
-                            overlay = it > 0.001f
-                        },
-                        labelColor = overlayTextColor()
-                    )
-                }
-
-                EffectType.NOISE -> {
-                    EffectOpacitySlider(
-                        label = stringResource(id = R.string.preview_opacity_snow),
-                        value = noiseAlpha,
-                        onSliderChange = {
-                            noiseAlpha = it
-                            noise = it > 0.001f
-                        },
-                        labelColor = overlayTextColor()
-                    )
-                }
-
-                EffectType.STRIPES -> {
-                    EffectOpacitySlider(
-                        label = stringResource(id = R.string.preview_opacity_stripes),
-                        value = stripesAlpha,
-                        onSliderChange = {
-                            stripesAlpha = it
-                            stripes = it > 0.001f
-                        },
-                        labelColor = overlayTextColor()
-                    )
-                }
-
-                EffectType.GEOMETRIC -> {
-                    EffectOpacitySlider(
-                        label = stringResource(id = R.string.preview_opacity_geometric),
-                        value = geometricAlpha,
-                        onSliderChange = {
-                            geometricAlpha = it
-                            geometric = it > 0.001f
-                        },
-                        labelColor = overlayTextColor()
-                    )
-                }
-
-                EffectType.BLUR -> {
-                    EffectOpacitySlider(
-                        label = "Blur Intensity",
-                        value = blurAlpha,
-                        onSliderChange = {
-                            blurAlpha = it
-                            blur = it > 0.001f
-                        },
-                        labelColor = overlayTextColor()
-                    )
-                }
-
-                else -> Unit
+                EffectOpacitySlider(
+                    label         = sliderLabel,
+                    value         = localEffects.alpha(id),
+                    onSliderChange = { v ->
+                        localEffects = localEffects
+                            .withAlpha(id, v)
+                            .withEnabled(id, v > 0.001f)
+                    },
+                    labelColor = overlayTextColor()
+                )
             }
         }
 
-        // Apply dialog — pass previewWallpaper so saved/applied output matches preview
+        // ── Apply dialog ──────────────────────────────────────────────────────
         if (showApplyDialog) {
             ApplyDownloadDialog(
-                interactionMode = InteractionMode.ADVANCED,
-                show = true,
-                wallpaper = previewWallpaper,
-                isPortrait = isPortrait,
-                addNoise = noise,
-                addStripes = stripes,
-                addOverlay = overlay,
-                addGeometric = geometric,
-                addBlur = blur,
-                noiseAlpha = noiseAlpha,
-                stripesAlpha = stripesAlpha,
-                overlayAlpha = overlayAlpha,
-                geometricAlpha = geometricAlpha,
-                blurAlpha = blurAlpha,
-                isWorking = isBusy,
-                onWorkingChange = { isBusy = it },
-                onDismiss = { showApplyDialog = false },
+                interactionMode     = InteractionMode.ADVANCED,
+                show                = true,
+                wallpaper           = previewWallpaper,
+                isPortrait          = isPortrait,
+                effects             = localEffects,
+                isWorking           = isBusy,
+                onWorkingChange     = { isBusy = it },
+                onDismiss           = { showApplyDialog = false },
                 writePermissionLauncher = writePermissionLauncher,
-                context = context,
-                coroutineScope = coroutineScope
+                context             = context,
+                coroutineScope      = coroutineScope
             )
         }
     }
 }
 
+// ── Angle slider extracted to reduce duplication ──────────────────────────────
+@Composable
+private fun AngleSliderRow(
+    gradientAngle: Float,
+    labelColor: Color,
+    view: android.view.View,
+    onAngleChange: (Float, Int?) -> Unit
+) {
+    var lastCheckpoint by remember { mutableStateOf<Int?>(null) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("${gradientAngle.toInt()}°", modifier = Modifier.width(44.dp), color = labelColor)
+        Slider(
+            value = gradientAngle,
+            onValueChange = { value ->
+                val checkpoints = listOf(0, 90, 180, 270, 360)
+                val crossed = checkpoints.firstOrNull { abs(it - value) <= 3f }
+                onAngleChange(value, if (crossed != null && crossed != lastCheckpoint) crossed else null)
+                if (crossed != null) lastCheckpoint = crossed
+            },
+            onValueChangeFinished = {
+                val checkpoints = listOf(0f, 90f, 180f, 270f, 360f)
+                val nearest = checkpoints.minByOrNull { abs(it - gradientAngle) } ?: return@Slider
+                if (abs(nearest - gradientAngle) <= 8f) {
+                    onAngleChange(nearest, null)
+                    Haptics.light(view)
+                }
+                lastCheckpoint = null
+            },
+            valueRange = 0f..360f,
+            modifier = Modifier.weight(1f)
+        )
+        Box(
+            modifier = Modifier
+                .size(10.dp).clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary)
+        )
+    }
+}
+
+// ── PreviewFrame ─────────────────────────────────────────────────────────────
 @Composable
 private fun PreviewFrame(
     previewWallpaper: Wallpaper,
@@ -747,43 +463,24 @@ private fun PreviewFrame(
     gradientAngle: Float,
     isFavorite: Boolean,
     isBusy: Boolean,
-    addNoise: Boolean,
-    addStripes: Boolean,
-    addOverlay: Boolean,
-    addGeometric: Boolean,
-    addBlur: Boolean,
-    noiseAlpha: Float,
-    stripesAlpha: Float,
-    overlayAlpha: Float,
-    geometricAlpha: Float,
-    blurAlpha: Float,
+    effects: EffectMap,
     overlayTextColor: @Composable () -> Color,
     onFavoriteToggle: () -> Unit
 ) {
     DeviceFrame(modifier = Modifier.fillMaxSize()) {
 
         PreviewWallpaperRender(
-            wallpaper = previewWallpaper,
-            previewType = selectedGradient,
-            angleDeg = gradientAngle,
-            addNoise = addNoise,
-            addStripes = addStripes,
-            addOverlay = addOverlay,
-            addGeometric = addGeometric,
-            addBlur = addBlur,
-            noiseAlpha = noiseAlpha,
-            stripesAlpha = stripesAlpha,
-            overlayAlpha = overlayAlpha,
-            geometricAlpha = geometricAlpha,
-            blurAlpha = blurAlpha,
-            modifier = Modifier.fillMaxSize(),
+            wallpaper    = previewWallpaper,
+            previewType  = selectedGradient,
+            angleDeg     = gradientAngle,
+            effects      = effects,
+            modifier     = Modifier.fillMaxSize(),
             showTypeLabel = false
         )
 
         var localFav by remember { mutableStateOf(isFavorite) }
         val view = LocalView.current
 
-        // Fav button
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -808,10 +505,7 @@ private fun PreviewFrame(
 
         if (isBusy) {
             CircularProgressIndicator(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .size(18.dp),
+                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(18.dp),
                 strokeWidth = 2.dp
             )
         }
