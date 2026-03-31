@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -133,7 +134,11 @@ fun WallpaperPreviewOverlay(
 
     BackHandler { onDismiss() }
 
-    Box(modifier = Modifier.fillMaxSize().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) { /* Consume all touches to prevent leaking to list underneath */ }
+    ) {
 
         // 1. Background Render
         PreviewWallpaperRender(
@@ -196,7 +201,7 @@ fun WallpaperPreviewOverlay(
                             .background(SidebarBg)
                             .border(0.5.dp, GlassBorder, CircleShape)
                             .padding(vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         listOf(
@@ -217,8 +222,8 @@ fun WallpaperPreviewOverlay(
                                 Text(
                                     text = type.name.take(1),
                                     color = if (isSel) Color.Black else Color.White.copy(alpha = 0.6f),
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 14.sp
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 15.sp
                                 )
                             }
                         }
@@ -230,7 +235,7 @@ fun WallpaperPreviewOverlay(
                             kotlin.math.abs(newAngle - 90f) < 8f -> 90f
                             kotlin.math.abs(newAngle - 180f) < 8f -> 180f
                             kotlin.math.abs(newAngle - 270f) < 8f -> 270f
-                            kotlin.math.abs(newAngle - 360f) < 8f -> 0f
+                            kotlin.math.abs(newAngle - 360f) < 8f -> 360f
                             else -> newAngle
                         }
                         gradientAngle = snapped
@@ -250,19 +255,23 @@ fun WallpaperPreviewOverlay(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text("LIVE", color = Color.White.copy(alpha = 0.6f), fontSize = 9.sp, fontWeight = FontWeight.Black)
-                    
-                    Switch(
-                        checked = isLiveEnabled,
-                        onCheckedChange = { isLiveEnabled = it },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.Black,
-                            checkedTrackColor = Color.White,
-                            uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
-                            uncheckedTrackColor = Color.White.copy(alpha = 0.1f)
-                        ),
-                        modifier = Modifier.scale(0.7f)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .height(38.dp)
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp)
+                            .clip(CircleShape)
+                            .background(if (isLiveEnabled) Color.White else Color.Transparent)
+                            .clickable { isLiveEnabled = !isLiveEnabled; Haptics.light(view) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "LIVE",
+                            color = if (isLiveEnabled) Color.Black else Color.White.copy(alpha = 0.6f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
 
                     AnimatedVisibility(
                         visible = isLiveEnabled,
@@ -287,9 +296,7 @@ fun WallpaperPreviewOverlay(
                                 colors = SliderDefaults.colors(
                                     thumbColor = Color.White,
                                     activeTrackColor = Color.White,
-                                    inactiveTrackColor = Color.White.copy(alpha = 0.2f),
-                                    disabledThumbColor = Color.White.copy(alpha = 0.2f),
-                                    disabledActiveTrackColor = Color.White.copy(alpha = 0.05f)
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.2f)
                                 )
                             )
                         }
@@ -339,10 +346,10 @@ fun WallpaperPreviewOverlay(
                             val id = activeEffectId
                             if (id != null) {
                                 EffectControls(
-                                    enabled = localEffects.isEnabled(id),
-                                    alpha = localEffects.alpha(id),
-                                    onToggle = { localEffects = localEffects.withEnabled(id, it) },
-                                    onAlpha = { localEffects = localEffects.withAlpha(id, it) }
+                                    alpha = if (localEffects.isEnabled(id)) localEffects.alpha(id) else 0f,
+                                    onAlpha = { 
+                                        localEffects = localEffects.withAlpha(id, it).withEnabled(id, it > 0.01f) 
+                                    }
                                 )
                             }
                         }
@@ -364,13 +371,22 @@ fun WallpaperPreviewOverlay(
                                 showApplyDialog = true
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                            .padding(bottom = 4.dp),
                         shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
                     ) {
-                        Icon(Icons.Default.Check, null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (isLiveEnabled) "Set as Live Wallpaper" else "Apply Wallpaper", fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        Icon(Icons.Default.Check, null, modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            if (isLiveEnabled) "Set as Live Wallpaper" else "Apply Wallpaper",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp,
+                            letterSpacing = 0.5.sp
+                        )
                     }
                 }
             }
@@ -513,31 +529,19 @@ private fun VerticalAngleSlider(angle: Float, onAngle: (Float) -> Unit) {
 }
 
 @Composable
-private fun EffectControls(enabled: Boolean, alpha: Float, onToggle: (Boolean) -> Unit, onAlpha: (Float) -> Unit) {
+private fun EffectControls(alpha: Float, onAlpha: (Float) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Switch(
-            checked = enabled, onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.Black,
-                checkedTrackColor = Color.White,
-                uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
-                uncheckedTrackColor = Color.White.copy(alpha = 0.1f)
-            ),
-            modifier = Modifier.scale(0.8f)
-        )
         Slider(
-            value = alpha, onValueChange = onAlpha, enabled = enabled, modifier = Modifier.weight(1f),
+            value = alpha, onValueChange = onAlpha, modifier = Modifier.weight(1f),
             colors = SliderDefaults.colors(
                 thumbColor = Color.White,
                 activeTrackColor = Color.White,
-                inactiveTrackColor = Color.White.copy(alpha = 0.2f),
-                disabledThumbColor = Color.White.copy(alpha = 0.2f),
-                disabledActiveTrackColor = Color.White.copy(alpha = 0.05f)
+                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
             )
         )
         Text(
             "${(alpha * 100).toInt()}%",
-            color = if (enabled) Color.White else Color.White.copy(alpha = 0.3f),
+            color = Color.White,
             fontSize = 12.sp,
             fontWeight = FontWeight.Black,
             modifier = Modifier.width(36.dp)
