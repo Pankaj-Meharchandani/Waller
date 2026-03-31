@@ -26,8 +26,10 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,8 +44,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -69,10 +74,10 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
-private val GlassBg           = Color(0xB3000000)
-private val GlassBorder       = Color(0x1AFFFFFF)
-private val SidebarBg         = Color(0x4D000000)
-private val TabActiveBg       = Color(0x26FFFFFF)
+private val GlassBg           = Color(0xCC000000)
+private val GlassBorder       = Color(0x33FFFFFF)
+private val SidebarBg         = Color(0x99000000)
+private val TabActiveBg       = Color.White
 
 // ── Main Composable ───────────────────────────────────────────────────────────
 
@@ -93,7 +98,7 @@ fun WallpaperPreviewOverlay(
     val prefs = remember { context.getSharedPreferences("waller_prefs", Context.MODE_PRIVATE) }
 
     var localEffects    by remember { mutableStateOf(initialEffects) }
-    var activeEffectId  by remember { mutableStateOf<String?>(null) }
+    var activeEffectId  by remember { mutableStateOf<String?>(WallpaperEffects.ALL.firstOrNull()?.id) }
     var isControlsVisible by remember { mutableStateOf(true) }
 
     // Live Wallpaper State
@@ -147,7 +152,7 @@ fun WallpaperPreviewOverlay(
             exit = fadeOut() + slideOutVertically { it / 10 }
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                
+
                 // --- Top Bar ---
                 Row(
                     modifier = Modifier
@@ -175,40 +180,103 @@ fun WallpaperPreviewOverlay(
                     }
                 }
 
-                // --- Left Floating Sidebar: Gradient Styles ---
-                Column(
+                // --- Left Floating Sidebar: Style & Angle ---
+                Row(
                     modifier = Modifier
                         .align(Alignment.CenterStart)
-                        .padding(start = 16.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(SidebarBg)
-                        .border(0.5.dp, GlassBorder, RoundedCornerShape(24.dp))
-                        .padding(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                        .padding(start = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    listOf(
-                        GradientType.Linear,
-                        GradientType.Radial,
-                        GradientType.Angular,
-                        GradientType.Diamond
-                    ).forEach { type ->
-                        val isSel = selectedGradient == type
-                        Box(
-                            modifier = Modifier
-                                .size(52.dp)
-                                .clickable { Haptics.light(view); selectedGradient = type },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isSel) {
-                                Box(Modifier.size(36.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.15f)))
+                    // Style Selector
+                    Column(
+                        modifier = Modifier
+                            .width(48.dp)
+                            .clip(CircleShape)
+                            .background(SidebarBg)
+                            .border(0.5.dp, GlassBorder, CircleShape)
+                            .padding(vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        listOf(
+                            GradientType.Linear,
+                            GradientType.Radial,
+                            GradientType.Angular,
+                            GradientType.Diamond
+                        ).forEach { type ->
+                            val isSel = selectedGradient == type
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSel) Color.White else Color.Transparent)
+                                    .clickable { Haptics.light(view); selectedGradient = type },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = type.name.take(1),
+                                    color = if (isSel) Color.Black else Color.White.copy(alpha = 0.6f),
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 14.sp
+                                )
                             }
-                            Text(
-                                text = type.name.take(1),
-                                color = if (isSel) Color.White else Color.White.copy(alpha = 0.4f),
-                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 16.sp
-                            )
                         }
+                    }
+
+                    VerticalAngleSlider(gradientAngle) { gradientAngle = it }
+                }
+
+                // --- Right Floating Sidebar: Live Control ---
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 12.dp)
+                        .width(48.dp)
+                        .clip(CircleShape)
+                        .background(SidebarBg)
+                        .border(0.5.dp, GlassBorder, CircleShape)
+                        .padding(vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text("LIVE", color = Color.White.copy(alpha = 0.6f), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                    
+                    Switch(
+                        checked = isLiveEnabled,
+                        onCheckedChange = { isLiveEnabled = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.Black,
+                            checkedTrackColor = Color.White,
+                            uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
+                            uncheckedTrackColor = Color.White.copy(alpha = 0.1f)
+                        ),
+                        modifier = Modifier.scale(0.7f)
+                    )
+
+                    Box(
+                        modifier = Modifier.height(180.dp).fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Slider(
+                            value = liveSpeed,
+                            onValueChange = { liveSpeed = it },
+                            enabled = isLiveEnabled,
+                            valueRange = 0.01f..0.2f,
+                            modifier = Modifier
+                                .graphicsLayer {
+                                    rotationZ = -90f
+                                }
+                                .requiredWidth(160.dp)
+                                .requiredHeight(48.dp),
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color.White,
+                                activeTrackColor = Color.White,
+                                inactiveTrackColor = Color.White.copy(alpha = 0.2f),
+                                disabledThumbColor = Color.White.copy(alpha = 0.2f),
+                                disabledActiveTrackColor = Color.White.copy(alpha = 0.05f)
+                            )
+                        )
                     }
                 }
 
@@ -217,48 +285,47 @@ fun WallpaperPreviewOverlay(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                        .padding(horizontal = 12.dp, vertical = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    
+
                     // Main Config Card
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(28.dp))
+                            .clip(RoundedCornerShape(32.dp))
                             .background(GlassBg)
-                            .border(0.5.dp, GlassBorder, RoundedCornerShape(28.dp))
+                            .border(0.5.dp, GlassBorder, RoundedCornerShape(32.dp))
                             .padding(16.dp)
                     ) {
-                        // Tabs for Effects / Live
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            EffectTab("Angle", activeEffectId == null) { activeEffectId = null }
+                        // Tabs for Effects
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             WallpaperEffects.ALL.forEach { def ->
                                 EffectTab(
                                     if (def.labelRes != 0) stringResource(def.labelRes) else def.id,
                                     activeEffectId == def.id
                                 ) { activeEffectId = def.id }
                             }
-                            EffectTab("Live", activeEffectId == "live") { activeEffectId = "live" }
                         }
 
                         Spacer(Modifier.height(20.dp))
 
                         // Tab Content
-                        Box(Modifier.fillMaxWidth().height(64.dp), contentAlignment = Alignment.Center) {
-                            when (activeEffectId) {
-                                null -> AngleSlider(gradientAngle) { gradientAngle = it }
-                                "live" -> LiveControls(isLiveEnabled, liveSpeed, { isLiveEnabled = it }, { liveSpeed = it })
-                                else -> {
-                                    val id = activeEffectId!!
-                                    EffectControls(
-                                        enabled = localEffects.isEnabled(id),
-                                        alpha = localEffects.alpha(id),
-                                        onToggle = { localEffects = localEffects.withEnabled(id, it) },
-                                        onAlpha = { localEffects = localEffects.withAlpha(id, it) }
-                                    )
-                                }
+                        Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
+                            val id = activeEffectId
+                            if (id != null) {
+                                EffectControls(
+                                    enabled = localEffects.isEnabled(id),
+                                    alpha = localEffects.alpha(id),
+                                    onToggle = { localEffects = localEffects.withEnabled(id, it) },
+                                    onAlpha = { localEffects = localEffects.withAlpha(id, it) }
+                                )
                             }
                         }
                     }
@@ -280,12 +347,12 @@ fun WallpaperPreviewOverlay(
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                        shape = RoundedCornerShape(28.dp),
+                        shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
                     ) {
                         Icon(Icons.Default.Check, null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(10.dp))
-                        Text(if (isLiveEnabled) "Set as Live Wallpaper" else "Apply Wallpaper", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (isLiveEnabled) "Set as Live Wallpaper" else "Apply Wallpaper", fontWeight = FontWeight.Black, fontSize = 16.sp)
                     }
                 }
             }
@@ -343,24 +410,60 @@ private fun GlassIconBtn(onClick: () -> Unit, content: @Composable () -> Unit) {
 private fun EffectTab(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .height(32.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (selected) TabActiveBg else Color.Transparent)
+            .height(34.dp)
+            .clip(CircleShape)
+            .background(if (selected) TabActiveBg else Color.White.copy(alpha = 0.08f))
             .clickable { onClick() }
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = if (selected) Color.White else Color.White.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Text(
+            label,
+            color = if (selected) Color.Black else Color.White,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+        )
     }
 }
 
 @Composable
-private fun AngleSlider(angle: Float, onAngle: (Float) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("${angle.toInt()}°", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(40.dp))
-        Slider(
-            value = angle, onValueChange = onAngle, valueRange = 0f..360f, modifier = Modifier.weight(1f),
-            colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White, inactiveTrackColor = Color.White.copy(alpha = 0.2f))
+private fun VerticalAngleSlider(angle: Float, onAngle: (Float) -> Unit) {
+    Column(
+        modifier = Modifier
+            .width(48.dp)
+            .height(240.dp)
+            .clip(CircleShape)
+            .background(SidebarBg)
+            .border(0.5.dp, GlassBorder, CircleShape)
+            .padding(vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Slider(
+                value = angle,
+                onValueChange = onAngle,
+                valueRange = 0f..360f,
+                modifier = Modifier
+                    .graphicsLayer {
+                        rotationZ = -90f
+                    }
+                    .requiredWidth(180.dp)
+                    .requiredHeight(48.dp),
+                colors = SliderDefaults.colors(
+                    thumbColor = Color.White,
+                    activeTrackColor = Color.White,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                )
+            )
+        }
+        Text(
+            text = "${angle.toInt()}°",
+            color = Color.White,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Black
         )
     }
 }
@@ -370,29 +473,30 @@ private fun EffectControls(enabled: Boolean, alpha: Float, onToggle: (Boolean) -
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Switch(
             checked = enabled, onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Color.White)
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.Black,
+                checkedTrackColor = Color.White,
+                uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
+                uncheckedTrackColor = Color.White.copy(alpha = 0.1f)
+            ),
+            modifier = Modifier.scale(0.8f)
         )
         Slider(
             value = alpha, onValueChange = onAlpha, enabled = enabled, modifier = Modifier.weight(1f),
-            colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White, inactiveTrackColor = Color.White.copy(alpha = 0.2f))
-        )
-        Text("${(alpha * 100).toInt()}%", color = if (enabled) Color.White else Color.White.copy(alpha = 0.3f), fontSize = 12.sp, modifier = Modifier.width(36.dp))
-    }
-}
-
-@Composable
-private fun LiveControls(enabled: Boolean, speed: Float, onToggle: (Boolean) -> Unit, onSpeed: (Float) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Switch(
-            checked = enabled, onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Color.White)
-        )
-        Column(Modifier.weight(1f)) {
-            Text("Animation Speed", color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp)
-            Slider(
-                value = speed, onValueChange = onSpeed, enabled = enabled, valueRange = 0.01f..0.2f,
-                colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White, inactiveTrackColor = Color.White.copy(alpha = 0.2f))
+            colors = SliderDefaults.colors(
+                thumbColor = Color.White,
+                activeTrackColor = Color.White,
+                inactiveTrackColor = Color.White.copy(alpha = 0.2f),
+                disabledThumbColor = Color.White.copy(alpha = 0.2f),
+                disabledActiveTrackColor = Color.White.copy(alpha = 0.05f)
             )
-        }
+        )
+        Text(
+            "${(alpha * 100).toInt()}%",
+            color = if (enabled) Color.White else Color.White.copy(alpha = 0.3f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Black,
+            modifier = Modifier.width(36.dp)
+        )
     }
 }
