@@ -230,7 +230,7 @@ fun WallpaperPreviewOverlay(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = if (isPortrait) 0.dp else 80.dp) // Move down below top bar in landscape
+                        .padding(top = if (isPortrait) 0.dp else 120.dp) // Increase padding to avoid top buttons
                 ) {
                     // Left Sidebar: Style & Angle
                     Row(
@@ -282,7 +282,7 @@ fun WallpaperPreviewOverlay(
                                 kotlin.math.abs(newAngle - 90f) < 8f -> 90f
                                 kotlin.math.abs(newAngle - 180f) < 8f -> 180f
                                 kotlin.math.abs(newAngle - 270f) < 8f -> 270f
-                                kotlin.math.abs(newAngle - 360f) < 360f -> 360f
+                                kotlin.math.abs(newAngle - 360f) < 8f -> 360f
                                 else -> newAngle
                             }
                             gradientAngle = snapped
@@ -581,6 +581,7 @@ private fun VerticalAngleSlider(angle: Float, height: androidx.compose.ui.unit.D
                 modifier = Modifier
                     .graphicsLayer {
                         rotationZ = -90f
+                        transformOrigin = TransformOrigin.Center
                     }
                     .requiredWidth(height - 60.dp)
                     .requiredHeight(48.dp),
