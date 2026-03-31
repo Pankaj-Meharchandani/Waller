@@ -223,43 +223,5 @@ fun PreviewWallpaperRender(
                 }
             }
         }
-
-        // Bottom tag — outside blur layer so it stays sharp
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(10.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color.Black.copy(alpha = 0.70f), Color.Black.copy(alpha = 0.80f))
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (showTypeLabel) {
-                    Text(
-                        text = previewType.name.lowercase().replaceFirstChar { it.uppercase() },
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.2.sp
-                    )
-                    Spacer(Modifier.width(8.dp))
-                }
-
-                wallpaper.colors.forEachIndexed { index, color ->
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(color)
-                    )
-                    if (index != wallpaper.colors.lastIndex) Spacer(Modifier.width(5.dp))
-                }
-            }
-        }
     }
 }
