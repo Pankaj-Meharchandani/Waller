@@ -26,6 +26,7 @@ class LiveWallpaperService : WallpaperService() {
         private val handler = Handler(Looper.getMainLooper())
         private var visible = false
         private var currentAngle = 0f
+        private var speed = 0.05f
         private var favorite: FavoriteWallpaper? = null
         private val prefs = getSharedPreferences("waller_prefs", Context.MODE_PRIVATE)
 
@@ -41,6 +42,7 @@ class LiveWallpaperService : WallpaperService() {
 
         private fun loadConfig() {
             val json = prefs.getString("live_wallpaper_config", null)
+            speed = prefs.getFloat("live_wallpaper_speed", 0.05f)
             favorite = if (json != null) {
                 try {
                     Json.decodeFromString<WallFavorite>(json).toFavoriteWallpaper()
@@ -60,7 +62,7 @@ class LiveWallpaperService : WallpaperService() {
         }
 
         override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-            if (key == "live_wallpaper_config") {
+            if (key == "live_wallpaper_config" || key == "live_wallpaper_speed") {
                 loadConfig()
             }
         }
@@ -97,7 +99,7 @@ class LiveWallpaperService : WallpaperService() {
                     val fav = favorite
                     if (fav != null) {
                         // Slowly animate the angle
-                        currentAngle = (currentAngle + 0.05f) % 360f
+                        currentAngle = (currentAngle + speed) % 360f
                         
                         val wallpaper = fav.wallpaper.copy(angleDeg = currentAngle)
 

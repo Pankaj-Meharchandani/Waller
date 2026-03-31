@@ -4,23 +4,29 @@
  * Fullscreen preview screen for wallpapers.
  *
  * Responsibilities:
- * - Owns preview UI state (gradient, angle, effects, opacity)
- * - Handles portrait / landscape layout differences
- * - Wires user actions to apply, download, and favourite logic
- *
- * Effect state is held in a single EffectMap — no per-effect state vars.
- * Adding a new effect requires NO change here.
+ * - Full-screen background preview
+ * - Redesigned UI with visibility toggle (eye icon)
+ * - Live Wallpaper controls (Toggle + Speed)
+ * - "Apply" pill button
  */
 
 @file:Suppress("DEPRECATION", "COMPOSE_APPLIER_CALL_MISMATCH")
 package com.example.waller.ui.wallpaper.components.previewOverlay
 
 import android.annotation.SuppressLint
+import android.app.WallpaperManager
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -30,8 +36,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,12 +50,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.ApplyDownloadDialog
 import com.example.waller.ui.wallpaper.EffectMap
@@ -61,25 +74,12 @@ import com.example.waller.ui.wallpaper.alpha
 import com.example.waller.ui.wallpaper.isEnabled
 import com.example.waller.ui.wallpaper.withAlpha
 import com.example.waller.ui.wallpaper.withEnabled
+import com.example.waller.ui.wallfile.toWallFavorite
+import com.example.waller.ui.wallpaper.LiveWallpaperService
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlin.math.abs
-import androidx.compose.ui.res.stringResource as str
-
-/** Inline labels for effects whose labelRes == 0. */
-private val EFFECT_PREVIEW_LABELS = mapOf(
-    "blur" to "Blur"
-)
-
-/** Opacity slider labels per effect id. */
-private val EFFECT_SLIDER_LABELS = mapOf(
-    "overlay"   to R.string.preview_opacity_nothing,
-    "noise"     to R.string.preview_opacity_snow,
-    "stripes"   to R.string.preview_opacity_stripes,
-    "geometric" to R.string.preview_opacity_geometric
-)
-private val EFFECT_SLIDER_INLINE = mapOf(
-    "blur" to "Blur Intensity"
-)
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
@@ -87,7 +87,6 @@ fun WallpaperPreviewOverlay(
     wallpaper: Wallpaper,
     isPortrait: Boolean,
     isFavorite: Boolean,
-    /** Initial effect state to seed the preview from the global toggles. */
     initialEffects: EffectMap,
     onFavoriteToggle: (wallpaper: Wallpaper, effects: EffectMap) -> Unit,
     onDismiss: () -> Unit,
@@ -95,418 +94,419 @@ fun WallpaperPreviewOverlay(
     context: Context,
     coroutineScope: CoroutineScope
 ) {
-    @Composable
-    fun overlayTextColor(selectedForButton: Boolean = false): Color = Color.White
-
     val view = LocalView.current
+    val prefs = remember { context.getSharedPreferences("waller_prefs", Context.MODE_PRIVATE) }
 
-    // Single EffectMap drives all effect state
     var localEffects by remember { mutableStateOf(initialEffects) }
-    // Which effect's slider is currently visible (by id), null = none
     var activeEffectId by remember { mutableStateOf<String?>(null) }
-
-    // Init active effect to the first enabled one (mirrors original behaviour)
-    LaunchedEffect(Unit) {
-        if (activeEffectId == null) {
-            activeEffectId = WallpaperEffects.ALL.firstOrNull { localEffects.isEnabled(it.id) }?.id
-        }
-    }
+    var isControlsVisible by remember { mutableStateOf(true) }
+    
+    // Live Wallpaper State
+    var isLiveEnabled by remember { mutableStateOf(false) }
+    var liveSpeed by remember { mutableFloatStateOf(prefs.getFloat("live_wallpaper_speed", 0.05f)) }
 
     var selectedGradient by remember(wallpaper) {
-        mutableStateOf(when (wallpaper.type.name.lowercase()) {
-            "angular" -> GradientType.Angular
-            "radial"  -> GradientType.Radial
-            "diamond" -> GradientType.Diamond
-            else      -> GradientType.Linear
-        })
+        mutableStateOf(wallpaper.type)
+    }
+    var gradientAngle by remember(wallpaper) { mutableFloatStateOf(wallpaper.angleDeg) }
+    
+    // Animation for Live Preview
+    val infiniteTransition = rememberInfiniteTransition(label = "livePreview")
+    val animatedAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = (1000 / liveSpeed.coerceAtLeast(0.01f)).toInt().coerceIn(1000, 100000),
+                easing = LinearEasing
+            ),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "angleAnimation"
+    )
+
+    val displayAngle = if (isLiveEnabled) (gradientAngle + animatedAngle) % 360f else gradientAngle
+
+    val previewWallpaper = remember(wallpaper, selectedGradient, displayAngle) {
+        wallpaper.copy(type = selectedGradient, angleDeg = displayAngle)
     }
 
-    var gradientAngle by remember(wallpaper) { mutableFloatStateOf(wallpaper.angleDeg) }
-    var lastAngleCheckpoint by remember { mutableStateOf<Int?>(null) }
     var showApplyDialog by remember { mutableStateOf(false) }
     var isBusy by remember { mutableStateOf(false) }
-
-    val statusBarPadding: Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val aspectRatio = if (isPortrait) 9f / 16f else 16f / 9f
-
-    val previewWallpaper = remember(wallpaper, selectedGradient, gradientAngle) {
-        wallpaper.copy(type = selectedGradient, angleDeg = gradientAngle)
-    }
 
     BackHandler { onDismiss() }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Scrim
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .pointerInput(Unit) { awaitPointerEventScope { while (true) { awaitPointerEvent() } } }
-                .background(Color.Black.copy(alpha = 0.85f))
-        ) {
-            Box(modifier = Modifier.fillMaxSize().background(
-                Brush.radialGradient(
-                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.32f)),
-                    radius = 1000f
-                )
-            ))
-        }
-
-        // ── Header (X + Apply) ────────────────────────────────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = statusBarPadding)
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.20f),
-                modifier = Modifier.height(46.dp)
-            ) {
-                IconButton(onClick = onDismiss, modifier = Modifier.size(46.dp)) {
-                    Icon(Icons.Default.Close,
-                        contentDescription = stringResource(id = R.string.preview_close),
-                        tint = overlayTextColor())
-                }
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            TextButton(
-                onClick = { if (!isBusy) showApplyDialog = true },
-                modifier = Modifier.height(44.dp)
-            ) {
-                Text(text = stringResource(id = R.string.preview_done), color = overlayTextColor())
-            }
-        }
-
-        // ── Main content ──────────────────────────────────────────────────────
-        Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            if (isPortrait) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    val previewWidth = (screenWidth * 0.36f).coerceAtMost(420.dp)
-
-                    Box(
-                        modifier = Modifier
-                            .width(previewWidth).aspectRatio(aspectRatio)
-                            .clip(RoundedCornerShape(14.dp)).shadow(6.dp)
-                            .background(MaterialTheme.colorScheme.surface)
-                    ) {
-                        PreviewFrame(
-                            previewWallpaper = previewWallpaper,
-                            selectedGradient = selectedGradient,
-                            gradientAngle    = gradientAngle,
-                            isFavorite       = isFavorite,
-                            isBusy           = isBusy,
-                            effects          = localEffects,
-                            overlayTextColor = { overlayTextColor() },
-                            onFavoriteToggle = { onFavoriteToggle(previewWallpaper, localEffects) }
-                        )
-                    }
-
-                    Spacer(Modifier.width(14.dp))
-
-                    Column(
-                        modifier = Modifier
-                            .widthIn(min = 180.dp, max = 320.dp)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        Text(stringResource(id = R.string.gradient_style_title),
-                            style = MaterialTheme.typography.titleMedium, color = overlayTextColor())
-                        Spacer(Modifier.height(8.dp))
-
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            listOf(
-                                GradientType.Linear  to stringResource(R.string.gradient_style_linear),
-                                GradientType.Radial  to stringResource(R.string.gradient_style_radial),
-                                GradientType.Angular to stringResource(R.string.gradient_style_angular),
-                                GradientType.Diamond to stringResource(R.string.gradient_style_diamond)
-                            ).forEach { (type, label) ->
-                                GradientTypeItemFull(
-                                    label    = label,
-                                    selected = selectedGradient == type,
-                                    textColor = overlayTextColor(selectedForButton = selectedGradient == type)
-                                ) { selectedGradient = type; Haptics.light(view) }
-                            }
-                        }
-
-                        Spacer(Modifier.height(12.dp))
-                        AngleSliderRow(gradientAngle, overlayTextColor(), view) { v, cp ->
-                            gradientAngle = v
-                            if (cp != null && cp != lastAngleCheckpoint) {
-                                lastAngleCheckpoint = cp
-                                Haptics.light(view)
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Landscape
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val previewWidth = (screenWidth * 0.72f).coerceAtMost(900.dp)
-                    Box(
-                        modifier = Modifier
-                            .width(previewWidth).aspectRatio(aspectRatio)
-                            .clip(RoundedCornerShape(14.dp)).shadow(6.dp)
-                            .background(MaterialTheme.colorScheme.surface)
-                    ) {
-                        PreviewFrame(
-                            previewWallpaper = previewWallpaper,
-                            selectedGradient = selectedGradient,
-                            gradientAngle    = gradientAngle,
-                            isFavorite       = isFavorite,
-                            isBusy           = isBusy,
-                            effects          = localEffects,
-                            overlayTextColor = { overlayTextColor() },
-                            onFavoriteToggle = { onFavoriteToggle(previewWallpaper, localEffects) }
-                        )
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(id = R.string.gradient_style_title),
-                            style = MaterialTheme.typography.titleMedium, color = overlayTextColor())
-                        Spacer(Modifier.height(12.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            listOf(
-                                GradientType.Linear  to stringResource(R.string.gradient_style_linear),
-                                GradientType.Radial  to stringResource(R.string.gradient_style_radial),
-                                GradientType.Angular to stringResource(R.string.gradient_style_angular),
-                                GradientType.Diamond to stringResource(R.string.gradient_style_diamond)
-                            ).forEach { (type, label) ->
-                                GradientTypeItemRect(
-                                    label    = label,
-                                    selected = selectedGradient == type,
-                                    textColor = overlayTextColor(selectedForButton = selectedGradient == type)
-                                ) { selectedGradient = type }
-                            }
-                        }
-
-                        Spacer(Modifier.height(12.dp))
-                        AngleSliderRow(gradientAngle, overlayTextColor(), view) { v, cp ->
-                            gradientAngle = v
-                            if (cp != null && cp != lastAngleCheckpoint) {
-                                lastAngleCheckpoint = cp
-                                Haptics.light(view)
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(18.dp))
-
-            // ── Effect chips (loop — no per-effect code) ──────────────────────
-            val allDefs = WallpaperEffects.ALL
-            Box(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.06f))
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Row 1: first 3 effects
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        allDefs.take(3).forEach { def ->
-                            val label = if (def.labelRes != 0) stringResource(def.labelRes)
-                            else EFFECT_PREVIEW_LABELS[def.id] ?: def.id
-                            EffectChip(
-                                label        = label,
-                                selected     = localEffects.isEnabled(def.id),
-                                fillProgress = localEffects.alpha(def.id),
-                                isActive     = activeEffectId == def.id,
-                                textColor    = overlayTextColor(selectedForButton = localEffects.isEnabled(def.id)),
-                                modifier     = Modifier.weight(1f)
-                            ) {
-                                localEffects = when {
-                                    !localEffects.isEnabled(def.id) -> {
-                                        activeEffectId = def.id
-                                        localEffects.withEnabled(def.id, true)
-                                    }
-                                    activeEffectId != def.id -> { activeEffectId = def.id; localEffects }
-                                    else -> {
-                                        activeEffectId = null
-                                        localEffects.withEnabled(def.id, false).withAlpha(def.id, 0f)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    // Row 2: remaining effects, centered
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Spacer(Modifier.weight(0.5f))
-                        allDefs.drop(3).forEach { def ->
-                            val label = if (def.labelRes != 0) stringResource(def.labelRes)
-                            else EFFECT_PREVIEW_LABELS[def.id] ?: def.id
-                            EffectChip(
-                                label        = label,
-                                selected     = localEffects.isEnabled(def.id),
-                                fillProgress = localEffects.alpha(def.id),
-                                isActive     = activeEffectId == def.id,
-                                textColor    = overlayTextColor(selectedForButton = localEffects.isEnabled(def.id)),
-                                modifier     = Modifier.weight(1f)
-                            ) {
-                                localEffects = when {
-                                    !localEffects.isEnabled(def.id) -> {
-                                        activeEffectId = def.id
-                                        localEffects.withEnabled(def.id, true)
-                                    }
-                                    activeEffectId != def.id -> { activeEffectId = def.id; localEffects }
-                                    else -> {
-                                        activeEffectId = null
-                                        localEffects.withEnabled(def.id, false).withAlpha(def.id, 0f)
-                                    }
-                                }
-                            }
-                        }
-                        Spacer(Modifier.weight(0.5f))
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // ── Active effect slider (loop replaces the `when` block) ─────────
-            activeEffectId?.let { id ->
-                val sliderLabelRes = EFFECT_SLIDER_LABELS[id]
-                val sliderLabel = if (sliderLabelRes != null) stringResource(sliderLabelRes)
-                else EFFECT_SLIDER_INLINE[id] ?: id
-
-                EffectOpacitySlider(
-                    label         = sliderLabel,
-                    value         = localEffects.alpha(id),
-                    onSliderChange = { v ->
-                        localEffects = localEffects
-                            .withAlpha(id, v)
-                            .withEnabled(id, v > 0.001f)
-                    },
-                    labelColor = overlayTextColor()
-                )
-            }
-        }
-
-        // ── Apply dialog ──────────────────────────────────────────────────────
-        if (showApplyDialog) {
-            ApplyDownloadDialog(
-                interactionMode     = InteractionMode.ADVANCED,
-                show                = true,
-                wallpaper           = previewWallpaper,
-                isPortrait          = isPortrait,
-                effects             = localEffects,
-                isWorking           = isBusy,
-                onWorkingChange     = { isBusy = it },
-                onDismiss           = { showApplyDialog = false },
-                writePermissionLauncher = writePermissionLauncher,
-                context             = context,
-                coroutineScope      = coroutineScope
-            )
-        }
-    }
-}
-
-// ── Angle slider extracted to reduce duplication ──────────────────────────────
-@Composable
-private fun AngleSliderRow(
-    gradientAngle: Float,
-    labelColor: Color,
-    view: android.view.View,
-    onAngleChange: (Float, Int?) -> Unit
-) {
-    var lastCheckpoint by remember { mutableStateOf<Int?>(null) }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("${gradientAngle.toInt()}°", modifier = Modifier.width(44.dp), color = labelColor)
-        Slider(
-            value = gradientAngle,
-            onValueChange = { value ->
-                val checkpoints = listOf(0, 90, 180, 270, 360)
-                val crossed = checkpoints.firstOrNull { abs(it - value) <= 3f }
-                onAngleChange(value, if (crossed != null && crossed != lastCheckpoint) crossed else null)
-                if (crossed != null) lastCheckpoint = crossed
-            },
-            onValueChangeFinished = {
-                val checkpoints = listOf(0f, 90f, 180f, 270f, 360f)
-                val nearest = checkpoints.minByOrNull { abs(it - gradientAngle) } ?: return@Slider
-                if (abs(nearest - gradientAngle) <= 8f) {
-                    onAngleChange(nearest, null)
-                    Haptics.light(view)
-                }
-                lastCheckpoint = null
-            },
-            valueRange = 0f..360f,
-            modifier = Modifier.weight(1f)
-        )
-        Box(
-            modifier = Modifier
-                .size(10.dp).clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary)
-        )
-    }
-}
-
-// ── PreviewFrame ─────────────────────────────────────────────────────────────
-@Composable
-private fun PreviewFrame(
-    previewWallpaper: Wallpaper,
-    selectedGradient: GradientType,
-    gradientAngle: Float,
-    isFavorite: Boolean,
-    isBusy: Boolean,
-    effects: EffectMap,
-    overlayTextColor: @Composable () -> Color,
-    onFavoriteToggle: () -> Unit
-) {
-    DeviceFrame(modifier = Modifier.fillMaxSize()) {
-
+        // Fullscreen Preview Background
         PreviewWallpaperRender(
-            wallpaper    = previewWallpaper,
-            previewType  = selectedGradient,
-            angleDeg     = gradientAngle,
-            effects      = effects,
-            modifier     = Modifier.fillMaxSize(),
+            wallpaper = previewWallpaper,
+            previewType = selectedGradient,
+            angleDeg = displayAngle,
+            effects = localEffects,
+            modifier = Modifier.fillMaxSize(),
             showTypeLabel = false
         )
 
-        var localFav by remember { mutableStateOf(isFavorite) }
-        val view = LocalView.current
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 8.dp, end = 8.dp)
-                .size(32.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(Color.Black.copy(alpha = 0.30f))
-                .clickable {
-                    Haptics.confirm(view)
-                    localFav = !localFav
-                    onFavoriteToggle()
-                },
-            contentAlignment = Alignment.Center
+        // UI Layer
+        AnimatedVisibility(
+            visible = isControlsVisible,
+            enter = fadeIn() + fadeIn(),
+            exit = fadeOut()
         ) {
-            Icon(
-                imageVector = if (localFav) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = if (localFav) Color(0xFFFF4D6A) else Color.White
-            )
+            // Scrim for readability
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.2f)))
         }
 
-        if (isBusy) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(18.dp),
-                strokeWidth = 2.dp
+        // Top Bar
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.background(Color.Black.copy(alpha = 0.2f), CircleShape)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Fav Button
+            var localFav by remember { mutableStateOf(isFavorite) }
+            IconButton(
+                onClick = {
+                    Haptics.light(view)
+                    localFav = !localFav
+                    onFavoriteToggle(previewWallpaper, localEffects)
+                },
+                modifier = Modifier.background(Color.Black.copy(alpha = 0.2f), CircleShape)
+            ) {
+                Icon(
+                    imageVector = if (localFav) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (localFav) Color(0xFFFF4D6A) else Color.White
+                )
+            }
+
+            IconButton(
+                onClick = { 
+                    Haptics.light(view)
+                    isControlsVisible = !isControlsVisible 
+                },
+                modifier = Modifier.background(Color.Black.copy(alpha = 0.2f), CircleShape)
+            ) {
+                Icon(
+                    if (isControlsVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                    contentDescription = "Toggle UI",
+                    tint = Color.White
+                )
+            }
+        }
+
+        // Controls and Apply Button
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            AnimatedVisibility(
+                visible = isControlsVisible,
+                enter = slideInVertically { it } + fadeIn(),
+                exit = slideOutVertically { it } + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Tab Row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // "Styles" Tab
+                        FilterChip(
+                            selected = activeEffectId == null,
+                            onClick = { 
+                                Haptics.light(view)
+                                activeEffectId = null 
+                            },
+                            label = { Text(stringResource(R.string.style_label)) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                        
+                        // Effect Tabs
+                        WallpaperEffects.ALL.forEach { def ->
+                            val isEnabled = localEffects.isEnabled(def.id)
+                            FilterChip(
+                                selected = activeEffectId == def.id,
+                                onClick = { 
+                                    Haptics.light(view)
+                                    activeEffectId = def.id 
+                                },
+                                label = { 
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(if (def.labelRes != 0) stringResource(def.labelRes) else def.id)
+                                        if (isEnabled) {
+                                            Box(modifier = Modifier.size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                                        }
+                                    }
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                        
+                        // "Live" Tab
+                        FilterChip(
+                            selected = activeEffectId == "live",
+                            onClick = { 
+                                Haptics.light(view)
+                                activeEffectId = "live" 
+                            },
+                            label = { 
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(stringResource(R.string.live_wallpaper_label))
+                                    if (isLiveEnabled) {
+                                        Box(modifier = Modifier.size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                                    }
+                                }
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Content Area
+                    Box(modifier = Modifier.fillMaxWidth().animateContentSize()) {
+                        when (activeEffectId) {
+                            null -> {
+                                // Styles & Angle
+                                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        listOf(
+                                            GradientType.Linear to R.string.gradient_style_linear,
+                                            GradientType.Radial to R.string.gradient_style_radial,
+                                            GradientType.Angular to R.string.gradient_style_angular,
+                                            GradientType.Diamond to R.string.gradient_style_diamond
+                                        ).forEach { (type, labelRes) ->
+                                            val isSelected = selectedGradient == type
+                                            Surface(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clickable { 
+                                                        Haptics.light(view)
+                                                        selectedGradient = type 
+                                                    },
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary 
+                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                            ) {
+                                                Text(
+                                                    stringResource(labelRes),
+                                                    modifier = Modifier.padding(vertical = 10.dp),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+                                    
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("Angle", style = MaterialTheme.typography.labelMedium)
+                                            Text("${gradientAngle.toInt()}°", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                        }
+                                        Slider(
+                                            value = gradientAngle,
+                                            onValueChange = { gradientAngle = it },
+                                            valueRange = 0f..360f,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
+                            }
+                            "live" -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(stringResource(R.string.set_as_live_wallpaper), style = MaterialTheme.typography.titleSmall)
+                                            Text("Animate gradient angle automatically", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        Switch(
+                                            checked = isLiveEnabled, 
+                                            onCheckedChange = { 
+                                                Haptics.light(view)
+                                                isLiveEnabled = it 
+                                            },
+                                            thumbContent = if (isLiveEnabled) {
+                                                { Icon(modifier = Modifier.size(SwitchDefaults.IconSize), imageVector = Icons.Default.Close, contentDescription = null) }
+                                            } else null
+                                        )
+                                    }
+                                    
+                                    if (isLiveEnabled) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                Text(stringResource(R.string.live_wallpaper_speed), style = MaterialTheme.typography.labelMedium)
+                                                val speedPct = ((liveSpeed - 0.01f) / (0.2f - 0.01f) * 100).toInt()
+                                                Text("$speedPct%", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                            }
+                                            Slider(
+                                                value = liveSpeed,
+                                                onValueChange = { liveSpeed = it },
+                                                valueRange = 0.01f..0.2f,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            else -> {
+                                // Effect Opacity Slider
+                                val id = activeEffectId!!
+                                val isEnabled = localEffects.isEnabled(id)
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        val def = WallpaperEffects.find(id)
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(if (def?.labelRes != 0 && def != null) stringResource(def.labelRes) else id, style = MaterialTheme.typography.titleSmall)
+                                            if (def?.subtitleRes != 0 && def != null) {
+                                                Text(stringResource(def.subtitleRes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
+                                        Switch(
+                                            checked = isEnabled, 
+                                            onCheckedChange = { 
+                                                Haptics.light(view)
+                                                localEffects = localEffects.withEnabled(id, it) 
+                                            }
+                                        )
+                                    }
+                                    
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.graphicsLayer(alpha = if (isEnabled) 1f else 0.5f)) {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("Opacity", style = MaterialTheme.typography.labelMedium)
+                                            Text("${(localEffects.alpha(id) * 100).toInt()}%", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                        }
+                                        Slider(
+                                            value = localEffects.alpha(id),
+                                            onValueChange = { localEffects = localEffects.withAlpha(id, it) },
+                                            valueRange = 0f..1f,
+                                            enabled = isEnabled,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Apply Pill Button
+            Button(
+                onClick = { 
+                    Haptics.confirm(view)
+                    if (isLiveEnabled) {
+                        // Apply as Live
+                        val fav = FavoriteWallpaper(wallpaper = previewWallpaper, effects = localEffects)
+                        prefs.edit()
+                            .putString("live_wallpaper_config", Json.encodeToString(fav.toWallFavorite()))
+                            .putFloat("live_wallpaper_speed", liveSpeed)
+                            .apply()
+
+                        val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
+                            putExtra(
+                                WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
+                                ComponentName(context, LiveWallpaperService::class.java)
+                            )
+                        }
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Live wallpaper not supported", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        // Apply as Static
+                        showApplyDialog = true 
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .shadow(8.dp, RoundedCornerShape(28.dp)),
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(
+                    if (isLiveEnabled) "Set as Live Wallpaper" else "Apply Wallpaper", 
+                    fontSize = 16.sp, 
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        // Apply Dialog (for static wallpaper selection)
+        if (showApplyDialog) {
+            ApplyDownloadDialog(
+                interactionMode = InteractionMode.ADVANCED,
+                show = true,
+                wallpaper = previewWallpaper,
+                isPortrait = isPortrait,
+                effects = localEffects,
+                isWorking = isBusy,
+                onWorkingChange = { isBusy = it },
+                onDismiss = { showApplyDialog = false },
+                writePermissionLauncher = writePermissionLauncher,
+                context = context,
+                coroutineScope = coroutineScope
             )
         }
     }

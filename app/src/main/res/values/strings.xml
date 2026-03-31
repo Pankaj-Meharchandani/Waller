@@ -171,6 +171,9 @@
     <!-- Live Wallpaper -->
     <string name="live_wallpaper_description">Animated gradient wallpapers by Waller.</string>
     <string name="set_as_live_wallpaper">Set as Live Wallpaper</string>
+    <string name="live_wallpaper_label">Live</string>
+    <string name="live_wallpaper_speed">Animation Speed</string>
+    <string name="style_label">Styles</string>
 
 
 </resources>
