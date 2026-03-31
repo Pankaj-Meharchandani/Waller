@@ -12,6 +12,9 @@
 
 package com.example.waller.ui.wallpaper
 
+import android.app.WallpaperManager
+import android.content.ComponentName
+import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.foundation.BorderStroke
@@ -36,10 +39,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.waller.R
 import com.example.waller.ui.wallfile.WallFileManager
+import com.example.waller.ui.wallfile.toWallFavorite
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @Composable
 fun ApplyDownloadDialog(
@@ -212,6 +218,42 @@ fun ApplyDownloadDialog(
                 }
 
                 Spacer(modifier = Modifier.height(18.dp))
+
+                // Set as Live Wallpaper
+                Button(
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    ),
+                    onClick = {
+                        val fav = FavoriteWallpaper(wallpaper = wallpaper, effects = effects)
+                        val prefs = context.getSharedPreferences("waller_prefs", android.content.Context.MODE_PRIVATE)
+                        prefs.edit().putString("live_wallpaper_config", Json.encodeToString(fav.toWallFavorite())).apply()
+
+                        val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
+                            putExtra(
+                                WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
+                                ComponentName(context, LiveWallpaperService::class.java)
+                            )
+                        }
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Live wallpaper not supported on this device", Toast.LENGTH_SHORT).show()
+                        }
+                        onDismiss()
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.set_as_live_wallpaper),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Download
                 OutlinedButton(

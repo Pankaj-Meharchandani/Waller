@@ -168,4 +168,9 @@
     <string name="share_css_label">CSS</string>
     <string name="share_css_sublabel">Web code</string>
 
+    <!-- Live Wallpaper -->
+    <string name="live_wallpaper_description">Animated gradient wallpapers by Waller.</string>
+    <string name="set_as_live_wallpaper">Set as Live Wallpaper</string>
+
+
 </resources>

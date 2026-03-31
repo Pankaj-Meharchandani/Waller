@@ -9,12 +9,6 @@
  * - Apply wallpapers using WallpaperManager
  *
  * Completely UI-independent; safe to use from background threads.
- *
- * ─── HOW TO ADD A NEW EFFECT ───────────────────────────────────────────────
- *  1. Register it in WallpaperEffects.ALL  (WallpaperModels.kt)
- *  2. Add a branch in the `when (def.id)` block below (~line 185)
- *  No other file needs touching.
- * ───────────────────────────────────────────────────────────────────────────
  */
 
 @file:Suppress("DEPRECATION")
@@ -69,6 +63,41 @@ fun createGradientBitmap(
     val bmp = createBitmap(width, height)
     val canvas = android.graphics.Canvas(bmp)
 
+    drawWallpaperOnCanvas(
+        context = context,
+        canvas = canvas,
+        width = width,
+        height = height,
+        wallpaper = wallpaper,
+        effects = effects
+    )
+
+    // Apply blur if enabled (it's the only effect that needs the full bitmap as input)
+    effects["blur"]?.let { state ->
+        if (state.enabled && state.alpha > 0f) {
+            try {
+                val radius  = (25f * state.alpha.coerceIn(0f, 1f)).coerceIn(1f, 25f).toInt()
+                val blurred = stackBlur(bmp, radius)
+                val pixels  = IntArray(bmp.width * bmp.height)
+                blurred.getPixels(pixels, 0, bmp.width, 0, 0, bmp.width, bmp.height)
+                bmp.setPixels(pixels, 0, bmp.width, 0, 0, bmp.width, bmp.height)
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    return bmp
+}
+
+fun drawWallpaperOnCanvas(
+    context: Context,
+    canvas: android.graphics.Canvas,
+    width: Int,
+    height: Int,
+    wallpaper: Wallpaper,
+    effects: EffectMap,
+    cachedOverlay: Bitmap? = null,
+    cachedGeometric: Bitmap? = null
+) {
     val angleDeg = wallpaper.angleDeg
     val a = Math.toRadians(angleDeg.toDouble()).toFloat()
 
@@ -137,15 +166,13 @@ fun createGradientBitmap(
         }
     }
 
-    // ── Effect layers — dispatch by id ─────────────────────────────────────
-    // TO ADD A NEW EFFECT: add a `"yourId" -> { ... }` branch here.
+    // ── Effect layers ──────────────────────────────────────────────────────
     for (def in WallpaperEffects.ALL) {
         val state = effects[def.id] ?: continue
-        if (!state.enabled || state.alpha <= 0f) continue
+        if (!state.enabled || state.alpha <= 0f || def.id == "blur") continue
         val alpha = state.alpha
 
         when (def.id) {
-
             "noise" -> {
                 val paint = Paint().apply { isAntiAlias = true; style = Paint.Style.FILL }
                 val density = context.resources.displayMetrics.density.coerceAtLeast(1f)
@@ -187,50 +214,45 @@ fun createGradientBitmap(
 
             "overlay" -> {
                 try {
-                    val overlay = android.graphics.BitmapFactory.decodeResource(
-                        context.resources, R.drawable.overlay_stripes
-                    )
                     val paint = Paint().apply {
                         isAntiAlias = true
                         this.alpha = (alpha.coerceIn(0f, 1f) * 255f).toInt()
                     }
-                    canvas.drawBitmap(overlay.scale(width, height), 0f, 0f, paint)
+                    if (cachedOverlay != null) {
+                        canvas.drawBitmap(cachedOverlay, 0f, 0f, paint)
+                    } else {
+                        val overlay = android.graphics.BitmapFactory.decodeResource(
+                            context.resources, R.drawable.overlay_stripes
+                        )
+                        canvas.drawBitmap(overlay.scale(width, height), 0f, 0f, paint)
+                    }
                 } catch (e: Exception) { e.printStackTrace() }
             }
 
             "geometric" -> {
                 try {
-                    val overlay = android.graphics.BitmapFactory.decodeResource(
-                        context.resources, R.drawable.overlay_geometric
-                    )
-                    val scale = width.toFloat() / overlay.width.toFloat()
-                    val scaledW = width
-                    val scaledH = (overlay.height * scale).roundToInt()
-                    val scaled  = overlay.scale(scaledW, scaledH)
-                    val topOffset = ((height - scaledH) / 2f).coerceAtMost(0f)
                     val paint = Paint().apply {
                         isAntiAlias = true
                         this.alpha = (alpha.coerceIn(0f, 1f) * 255f).roundToInt()
                     }
-                    canvas.drawBitmap(scaled, 0f, topOffset, paint)
+                    if (cachedGeometric != null) {
+                        val topOffset = ((height - cachedGeometric.height) / 2f).coerceAtMost(0f)
+                        canvas.drawBitmap(cachedGeometric, 0f, topOffset, paint)
+                    } else {
+                        val overlay = android.graphics.BitmapFactory.decodeResource(
+                            context.resources, R.drawable.overlay_geometric
+                        )
+                        val scale = width.toFloat() / overlay.width.toFloat()
+                        val scaledW = width
+                        val scaledH = (overlay.height * scale).roundToInt()
+                        val scaled  = overlay.scale(scaledW, scaledH)
+                        val topOffset = ((height - scaledH) / 2f).coerceAtMost(0f)
+                        canvas.drawBitmap(scaled, 0f, topOffset, paint)
+                    }
                 } catch (e: Exception) { e.printStackTrace() }
             }
-
-            "blur" -> {
-                try {
-                    val radius  = (25f * alpha.coerceIn(0f, 1f)).coerceIn(1f, 25f).toInt()
-                    val blurred = stackBlur(bmp, radius)
-                    val pixels  = IntArray(bmp.width * bmp.height)
-                    blurred.getPixels(pixels, 0, bmp.width, 0, 0, bmp.width, bmp.height)
-                    bmp.setPixels(pixels, 0, bmp.width, 0, 0, bmp.width, bmp.height)
-                } catch (e: Exception) { e.printStackTrace() }
-            }
-
-            // ── Add new effects below this line ──────────────────────────────
         }
     }
-
-    return bmp
 }
 
 /**
