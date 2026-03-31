@@ -36,8 +36,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Screenshot
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.StayCurrentLandscape
+import androidx.compose.material.icons.filled.StayCurrentPortrait
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -87,6 +90,7 @@ private val TabActiveBg       = Color.White
 fun WallpaperPreviewOverlay(
     wallpaper: Wallpaper,
     isPortrait: Boolean,
+    onOrientationChange: (Boolean) -> Unit,
     isFavorite: Boolean,
     initialEffects: EffectMap,
     onFavoriteToggle: (wallpaper: Wallpaper, effects: EffectMap) -> Unit,
@@ -134,21 +138,51 @@ fun WallpaperPreviewOverlay(
 
     BackHandler { onDismiss() }
 
+    val sideBarHeight = if (isPortrait) 240.dp else 180.dp
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) { /* Consume all touches to prevent leaking to list underneath */ }
+            .background(Color.Black)
     ) {
 
         // 1. Background Render
-        PreviewWallpaperRender(
-            wallpaper   = previewWallpaper,
-            previewType = selectedGradient,
-            angleDeg    = displayAngle,
-            effects     = localEffects,
-            modifier    = Modifier.fillMaxSize(),
-            showTypeLabel = false
-        )
+        if (isPortrait) {
+            PreviewWallpaperRender(
+                wallpaper = previewWallpaper,
+                previewType = selectedGradient,
+                angleDeg = displayAngle,
+                effects = localEffects,
+                modifier = Modifier.fillMaxSize(),
+                showTypeLabel = false
+            )
+        } else {
+            // Landscape preview on Portrait screen: Centered 16:9 box
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                // Dimmed background
+                PreviewWallpaperRender(
+                    wallpaper = previewWallpaper,
+                    previewType = selectedGradient,
+                    angleDeg = displayAngle,
+                    effects = localEffects,
+                    modifier = Modifier.fillMaxSize().graphicsLayer(alpha = 0.4f),
+                    showTypeLabel = false
+                )
+                // Focused landscape box
+                PreviewWallpaperRender(
+                    wallpaper = previewWallpaper,
+                    previewType = selectedGradient,
+                    angleDeg = displayAngle,
+                    effects = localEffects,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1.77f)
+                        .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+                    showTypeLabel = false
+                )
+            }
+        }
 
         // 2. Control Layers
         AnimatedVisibility(
@@ -180,125 +214,140 @@ fun WallpaperPreviewOverlay(
                         )
                     }
                     Spacer(Modifier.width(12.dp))
+                    GlassIconBtn(onClick = { onOrientationChange(!isPortrait) }) {
+                        Icon(
+                            if (isPortrait) Icons.Default.StayCurrentLandscape else Icons.Default.StayCurrentPortrait,
+                            null, tint = Color.White, modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
                     GlassIconBtn(onClick = { isControlsVisible = false }) {
                         Icon(Icons.Default.Visibility, null, tint = Color.White, modifier = Modifier.size(20.dp))
                     }
                 }
 
-                // --- Left Floating Sidebar: Style & Angle ---
-                Row(
+                // --- Style & Angle Sidebars ---
+                Box(
                     modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(start = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        .fillMaxSize()
+                        .padding(top = if (isPortrait) 0.dp else 80.dp) // Move down below top bar in landscape
                 ) {
-                    // Style Selector
+                    // Left Sidebar: Style & Angle
+                    Row(
+                        modifier = Modifier
+                            .align(if (isPortrait) Alignment.CenterStart else Alignment.TopStart)
+                            .padding(start = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Style Selector
+                        Column(
+                            modifier = Modifier
+                                .width(48.dp)
+                                .clip(CircleShape)
+                                .background(SidebarBg)
+                                .border(0.5.dp, GlassBorder, CircleShape)
+                                .padding(vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            listOf(
+                                GradientType.Linear,
+                                GradientType.Radial,
+                                GradientType.Angular,
+                                GradientType.Diamond
+                            ).forEach { type ->
+                                val isSel = selectedGradient == type
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isSel) Color.White else Color.Transparent)
+                                        .clickable { Haptics.light(view); selectedGradient = type },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = type.name.take(1),
+                                        color = if (isSel) Color.Black else Color.White.copy(alpha = 0.6f),
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 15.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        VerticalAngleSlider(gradientAngle, sideBarHeight) { newAngle ->
+                            val snapped = when {
+                                kotlin.math.abs(newAngle - 0f) < 8f -> 0f
+                                kotlin.math.abs(newAngle - 90f) < 8f -> 90f
+                                kotlin.math.abs(newAngle - 180f) < 8f -> 180f
+                                kotlin.math.abs(newAngle - 270f) < 8f -> 270f
+                                kotlin.math.abs(newAngle - 360f) < 360f -> 360f
+                                else -> newAngle
+                            }
+                            gradientAngle = snapped
+                        }
+                    }
+
+                    // Right Sidebar: Live Control
                     Column(
                         modifier = Modifier
+                            .align(if (isPortrait) Alignment.CenterEnd else Alignment.TopEnd)
+                            .padding(end = 12.dp)
                             .width(48.dp)
                             .clip(CircleShape)
                             .background(SidebarBg)
                             .border(0.5.dp, GlassBorder, CircleShape)
-                            .padding(vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        listOf(
-                            GradientType.Linear,
-                            GradientType.Radial,
-                            GradientType.Angular,
-                            GradientType.Diamond
-                        ).forEach { type ->
-                            val isSel = selectedGradient == type
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isSel) Color.White else Color.Transparent)
-                                    .clickable { Haptics.light(view); selectedGradient = type },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = type.name.take(1),
-                                    color = if (isSel) Color.Black else Color.White.copy(alpha = 0.6f),
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 15.sp
-                                )
-                            }
-                        }
-                    }
-
-                    VerticalAngleSlider(gradientAngle) { newAngle ->
-                        val snapped = when {
-                            kotlin.math.abs(newAngle - 0f) < 8f -> 0f
-                            kotlin.math.abs(newAngle - 90f) < 8f -> 90f
-                            kotlin.math.abs(newAngle - 180f) < 8f -> 180f
-                            kotlin.math.abs(newAngle - 270f) < 8f -> 270f
-                            kotlin.math.abs(newAngle - 360f) < 8f -> 360f
-                            else -> newAngle
-                        }
-                        gradientAngle = snapped
-                    }
-                }
-
-                // --- Right Floating Sidebar: Live Control ---
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 12.dp)
-                        .width(48.dp)
-                        .clip(CircleShape)
-                        .background(SidebarBg)
-                        .border(0.5.dp, GlassBorder, CircleShape)
-                        .padding(vertical = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .height(38.dp)
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp)
-                            .clip(CircleShape)
-                            .background(if (isLiveEnabled) Color.White else Color.Transparent)
-                            .clickable { isLiveEnabled = !isLiveEnabled; Haptics.light(view) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "LIVE",
-                            color = if (isLiveEnabled) Color.Black else Color.White.copy(alpha = 0.6f),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-
-                    AnimatedVisibility(
-                        visible = isLiveEnabled,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
+                            .padding(vertical = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Box(
-                            modifier = Modifier.height(180.dp).fillMaxWidth(),
+                            modifier = Modifier
+                                .width(42.dp)
+                                .height(30.dp)
+                                .clip(CircleShape)
+                                .background(if (isLiveEnabled) Color.White else Color.Transparent)
+                                .clickable { isLiveEnabled = !isLiveEnabled; Haptics.light(view) },
                             contentAlignment = Alignment.Center
                         ) {
-                            Slider(
-                                value = liveSpeed,
-                                onValueChange = { liveSpeed = it },
-                                enabled = isLiveEnabled,
-                                valueRange = 0.01f..0.2f,
-                                modifier = Modifier
-                                    .graphicsLayer {
-                                        rotationZ = -90f
-                                    }
-                                    .requiredWidth(160.dp)
-                                    .requiredHeight(48.dp),
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color.White,
-                                    activeTrackColor = Color.White,
-                                    inactiveTrackColor = Color.White.copy(alpha = 0.2f)
-                                )
+                            Text(
+                                "LIVE",
+                                color = if (isLiveEnabled) Color.Black else Color.White.copy(alpha = 0.8f),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black
                             )
+                        }
+
+                        AnimatedVisibility(
+                            visible = isLiveEnabled,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .height(sideBarHeight - 60.dp)
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Slider(
+                                    value = liveSpeed,
+                                    onValueChange = { liveSpeed = it },
+                                    enabled = isLiveEnabled,
+                                    valueRange = 0.01f..0.2f,
+                                    modifier = Modifier
+                                        .graphicsLayer {
+                                            rotationZ = -90f
+                                        }
+                                        .requiredWidth(sideBarHeight - 60.dp)
+                                        .requiredHeight(48.dp),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = Color.White,
+                                        activeTrackColor = Color.White,
+                                        inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                                    )
+                                )
+                            }
                         }
                     }
                 }
@@ -308,55 +357,18 @@ fun WallpaperPreviewOverlay(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
-                        .padding(horizontal = 12.dp, vertical = 20.dp),
+                        .padding(horizontal = 12.dp, vertical = if (isPortrait) 20.dp else 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-
-                    // Main Config Card
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(32.dp))
-                            .background(GlassBg)
-                            .border(0.5.dp, GlassBorder, RoundedCornerShape(32.dp))
-                            .padding(16.dp)
-                    ) {
-                        // Tabs for Effects
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            WallpaperEffects.ALL.forEach { def ->
-                                val isEnabled = localEffects.isEnabled(def.id)
-                                EffectTab(
-                                    label = if (def.labelRes != 0) stringResource(def.labelRes) else def.id,
-                                    selected = activeEffectId == def.id,
-                                    applied = isEnabled
-                                ) { activeEffectId = def.id }
-                            }
-                        }
-
-                        Spacer(Modifier.height(20.dp))
-
-                        // Tab Content
-                        Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
-                            val id = activeEffectId
-                            if (id != null) {
-                                EffectControls(
-                                    alpha = if (localEffects.isEnabled(id)) localEffects.alpha(id) else 0f,
-                                    onAlpha = { 
-                                        localEffects = localEffects.withAlpha(id, it).withEnabled(id, it > 0.01f) 
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    // Apply Button
-                    Button(
+                    EffectsConfigCard(
+                        localEffects = localEffects,
+                        activeEffectId = activeEffectId,
+                        onEffectChange = { localEffects = it },
+                        onActiveEffectIdChange = { activeEffectId = it }
+                    )
+                    ApplyButton(
+                        isLiveEnabled = isLiveEnabled,
                         onClick = {
                             Haptics.confirm(view)
                             if (isLiveEnabled) {
@@ -370,24 +382,8 @@ fun WallpaperPreviewOverlay(
                             } else {
                                 showApplyDialog = true
                             }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp)
-                            .padding(bottom = 4.dp),
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
-                    ) {
-                        Icon(Icons.Default.Check, null, modifier = Modifier.size(24.dp))
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            if (isLiveEnabled) "Set as Live Wallpaper" else "Apply Wallpaper",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 18.sp,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
+                        }
+                    )
                 }
             }
         }
@@ -476,11 +472,87 @@ private fun EffectTab(label: String, selected: Boolean, applied: Boolean, onClic
 }
 
 @Composable
-private fun VerticalAngleSlider(angle: Float, onAngle: (Float) -> Unit) {
+private fun EffectsConfigCard(
+    localEffects: EffectMap,
+    activeEffectId: String?,
+    onEffectChange: (EffectMap) -> Unit,
+    onActiveEffectIdChange: (String?) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(32.dp))
+            .background(GlassBg)
+            .border(0.5.dp, GlassBorder, RoundedCornerShape(32.dp))
+            .padding(16.dp)
+    ) {
+        // Tabs for Effects
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            WallpaperEffects.ALL.forEach { def ->
+                val isEnabled = localEffects.isEnabled(def.id)
+                EffectTab(
+                    label = if (def.labelRes != 0) stringResource(def.labelRes) else def.id,
+                    selected = activeEffectId == def.id,
+                    applied = isEnabled
+                ) { onActiveEffectIdChange(def.id) }
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        // Tab Content
+        Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
+            val id = activeEffectId
+            if (id != null) {
+                EffectControls(
+                    alpha = if (localEffects.isEnabled(id)) localEffects.alpha(id) else 0f,
+                    onAlpha = {
+                        onEffectChange(localEffects.withAlpha(id, it).withEnabled(id, it > 0.01f))
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApplyButton(
+    isLiveEnabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .padding(bottom = 4.dp),
+        shape = CircleShape,
+        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+    ) {
+        Icon(Icons.Default.Check, null, modifier = Modifier.size(24.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(
+            if (isLiveEnabled) "Set as Live Wallpaper" else "Apply Wallpaper",
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 18.sp,
+            letterSpacing = 0.5.sp
+        )
+    }
+}
+
+@Composable
+private fun VerticalAngleSlider(angle: Float, height: androidx.compose.ui.unit.Dp, onAngle: (Float) -> Unit) {
     Column(
         modifier = Modifier
             .width(48.dp)
-            .height(240.dp)
+            .height(height)
             .clip(CircleShape)
             .background(SidebarBg)
             .border(0.5.dp, GlassBorder, CircleShape)
@@ -493,7 +565,7 @@ private fun VerticalAngleSlider(angle: Float, onAngle: (Float) -> Unit) {
         ) {
             // Track background dots for snapped angles (90, 180, 270)
             Column(
-                modifier = Modifier.height(180.dp),
+                modifier = Modifier.height(height - 60.dp),
                 verticalArrangement = Arrangement.SpaceEvenly,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -510,7 +582,7 @@ private fun VerticalAngleSlider(angle: Float, onAngle: (Float) -> Unit) {
                     .graphicsLayer {
                         rotationZ = -90f
                     }
-                    .requiredWidth(180.dp)
+                    .requiredWidth(height - 60.dp)
                     .requiredHeight(48.dp),
                 colors = SliderDefaults.colors(
                     thumbColor = Color.White,

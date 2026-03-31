@@ -272,6 +272,7 @@ fun FavoritesScreen(
         WallpaperPreviewOverlay(
             wallpaper        = fav.wallpaper,
             isPortrait       = isPortrait,
+            onOrientationChange = onOrientationChange,
             isFavorite       = true,
             initialEffects   = fav.effects,
             onFavoriteToggle = { snapshot, fx ->
