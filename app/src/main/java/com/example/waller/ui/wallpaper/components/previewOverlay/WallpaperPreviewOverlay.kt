@@ -148,8 +148,8 @@ fun WallpaperPreviewOverlay(
         // 2. Control Layers
         AnimatedVisibility(
             visible = isControlsVisible,
-            enter = fadeIn() + slideInVertically { it / 10 },
-            exit = fadeOut() + slideOutVertically { it / 10 }
+            enter = fadeIn(),
+            exit = fadeOut()
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
 
@@ -224,7 +224,17 @@ fun WallpaperPreviewOverlay(
                         }
                     }
 
-                    VerticalAngleSlider(gradientAngle) { gradientAngle = it }
+                    VerticalAngleSlider(gradientAngle) { newAngle ->
+                        val snapped = when {
+                            kotlin.math.abs(newAngle - 0f) < 8f -> 0f
+                            kotlin.math.abs(newAngle - 90f) < 8f -> 90f
+                            kotlin.math.abs(newAngle - 180f) < 8f -> 180f
+                            kotlin.math.abs(newAngle - 270f) < 8f -> 270f
+                            kotlin.math.abs(newAngle - 360f) < 8f -> 0f
+                            else -> newAngle
+                        }
+                        gradientAngle = snapped
+                    }
                 }
 
                 // --- Right Floating Sidebar: Live Control ---
@@ -254,29 +264,45 @@ fun WallpaperPreviewOverlay(
                         modifier = Modifier.scale(0.7f)
                     )
 
-                    Box(
-                        modifier = Modifier.height(180.dp).fillMaxWidth(),
-                        contentAlignment = Alignment.Center
+                    AnimatedVisibility(
+                        visible = isLiveEnabled,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
                     ) {
-                        Slider(
-                            value = liveSpeed,
-                            onValueChange = { liveSpeed = it },
-                            enabled = isLiveEnabled,
-                            valueRange = 0.01f..0.2f,
-                            modifier = Modifier
-                                .graphicsLayer {
-                                    rotationZ = -90f
-                                }
-                                .requiredWidth(160.dp)
-                                .requiredHeight(48.dp),
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color.White,
-                                activeTrackColor = Color.White,
-                                inactiveTrackColor = Color.White.copy(alpha = 0.2f),
-                                disabledThumbColor = Color.White.copy(alpha = 0.2f),
-                                disabledActiveTrackColor = Color.White.copy(alpha = 0.05f)
+                        Box(
+                            modifier = Modifier.height(180.dp).fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Track background dots
+                            Column(
+                                modifier = Modifier.height(160.dp),
+                                verticalArrangement = Arrangement.SpaceBetween,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(Modifier.size(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
+                                Box(Modifier.size(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
+                            }
+
+                            Slider(
+                                value = liveSpeed,
+                                onValueChange = { liveSpeed = it },
+                                enabled = isLiveEnabled,
+                                valueRange = 0.01f..0.2f,
+                                modifier = Modifier
+                                    .graphicsLayer {
+                                        rotationZ = -90f
+                                    }
+                                    .requiredWidth(160.dp)
+                                    .requiredHeight(48.dp),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color.White,
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.2f),
+                                    disabledThumbColor = Color.White.copy(alpha = 0.2f),
+                                    disabledActiveTrackColor = Color.White.copy(alpha = 0.05f)
+                                )
                             )
-                        )
+                        }
                     }
                 }
 
@@ -307,9 +333,11 @@ fun WallpaperPreviewOverlay(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             WallpaperEffects.ALL.forEach { def ->
+                                val isEnabled = localEffects.isEnabled(def.id)
                                 EffectTab(
-                                    if (def.labelRes != 0) stringResource(def.labelRes) else def.id,
-                                    activeEffectId == def.id
+                                    label = if (def.labelRes != 0) stringResource(def.labelRes) else def.id,
+                                    selected = activeEffectId == def.id,
+                                    applied = isEnabled
                                 ) { activeEffectId = def.id }
                             }
                         }
@@ -407,22 +435,37 @@ private fun GlassIconBtn(onClick: () -> Unit, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun EffectTab(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun EffectTab(label: String, selected: Boolean, applied: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .height(34.dp)
             .clip(CircleShape)
-            .background(if (selected) TabActiveBg else Color.White.copy(alpha = 0.08f))
+            .background(
+                when {
+                    selected -> TabActiveBg
+                    applied -> Color.White.copy(alpha = 0.15f)
+                    else -> Color.White.copy(alpha = 0.05f)
+                }
+            )
+            .then(
+                if (applied && !selected) Modifier.border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                else Modifier
+            )
             .clickable { onClick() }
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            label,
-            color = if (selected) Color.Black else Color.White,
-            fontSize = 12.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (applied) {
+                Box(Modifier.size(4.dp).clip(CircleShape).background(if (selected) Color.Black else Color.White))
+            }
+            Text(
+                label,
+                color = if (selected) Color.Black else Color.White.copy(alpha = if (applied) 1f else 0.5f),
+                fontSize = 12.sp,
+                fontWeight = if (selected || applied) FontWeight.Bold else FontWeight.Medium
+            )
+        }
     }
 }
 
@@ -442,6 +485,16 @@ private fun VerticalAngleSlider(angle: Float, onAngle: (Float) -> Unit) {
             modifier = Modifier.weight(1f).fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
+            // Track background dots
+            Column(
+                modifier = Modifier.height(180.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(Modifier.size(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
+                Box(Modifier.size(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
+            }
+
             Slider(
                 value = angle,
                 onValueChange = onAngle,
