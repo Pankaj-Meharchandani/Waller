@@ -133,7 +133,7 @@ fun WallpaperPreviewOverlay(
 
     BackHandler { onDismiss() }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }) {
 
         // 1. Background Render
         PreviewWallpaperRender(
@@ -273,16 +273,6 @@ fun WallpaperPreviewOverlay(
                             modifier = Modifier.height(180.dp).fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
-                            // Track background dots
-                            Column(
-                                modifier = Modifier.height(160.dp),
-                                verticalArrangement = Arrangement.SpaceBetween,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Box(Modifier.size(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
-                                Box(Modifier.size(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
-                            }
-
                             Slider(
                                 value = liveSpeed,
                                 onValueChange = { liveSpeed = it },
@@ -485,14 +475,15 @@ private fun VerticalAngleSlider(angle: Float, onAngle: (Float) -> Unit) {
             modifier = Modifier.weight(1f).fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            // Track background dots
+            // Track background dots for snapped angles (90, 180, 270)
             Column(
                 modifier = Modifier.height(180.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.SpaceEvenly,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(Modifier.size(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
-                Box(Modifier.size(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
+                repeat(3) {
+                    Box(Modifier.size(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
+                }
             }
 
             Slider(
