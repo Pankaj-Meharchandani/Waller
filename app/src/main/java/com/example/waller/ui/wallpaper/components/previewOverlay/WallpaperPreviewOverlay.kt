@@ -18,11 +18,9 @@ import android.app.WallpaperManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,7 +34,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Screenshot
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.StayCurrentLandscape
@@ -47,8 +44,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -58,7 +53,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.waller.R
 import com.example.waller.ui.wallpaper.ApplyDownloadDialog
 import com.example.waller.ui.wallpaper.EffectMap
 import com.example.waller.ui.wallpaper.FavoriteWallpaper
@@ -74,7 +68,6 @@ import com.example.waller.ui.wallpaper.withEnabled
 import com.example.waller.ui.wallfile.toWallFavorite
 import com.example.waller.ui.wallpaper.LiveWallpaperService
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -115,15 +108,15 @@ fun WallpaperPreviewOverlay(
 
     // Live animation logic: Manual accumulation for smooth speed changes
     var animatedAngle by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(isLiveEnabled, liveSpeed) {
+    val currentSpeed = rememberUpdatedState(liveSpeed)
+    LaunchedEffect(isLiveEnabled) {
         if (isLiveEnabled) {
             var lastTime = withFrameNanos { it }
             while (true) {
                 withFrameNanos { now ->
                     val deltaSeconds = (now - lastTime) / 1_000_000_000f
-                    // liveSpeed 0.05 = 20s for 360deg -> 18deg/s
-                    // speed * 360 = deg/s
-                    val degPerSec = liveSpeed * 360f
+                    // Speed integration: speed * 360 = degrees per second
+                    val degPerSec = currentSpeed.value * 360f
                     animatedAngle = (animatedAngle + degPerSec * deltaSeconds) % 360f
                     lastTime = now
                 }
@@ -233,7 +226,7 @@ fun WallpaperPreviewOverlay(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = if (isPortrait) 0.dp else 120.dp)
+                        .padding(top = if (isPortrait) 0.dp else 140.dp)
                 ) {
                     // Left Sidebar: Style & Angle
                     Row(
@@ -331,7 +324,11 @@ fun WallpaperPreviewOverlay(
                             ) {
                                 Slider(
                                     value = liveSpeed,
-                                    onValueChange = { liveSpeed = it },
+                                    onValueChange = { 
+                                        liveSpeed = it
+                                        // Save speed immediately so applied live wallpaper reacts in real-time
+                                        prefs.edit().putFloat("live_wallpaper_speed", it).apply()
+                                    },
                                     enabled = isLiveEnabled,
                                     valueRange = 0.01f..0.2f,
                                     modifier = Modifier
