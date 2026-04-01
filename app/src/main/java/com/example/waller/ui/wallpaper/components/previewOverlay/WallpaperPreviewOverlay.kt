@@ -113,20 +113,23 @@ fun WallpaperPreviewOverlay(
     var selectedGradient by remember(wallpaper) { mutableStateOf(wallpaper.type) }
     var gradientAngle    by remember(wallpaper) { mutableFloatStateOf(wallpaper.angleDeg) }
 
-    // Live animation logic
-    val infiniteTransition = rememberInfiniteTransition(label = "live")
-    val animatedAngle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue  = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = (1000 / liveSpeed.coerceAtLeast(0.01f)).toInt().coerceIn(1000, 100000),
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "angle"
-    )
+    // Live animation logic: Manual accumulation for smooth speed changes
+    var animatedAngle by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(isLiveEnabled, liveSpeed) {
+        if (isLiveEnabled) {
+            var lastTime = withFrameNanos { it }
+            while (true) {
+                withFrameNanos { now ->
+                    val deltaSeconds = (now - lastTime) / 1_000_000_000f
+                    // liveSpeed 0.05 = 20s for 360deg -> 18deg/s
+                    // speed * 360 = deg/s
+                    val degPerSec = liveSpeed * 360f
+                    animatedAngle = (animatedAngle + degPerSec * deltaSeconds) % 360f
+                    lastTime = now
+                }
+            }
+        }
+    }
 
     val displayAngle = if (isLiveEnabled) (gradientAngle + animatedAngle) % 360f else gradientAngle
     val previewWallpaper = remember(wallpaper, selectedGradient, displayAngle) {
@@ -230,7 +233,7 @@ fun WallpaperPreviewOverlay(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = if (isPortrait) 0.dp else 120.dp) // Increase padding to avoid top buttons
+                        .padding(top = if (isPortrait) 0.dp else 120.dp)
                 ) {
                     // Left Sidebar: Style & Angle
                     Row(
@@ -319,11 +322,7 @@ fun WallpaperPreviewOverlay(
                             )
                         }
 
-                        AnimatedVisibility(
-                            visible = isLiveEnabled,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
+                        if (isLiveEnabled) {
                             Box(
                                 modifier = Modifier
                                     .height(sideBarHeight - 60.dp)
@@ -338,6 +337,7 @@ fun WallpaperPreviewOverlay(
                                     modifier = Modifier
                                         .graphicsLayer {
                                             rotationZ = -90f
+                                            transformOrigin = TransformOrigin.Center
                                         }
                                         .requiredWidth(sideBarHeight - 60.dp)
                                         .requiredHeight(48.dp),

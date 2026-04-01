@@ -48,6 +48,7 @@ fun FavoritesScreen(
     modifier: Modifier = Modifier,
     isAppDarkMode: Boolean,
     onThemeChange: () -> Unit,
+    onPreviewVisibilityChanged: (Boolean) -> Unit,
     favourites: List<FavoriteWallpaper>,
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit,
@@ -244,7 +245,11 @@ fun FavoritesScreen(
                 onClick = {
                     when (interactionMode) {
                         InteractionMode.SIMPLE   -> { pendingClickedWallpaper = fav; showApplyDialog = true }
-                        InteractionMode.ADVANCED -> { pendingClickedWallpaper = fav; showPreview = true }
+                        InteractionMode.ADVANCED -> { 
+                            pendingClickedWallpaper = fav
+                            showPreview = true
+                            onPreviewVisibilityChanged(true)
+                        }
                     }
                 },
                 onLongClick = { pendingClickedWallpaper = fav; showApplyDialog = true }
@@ -281,7 +286,11 @@ fun FavoritesScreen(
                 onAddFavourite(updatedFav)
                 pendingClickedWallpaper = updatedFav
             },
-            onDismiss        = { showPreview = false; pendingClickedWallpaper = null },
+            onDismiss        = { 
+                showPreview = false
+                pendingClickedWallpaper = null
+                onPreviewVisibilityChanged(false)
+            },
             writePermissionLauncher = writePermissionLauncher,
             context          = context,
             coroutineScope   = coroutineScope
