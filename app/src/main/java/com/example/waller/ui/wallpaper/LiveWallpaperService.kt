@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.service.wallpaper.WallpaperService
+import android.view.Choreographer
 import android.view.SurfaceHolder
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
@@ -28,7 +29,6 @@ class LiveWallpaperService : WallpaperService() {
 
     inner class LiveEngine : Engine(), SharedPreferences.OnSharedPreferenceChangeListener {
 
-        private val handler = Handler(Looper.getMainLooper())
         private var visible = false
         private var currentAngle = 0f
         private var speed = 0.05f
@@ -43,7 +43,14 @@ class LiveWallpaperService : WallpaperService() {
         private var offscreenCanvas: Canvas? = null
         private val blurPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-        private val drawRunnable = Runnable { draw() }
+        private val frameCallback = object : Choreographer.FrameCallback {
+            override fun doFrame(frameTimeNanos: Long) {
+                if (visible) {
+                    draw()
+                    Choreographer.getInstance().postFrameCallback(this)
+                }
+            }
+        }
 
         init {
             loadConfig()
@@ -81,32 +88,37 @@ class LiveWallpaperService : WallpaperService() {
             this.visible = visible
             if (visible) {
                 lastTickTime = System.currentTimeMillis()
-                draw()
+                Choreographer.getInstance().postFrameCallback(frameCallback)
             } else {
-                handler.removeCallbacks(drawRunnable)
+                Choreographer.getInstance().removeFrameCallback(frameCallback)
             }
         }
 
         override fun onDestroy() {
             super.onDestroy()
-            handler.removeCallbacks(drawRunnable)
+            Choreographer.getInstance().removeFrameCallback(frameCallback)
             prefs.unregisterOnSharedPreferenceChangeListener(this)
             cachedOverlay?.recycle()
+            cachedOverlay = null
             cachedGeometric?.recycle()
+            cachedGeometric = null
             offscreenBitmap?.recycle()
+            offscreenBitmap = null
         }
 
         override fun onSurfaceDestroyed(holder: SurfaceHolder?) {
             super.onSurfaceDestroyed(holder)
             this.visible = false
-            handler.removeCallbacks(drawRunnable)
+            Choreographer.getInstance().removeFrameCallback(frameCallback)
         }
 
         private fun draw() {
             val holder = surfaceHolder
             var canvas: Canvas? = null
             try {
-                canvas = holder.lockCanvas()
+                // Use hardware canvas for better performance
+                canvas = holder.lockHardwareCanvas()
+                
                 if (canvas != null) {
                     val fav = favorite
                     if (fav != null) {
@@ -142,6 +154,7 @@ class LiveWallpaperService : WallpaperService() {
                         if (hasBlur) {
                             // Render to offscreen first to apply blur
                             if (offscreenBitmap == null || offscreenBitmap?.width != canvas.width || offscreenBitmap?.height != canvas.height) {
+                                offscreenBitmap?.recycle()
                                 offscreenBitmap = createBitmap(canvas.width, canvas.height)
                                 offscreenCanvas = Canvas(offscreenBitmap!!)
                             }
@@ -160,23 +173,16 @@ class LiveWallpaperService : WallpaperService() {
 
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                     val radius = 22f * blurState.alpha
-                                    // Use reflection to set render effect to avoid potential compilation issues with unresolved references
                                     try {
                                         val effect = RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP)
                                         blurPaint.javaClass.getMethod("setRenderEffect", RenderEffect::class.java).invoke(blurPaint, effect)
                                         canvas.drawBitmap(offscreenBitmap!!, 0f, 0f, blurPaint)
                                     } catch (e: Exception) {
-                                        val r = (25f * blurState.alpha).coerceIn(1f, 25f).toInt()
-                                        val blurred = stackBlur(offscreenBitmap!!, r)
-                                        canvas.drawBitmap(blurred, 0f, 0f, null)
-                                        blurred.recycle()
+                                        canvas.drawBitmap(offscreenBitmap!!, 0f, 0f, null)
                                     }
                                 } else {
-                                    // Fallback for older Android: using stackBlur might be slow but it's consistent
-                                    val radius = (25f * blurState.alpha).coerceIn(1f, 25f).toInt()
-                                    val blurred = stackBlur(offscreenBitmap!!, radius)
-                                    canvas.drawBitmap(blurred, 0f, 0f, null)
-                                    blurred.recycle()
+                                    // Fallback for older Android: avoid stackBlur every frame as it's too slow for live
+                                    canvas.drawBitmap(offscreenBitmap!!, 0f, 0f, null)
                                 }
                             }
                         } else {
@@ -199,11 +205,6 @@ class LiveWallpaperService : WallpaperService() {
                 if (canvas != null) {
                     holder.unlockCanvasAndPost(canvas)
                 }
-            }
-
-            handler.removeCallbacks(drawRunnable)
-            if (visible) {
-                handler.postDelayed(drawRunnable, 32) // ~30 FPS
             }
         }
     }
