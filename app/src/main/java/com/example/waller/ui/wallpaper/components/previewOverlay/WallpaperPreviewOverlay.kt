@@ -71,10 +71,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.json.Json
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
-private val GlassBg           = Color(0xCC000000)
-private val GlassBorder       = Color(0x33FFFFFF)
-private val SidebarBg         = Color(0x99000000)
-private val TabActiveBg       = Color.White
+// No hardcoded colors — using MaterialTheme.colorScheme
 
 // ── Main Composable ───────────────────────────────────────────────────────────
 
@@ -174,7 +171,7 @@ fun WallpaperPreviewOverlay(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1.77f)
-                        .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+                        .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
                     showTypeLabel = false
                 )
             }
@@ -197,7 +194,7 @@ fun WallpaperPreviewOverlay(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     GlassIconBtn(onClick = onDismiss) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                     }
                     Spacer(Modifier.weight(1f))
                     var localFav by remember { mutableStateOf(isFavorite) }
@@ -206,19 +203,19 @@ fun WallpaperPreviewOverlay(
                     }) {
                         Icon(
                             if (localFav) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                            null, tint = if (localFav) Color(0xFFFF5F7A) else Color.White, modifier = Modifier.size(20.dp)
+                            null, tint = if (localFav) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp)
                         )
                     }
                     Spacer(Modifier.width(12.dp))
                     GlassIconBtn(onClick = { onOrientationChange(!isPortrait) }) {
                         Icon(
                             if (isPortrait) Icons.Default.StayCurrentLandscape else Icons.Default.StayCurrentPortrait,
-                            null, tint = Color.White, modifier = Modifier.size(20.dp)
+                            null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp)
                         )
                     }
                     Spacer(Modifier.width(12.dp))
                     GlassIconBtn(onClick = { isControlsVisible = false }) {
-                        Icon(Icons.Default.Visibility, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Visibility, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                     }
                 }
 
@@ -241,8 +238,8 @@ fun WallpaperPreviewOverlay(
                             modifier = Modifier
                                 .width(48.dp)
                                 .clip(CircleShape)
-                                .background(SidebarBg)
-                                .border(0.5.dp, GlassBorder, CircleShape)
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+                                .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
                                 .padding(vertical = 12.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
@@ -258,15 +255,16 @@ fun WallpaperPreviewOverlay(
                                     modifier = Modifier
                                         .size(38.dp)
                                         .clip(CircleShape)
-                                        .background(if (isSel) Color.White else Color.Transparent)
+                                        .background(if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent)
                                         .clickable { Haptics.light(view); selectedGradient = type },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = type.name.take(1),
-                                        color = if (isSel) Color.Black else Color.White.copy(alpha = 0.6f),
+                                        color = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                         fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 15.sp
+                                        fontSize = 15.sp,
+                                        style = MaterialTheme.typography.labelLarge
                                     )
                                 }
                             }
@@ -292,8 +290,8 @@ fun WallpaperPreviewOverlay(
                             .padding(end = 12.dp)
                             .width(48.dp)
                             .clip(CircleShape)
-                            .background(SidebarBg)
-                            .border(0.5.dp, GlassBorder, CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+                            .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
                             .padding(vertical = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -303,15 +301,16 @@ fun WallpaperPreviewOverlay(
                                 .width(42.dp)
                                 .height(30.dp)
                                 .clip(CircleShape)
-                                .background(if (isLiveEnabled) Color.White else Color.Transparent)
+                                .background(if (isLiveEnabled) MaterialTheme.colorScheme.primary else Color.Transparent)
                                 .clickable { isLiveEnabled = !isLiveEnabled; Haptics.light(view) },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 "LIVE",
-                                color = if (isLiveEnabled) Color.Black else Color.White.copy(alpha = 0.8f),
+                                color = if (isLiveEnabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                                 fontSize = 10.sp,
-                                fontWeight = FontWeight.Black
+                                fontWeight = FontWeight.Black,
+                                style = MaterialTheme.typography.labelSmall
                             )
                         }
 
@@ -339,9 +338,9 @@ fun WallpaperPreviewOverlay(
                                         .requiredWidth(sideBarHeight - 60.dp)
                                         .requiredHeight(48.dp),
                                     colors = SliderDefaults.colors(
-                                        thumbColor = Color.White,
-                                        activeTrackColor = Color.White,
-                                        inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                                        thumbColor = MaterialTheme.colorScheme.primary,
+                                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                                        inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                                     )
                                 )
                             }
@@ -395,7 +394,7 @@ fun WallpaperPreviewOverlay(
                     .padding(16.dp)
             ) {
                 GlassIconBtn(onClick = { isControlsVisible = true }) {
-                    Icon(Icons.Default.VisibilityOff, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.VisibilityOff, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -426,8 +425,8 @@ private fun GlassIconBtn(onClick: () -> Unit, content: @Composable () -> Unit) {
         modifier = Modifier
             .size(42.dp)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.3f))
-            .border(0.5.dp, GlassBorder, CircleShape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+            .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) { content() }
@@ -441,13 +440,13 @@ private fun EffectTab(label: String, selected: Boolean, applied: Boolean, onClic
             .clip(CircleShape)
             .background(
                 when {
-                    selected -> TabActiveBg
-                    applied -> Color.White.copy(alpha = 0.15f)
-                    else -> Color.White.copy(alpha = 0.05f)
+                    selected -> MaterialTheme.colorScheme.primary
+                    applied -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 }
             )
             .then(
-                if (applied && !selected) Modifier.border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                if (applied && !selected) Modifier.border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape)
                 else Modifier
             )
             .clickable { onClick() }
@@ -456,13 +455,14 @@ private fun EffectTab(label: String, selected: Boolean, applied: Boolean, onClic
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             if (applied) {
-                Box(Modifier.size(4.dp).clip(CircleShape).background(if (selected) Color.Black else Color.White))
+                Box(Modifier.size(4.dp).clip(CircleShape).background(if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary))
             }
             Text(
                 label,
-                color = if (selected) Color.Black else Color.White.copy(alpha = if (applied) 1f else 0.5f),
+                color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = if (applied) 1f else 0.5f),
                 fontSize = 12.sp,
-                fontWeight = if (selected || applied) FontWeight.Bold else FontWeight.Medium
+                fontWeight = if (selected || applied) FontWeight.Bold else FontWeight.Medium,
+                style = MaterialTheme.typography.labelMedium
             )
         }
     }
@@ -479,8 +479,8 @@ private fun EffectsConfigCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(32.dp))
-            .background(GlassBg)
-            .border(0.5.dp, GlassBorder, RoundedCornerShape(32.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+            .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(32.dp))
             .padding(16.dp)
     ) {
         // Tabs for Effects
@@ -530,7 +530,10 @@ private fun ApplyButton(
             .height(64.dp)
             .padding(bottom = 4.dp),
         shape = CircleShape,
-        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
     ) {
         Icon(Icons.Default.Check, null, modifier = Modifier.size(24.dp))
@@ -539,7 +542,8 @@ private fun ApplyButton(
             if (isLiveEnabled) "Set as Live Wallpaper" else "Apply Wallpaper",
             fontWeight = FontWeight.ExtraBold,
             fontSize = 18.sp,
-            letterSpacing = 0.5.sp
+            letterSpacing = 0.5.sp,
+            style = MaterialTheme.typography.titleLarge
         )
     }
 }
@@ -551,8 +555,8 @@ private fun VerticalAngleSlider(angle: Float, height: androidx.compose.ui.unit.D
             .width(48.dp)
             .height(height)
             .clip(CircleShape)
-            .background(SidebarBg)
-            .border(0.5.dp, GlassBorder, CircleShape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+            .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
             .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -567,7 +571,7 @@ private fun VerticalAngleSlider(angle: Float, height: androidx.compose.ui.unit.D
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 repeat(3) {
-                    Box(Modifier.size(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
+                    Box(Modifier.size(4.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)))
                 }
             }
 
@@ -583,17 +587,18 @@ private fun VerticalAngleSlider(angle: Float, height: androidx.compose.ui.unit.D
                     .requiredWidth(height - 60.dp)
                     .requiredHeight(48.dp),
                 colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
-                    activeTrackColor = Color.White,
-                    inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                 )
             )
         }
         Text(
             text = "${angle.toInt()}°",
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 11.sp,
-            fontWeight = FontWeight.Black
+            fontWeight = FontWeight.Black,
+            style = MaterialTheme.typography.labelSmall
         )
     }
 }
@@ -604,17 +609,18 @@ private fun EffectControls(alpha: Float, onAlpha: (Float) -> Unit) {
         Slider(
             value = alpha, onValueChange = onAlpha, modifier = Modifier.weight(1f),
             colors = SliderDefaults.colors(
-                thumbColor = Color.White,
-                activeTrackColor = Color.White,
-                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
             )
         )
         Text(
             "${(alpha * 100).toInt()}%",
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 12.sp,
             fontWeight = FontWeight.Black,
-            modifier = Modifier.width(36.dp)
+            modifier = Modifier.width(36.dp),
+            style = MaterialTheme.typography.labelLarge
         )
     }
 }
