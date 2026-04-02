@@ -111,10 +111,15 @@ fun PreviewWallpaperRender(
                         if (addNoise && noiseAlpha > 0f) {
                             val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
                             val numPoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                            
+                            // Seed Random with angleDeg to synchronize snow speed with live speed
+                            val seed = (angleDeg * 2f).toLong()
+                            val rnd = Random(seed)
+                            
                             repeat(numPoints) {
-                                val x = Random.nextFloat() * size.width
-                                val y = Random.nextFloat() * size.height
-                                val a = (Random.nextFloat() * 0.15f) * noiseAlpha
+                                val x = rnd.nextFloat() * size.width
+                                val y = rnd.nextFloat() * size.height
+                                val a = (rnd.nextFloat() * 0.15f) * noiseAlpha
                                 drawCircle(Color.White.copy(alpha = a), radius = noiseSize, center = Offset(x, y))
                             }
                         }
@@ -168,10 +173,15 @@ fun PreviewWallpaperRender(
                             Canvas(modifier = Modifier.fillMaxSize()) {
                                 val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
                                 val numPoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                                
+                                // Seed Random with angleDeg to synchronize snow speed with live speed
+                                val seed = (angleDeg * 2f).toLong()
+                                val rnd = Random(seed)
+                                
                                 repeat(numPoints) {
-                                    val x = Random.nextFloat() * size.width
-                                    val y = Random.nextFloat() * size.height
-                                    val a = (Random.nextFloat() * 0.15f) * noiseAlpha
+                                    val x = rnd.nextFloat() * size.width
+                                    val y = rnd.nextFloat() * size.height
+                                    val a = (rnd.nextFloat() * 0.15f) * noiseAlpha
                                     drawCircle(Color.White.copy(alpha = a), radius = noiseSize, center = Offset(x, y))
                                 }
                             }

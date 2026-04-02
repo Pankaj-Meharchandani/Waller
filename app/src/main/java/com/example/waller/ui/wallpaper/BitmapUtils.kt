@@ -180,7 +180,12 @@ fun drawWallpaperOnCanvas(
                 val numPoints = ((width.toLong() * height.toLong()) /
                         (noiseSizePx.toLong() * noiseSizePx.toLong()) * 0.02f)
                     .toInt().coerceAtLeast(200)
-                val rnd = Random(System.currentTimeMillis())
+
+                // Use angleDeg to seed the random number generator.
+                // This ensures snow speed scales with live animation speed.
+                val seed = (angleDeg * 2f).toLong()
+                val rnd = Random(seed)
+
                 repeat(numPoints) {
                     val x = rnd.nextFloat() * width
                     val y = rnd.nextFloat() * height
