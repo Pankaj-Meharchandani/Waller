@@ -182,8 +182,8 @@ fun drawWallpaperOnCanvas(
                     .toInt().coerceAtLeast(200)
 
                 // Use angleDeg to seed the random number generator.
-                // This ensures snow speed scales with live animation speed.
-                val seed = (angleDeg * 2f).toLong()
+                // Seed multiplier changed for separate animation speed.
+                val seed = (angleDeg * 5.7f).toLong()
                 val rnd = Random(seed)
 
                 repeat(numPoints) {
@@ -205,7 +205,11 @@ fun drawWallpaperOnCanvas(
                 val paintStripe = Paint().apply { isAntiAlias = true }
                 canvas.save()
                 canvas.rotate(-45f, cx, cy)
-                var x = -height.toFloat()
+                
+                // Smoothly looping stripe animation
+                val stripeOffset = (angleDeg / 360f) * (stripeSpacing * 5f)
+                var x = -height.toFloat() + stripeOffset
+                
                 while (x < width * 2f) {
                     paintStripe.shader = LinearGradient(
                         x, 0f, x + stripeWidth, 0f,
