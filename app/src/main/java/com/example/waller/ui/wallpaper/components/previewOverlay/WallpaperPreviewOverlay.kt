@@ -183,7 +183,13 @@ fun WallpaperPreviewOverlay(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                // If the screen is too short in portrait, shift the sidebars upward 
+                // to prevent them from overlapping with the bottom control card.
+                val sidebarVerticalOffset = if (isPortrait && maxHeight < 800.dp) {
+                    val shortfall = 800.dp - maxHeight
+                    -(shortfall / 2f).coerceAtMost(90.dp)
+                } else 0.dp
 
                 // --- Top Bar ---
                 Row(
@@ -224,6 +230,7 @@ fun WallpaperPreviewOverlay(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(top = if (isPortrait) 0.dp else 140.dp)
+                        .offset(y = sidebarVerticalOffset)
                 ) {
                     // Left Sidebar: Style & Angle
                     Row(
