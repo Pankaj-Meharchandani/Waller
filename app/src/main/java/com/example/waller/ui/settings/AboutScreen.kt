@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -78,7 +80,7 @@ fun AboutScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 80.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Row(
@@ -187,6 +189,41 @@ fun AboutScreen(
             }
         }
 
+        // Other Apps
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.about_other_apps_title),
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                OtherAppItem(
+                    icon = painterResource(id = R.drawable.lectro_icon),
+                    title = stringResource(id = R.string.about_app_lectro_name),
+                    description = stringResource(id = R.string.about_app_lectro_description),
+                    onClick = { openUrl("https://github.com/Pankaj-Meharchandani/Lectro") }
+                )
+
+                OtherAppItem(
+                    icon = painterResource(id = R.drawable.skreenup_icon),
+                    title = stringResource(id = R.string.about_app_skreenup_name),
+                    description = stringResource(id = R.string.about_app_skreenup_description),
+                    onClick = { openUrl("https://github.com/Pankaj-Meharchandani/Skreenup") }
+                )
+            }
+        }
+
         // Legal / actions
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -285,6 +322,56 @@ private fun LinkRow(
             imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun OtherAppItem(
+    icon: Painter,
+    title: String,
+    description: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            painter = icon,
+            contentDescription = null,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(10.dp))
+        )
+
+        Spacer(Modifier.width(12.dp))
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2
+            )
+        }
+
+        Icon(
+            imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.size(20.dp)
         )
     }
 }

@@ -108,6 +108,14 @@
     <string name="about_app_source_title">App source code</string>
     <string name="about_telegram_channel_title">Telegram channel</string>
     <string name="about_telegram_support_title">Support group</string>
+
+    <!-- Other Apps -->
+    <string name="about_other_apps_title">More from Developer</string>
+    <string name="about_app_lectro_name">Lectro</string>
+    <string name="about_app_lectro_description">Manage your class schedule, track attendance, and stay on top of assignments with this modern study companion.</string>
+    <string name="about_app_skreenup_name">Skreenup</string>
+    <string name="about_app_skreenup_description">Create stunning screenshot mockups with realistic device frames and beautiful backgrounds in seconds.</string>
+
     <string name="settings_default_wallpaper_tone">Default wallpaper tone</string>
     <string name="wallpaper_theme_neutral_tones">Neutral</string>
     <string name="nav_favourites">Favourites</string>
@@ -167,5 +175,13 @@
     <string name="share_svg_sublabel">Vector</string>
     <string name="share_css_label">CSS</string>
     <string name="share_css_sublabel">Web code</string>
+
+    <!-- Live Wallpaper -->
+    <string name="live_wallpaper_description">Animated gradient wallpapers by Waller.</string>
+    <string name="set_as_live_wallpaper">Set as Live Wallpaper</string>
+    <string name="live_wallpaper_label">Live</string>
+    <string name="live_wallpaper_speed">Animation Speed</string>
+    <string name="style_label">Styles</string>
+
 
 </resources>

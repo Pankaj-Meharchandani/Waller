@@ -21,17 +21,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -46,14 +39,11 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.waller.R
 import com.example.waller.ui.wallpaper.EffectMap
 import com.example.waller.ui.wallpaper.GradientType
 import com.example.waller.ui.wallpaper.Wallpaper
-import com.example.waller.ui.wallpaper.WallpaperEffects
 import com.example.waller.ui.wallpaper.alpha
 import com.example.waller.ui.wallpaper.isEnabled
 import kotlin.random.Random
@@ -111,10 +101,16 @@ fun PreviewWallpaperRender(
                         if (addNoise && noiseAlpha > 0f) {
                             val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
                             val numPoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                            
+                            // Seed Random with angleDeg to synchronize snow speed with live speed
+                            // Seed multiplier changed for separate animation speed.
+                            val seed = (angleDeg * 5.7f).toLong()
+                            val rnd = Random(seed)
+                            
                             repeat(numPoints) {
-                                val x = Random.nextFloat() * size.width
-                                val y = Random.nextFloat() * size.height
-                                val a = (Random.nextFloat() * 0.15f) * noiseAlpha
+                                val x = rnd.nextFloat() * size.width
+                                val y = rnd.nextFloat() * size.height
+                                val a = (rnd.nextFloat() * 0.15f) * noiseAlpha
                                 drawCircle(Color.White.copy(alpha = a), radius = noiseSize, center = Offset(x, y))
                             }
                         }
@@ -122,8 +118,12 @@ fun PreviewWallpaperRender(
                         if (addStripes && stripesAlpha > 0f) {
                             val stripeSpacing = size.width / 10f
                             val stripeWidth   = stripeSpacing * 0.65f
+                            
+                            // Smoothly looping stripe animation
+                            val stripeOffset = (angleDeg / 360f) * (stripeSpacing * 5f)
+                            
                             rotate(-45f, pivot = center) {
-                                var x = -size.height
+                                var x = -size.height + stripeOffset
                                 while (x < size.width * 2f) {
                                     drawRect(
                                         brush = Brush.horizontalGradient(
@@ -147,7 +147,9 @@ fun PreviewWallpaperRender(
                         Image(
                             painter = painterResource(id = R.drawable.overlay_stripes),
                             contentDescription = null,
-                            modifier = Modifier.fillMaxSize().graphicsLayer(alpha = overlayAlpha),
+                            modifier = Modifier.fillMaxSize().graphicsLayer {
+                                alpha = overlayAlpha
+                            },
                             contentScale = ContentScale.FillBounds
                         )
                     }
@@ -156,7 +158,9 @@ fun PreviewWallpaperRender(
                         Image(
                             painter = painterResource(id = R.drawable.overlay_geometric),
                             contentDescription = null,
-                            modifier = Modifier.fillMaxSize().graphicsLayer(alpha = geoAlpha),
+                            modifier = Modifier.fillMaxSize().graphicsLayer {
+                                alpha = geoAlpha
+                            },
                             contentScale = ContentScale.FillWidth
                         )
                     }
@@ -168,10 +172,16 @@ fun PreviewWallpaperRender(
                             Canvas(modifier = Modifier.fillMaxSize()) {
                                 val noiseSize = 1.dp.toPx().coerceAtLeast(1f)
                                 val numPoints = (size.width * size.height / (noiseSize * noiseSize) * 0.02f).toInt()
+                                
+                                // Seed Random with angleDeg to synchronize snow speed with live speed
+                                // Seed multiplier changed for separate animation speed.
+                                val seed = (angleDeg * 5.7f).toLong()
+                                val rnd = Random(seed)
+                                
                                 repeat(numPoints) {
-                                    val x = Random.nextFloat() * size.width
-                                    val y = Random.nextFloat() * size.height
-                                    val a = (Random.nextFloat() * 0.15f) * noiseAlpha
+                                    val x = rnd.nextFloat() * size.width
+                                    val y = rnd.nextFloat() * size.height
+                                    val a = (rnd.nextFloat() * 0.15f) * noiseAlpha
                                     drawCircle(Color.White.copy(alpha = a), radius = noiseSize, center = Offset(x, y))
                                 }
                             }
@@ -181,8 +191,12 @@ fun PreviewWallpaperRender(
                             Canvas(modifier = Modifier.fillMaxSize()) {
                                 val stripeSpacing = size.width / 10f
                                 val stripeWidth   = stripeSpacing * 0.65f
+                                
+                                // Smoothly looping stripe animation
+                                val stripeOffset = (angleDeg / 360f) * (stripeSpacing * 5f)
+                                
                                 rotate(-45f, pivot = center) {
-                                    var x = -size.height
+                                    var x = -size.height + stripeOffset
                                     while (x < size.width * 2f) {
                                         drawRect(
                                             brush = Brush.horizontalGradient(
@@ -206,7 +220,9 @@ fun PreviewWallpaperRender(
                             Image(
                                 painter = painterResource(id = R.drawable.overlay_stripes),
                                 contentDescription = null,
-                                modifier = Modifier.fillMaxSize().graphicsLayer(alpha = overlayAlpha),
+                                modifier = Modifier.fillMaxSize().graphicsLayer {
+                                    alpha = overlayAlpha
+                                },
                                 contentScale = ContentScale.FillBounds
                             )
                         }
@@ -215,49 +231,13 @@ fun PreviewWallpaperRender(
                             Image(
                                 painter = painterResource(id = R.drawable.overlay_geometric),
                                 contentDescription = null,
-                                modifier = Modifier.fillMaxSize().graphicsLayer(alpha = geoAlpha),
+                                modifier = Modifier.fillMaxSize().graphicsLayer {
+                                    alpha = geoAlpha
+                                },
                                 contentScale = ContentScale.FillWidth
                             )
                         }
                     }
-                }
-            }
-        }
-
-        // Bottom tag — outside blur layer so it stays sharp
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(10.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color.Black.copy(alpha = 0.70f), Color.Black.copy(alpha = 0.80f))
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (showTypeLabel) {
-                    Text(
-                        text = previewType.name.lowercase().replaceFirstChar { it.uppercase() },
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.2.sp
-                    )
-                    Spacer(Modifier.width(8.dp))
-                }
-
-                wallpaper.colors.forEachIndexed { index, color ->
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(color)
-                    )
-                    if (index != wallpaper.colors.lastIndex) Spacer(Modifier.width(5.dp))
                 }
             }
         }

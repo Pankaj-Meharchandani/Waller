@@ -358,6 +358,7 @@ fun WallpaperGeneratorScreen(
         WallpaperPreviewOverlay(
             wallpaper       = preview,
             isPortrait      = isPortrait,
+            onOrientationChange = onOrientationChange,
             isFavorite      = favouriteWallpapers.any { it.wallpaper == preview },
             initialEffects  = effects,
             onFavoriteToggle = { w, fx -> onToggleFavourite(w, fx) },

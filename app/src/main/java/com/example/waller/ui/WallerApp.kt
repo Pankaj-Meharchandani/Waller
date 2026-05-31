@@ -450,6 +450,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             favourites          = favouriteWallpapers,
                             isPortrait          = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortraitState.value = it },
+                            onPreviewVisibilityChanged = { isPreviewOpen = it },
                             onRemoveFavourite   = { removeFavourite(it) },
                             onAddFavourite      = { addFavouriteDirect(it) },
                             onAddFavourites     = { addFavouritesBatch(it) },
