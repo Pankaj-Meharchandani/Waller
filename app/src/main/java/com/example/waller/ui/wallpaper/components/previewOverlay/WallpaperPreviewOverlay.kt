@@ -64,6 +64,7 @@ import com.example.waller.ui.wallfile.toWallFavorite
 import com.example.waller.ui.wallpaper.LiveWallpaperService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.json.Json
+import androidx.core.content.edit
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 // No hardcoded colors — using MaterialTheme.colorScheme
@@ -330,7 +331,7 @@ fun WallpaperPreviewOverlay(
                                     onValueChange = { 
                                         liveSpeed = it
                                         // Save speed immediately so applied live wallpaper reacts in real-time
-                                        prefs.edit().putFloat("live_wallpaper_speed", it).apply()
+                                        prefs.edit { putFloat("live_wallpaper_speed", it) }
                                     },
                                     enabled = isLiveEnabled,
                                     valueRange = 0.01f..0.2f,
@@ -373,8 +374,13 @@ fun WallpaperPreviewOverlay(
                             Haptics.confirm(view)
                             if (isLiveEnabled) {
                                 val fav = FavoriteWallpaper(previewWallpaper, localEffects)
-                                prefs.edit().putString("live_wallpaper_config", Json.encodeToString(fav.toWallFavorite()))
-                                    .putFloat("live_wallpaper_speed", liveSpeed).apply()
+                                prefs.edit {
+                                    putString(
+                                        "live_wallpaper_config",
+                                        Json.encodeToString(fav.toWallFavorite())
+                                    )
+                                        .putFloat("live_wallpaper_speed", liveSpeed)
+                                }
                                 val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
                                     putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT, ComponentName(context, LiveWallpaperService::class.java))
                                 }
