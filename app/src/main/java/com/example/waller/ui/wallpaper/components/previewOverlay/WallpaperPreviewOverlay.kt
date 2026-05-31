@@ -31,13 +31,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.StayCurrentLandscape
-import androidx.compose.material.icons.filled.StayCurrentPortrait
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -248,15 +243,17 @@ fun WallpaperPreviewOverlay(
                                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
                                 .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
                                 .padding(vertical = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+                            Text("TYPE", style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                            Spacer(Modifier.height(2.dp))
                             listOf(
-                                GradientType.Linear,
-                                GradientType.Radial,
-                                GradientType.Angular,
-                                GradientType.Diamond
-                            ).forEach { type ->
+                                GradientType.Linear to Icons.Default.LinearScale,
+                                GradientType.Radial to Icons.Default.RadioButtonChecked,
+                                GradientType.Angular to Icons.Default.DonutLarge,
+                                GradientType.Diamond to Icons.Default.Diamond
+                            ).forEach { (type, icon) ->
                                 val isSel = selectedGradient == type
                                 Box(
                                     modifier = Modifier
@@ -266,12 +263,11 @@ fun WallpaperPreviewOverlay(
                                         .clickable { Haptics.light(view); selectedGradient = type },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = type.name.take(1),
-                                        color = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 15.sp,
-                                        style = MaterialTheme.typography.labelLarge
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = type.name,
+                                        tint = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
@@ -300,31 +296,32 @@ fun WallpaperPreviewOverlay(
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
                             .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
                             .padding(vertical = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        Text("LIVE", style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                        Spacer(Modifier.height(12.dp))
                         Box(
                             modifier = Modifier
-                                .width(42.dp)
-                                .height(30.dp)
+                                .size(38.dp)
                                 .clip(CircleShape)
                                 .background(if (isLiveEnabled) MaterialTheme.colorScheme.primary else Color.Transparent)
                                 .clickable { isLiveEnabled = !isLiveEnabled; Haptics.light(view) },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                "LIVE",
-                                color = if (isLiveEnabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                style = MaterialTheme.typography.labelSmall
+                            Icon(
+                                if (isLiveEnabled) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                null,
+                                tint = if (isLiveEnabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                modifier = Modifier.size(20.dp)
                             )
                         }
 
                         if (isLiveEnabled) {
+                            Spacer(Modifier.height(16.dp))
+                            Text("SPEED", style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
                             Box(
                                 modifier = Modifier
-                                    .height(sideBarHeight - 60.dp)
+                                    .height(sideBarHeight - 120.dp)
                                     .fillMaxWidth(),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -342,7 +339,7 @@ fun WallpaperPreviewOverlay(
                                             rotationZ = -90f
                                             transformOrigin = TransformOrigin.Center
                                         }
-                                        .requiredWidth(sideBarHeight - 60.dp)
+                                        .requiredWidth(sideBarHeight - 120.dp)
                                         .requiredHeight(48.dp),
                                     colors = SliderDefaults.colors(
                                         thumbColor = MaterialTheme.colorScheme.primary,
@@ -567,13 +564,15 @@ private fun VerticalAngleSlider(angle: Float, height: androidx.compose.ui.unit.D
             .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Text("ANGLE", style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+        Spacer(Modifier.height(8.dp))
         Box(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             // Track background dots for snapped angles (90, 180, 270)
             Column(
-                modifier = Modifier.height(height - 60.dp),
+                modifier = Modifier.height(height - 100.dp),
                 verticalArrangement = Arrangement.SpaceEvenly,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -591,7 +590,7 @@ private fun VerticalAngleSlider(angle: Float, height: androidx.compose.ui.unit.D
                         rotationZ = -90f
                         transformOrigin = TransformOrigin.Center
                     }
-                    .requiredWidth(height - 60.dp)
+                    .requiredWidth(height - 100.dp)
                     .requiredHeight(48.dp),
                 colors = SliderDefaults.colors(
                     thumbColor = MaterialTheme.colorScheme.primary,
@@ -600,6 +599,7 @@ private fun VerticalAngleSlider(angle: Float, height: androidx.compose.ui.unit.D
                 )
             )
         }
+        Spacer(Modifier.height(4.dp))
         Text(
             text = "${angle.toInt()}°",
             color = MaterialTheme.colorScheme.onSurface,
