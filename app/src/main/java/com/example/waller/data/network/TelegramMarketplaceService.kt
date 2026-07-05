@@ -3,7 +3,6 @@ package com.example.waller.data.network
 import android.graphics.Bitmap
 import com.example.waller.BuildConfig
 import com.example.waller.ui.wallfile.WallFile
-import com.example.waller.ui.wallfile.WallFavorite
 import com.example.waller.ui.wallpaper.FavoriteWallpaper
 import com.example.waller.ui.wallfile.toFavoriteWallpaper
 import com.example.waller.ui.wallfile.toWallFavorite
@@ -18,7 +17,6 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
-import java.io.File
 
 @Serializable
 private data class TelegramResponse<T>(
@@ -30,20 +28,7 @@ private data class TelegramResponse<T>(
 @Serializable
 private data class TelegramMessage(
     val message_id: Long,
-    val document: TelegramDocument? = null,
     val text: String? = null
-)
-
-@Serializable
-private data class TelegramDocument(
-    val file_id: String,
-    val file_name: String? = null
-)
-
-@Serializable
-private data class TelegramFile(
-    val file_id: String,
-    val file_path: String? = null
 )
 
 object TelegramMarketplaceService {
@@ -64,6 +49,7 @@ object TelegramMarketplaceService {
 
     /**
      * Uploads a wallpaper to the Telegram channel with a preview image.
+     * The wallpaper data is encoded into the photo's caption.
      */
     suspend fun uploadWallpaper(fav: FavoriteWallpaper, previewBitmap: Bitmap): Result<Long> {
         return try {
@@ -75,7 +61,7 @@ object TelegramMarketplaceService {
             previewBitmap.compress(Bitmap.CompressFormat.JPEG, 80, stream)
             val previewBytes = stream.toByteArray()
 
-            // 2. Send Photo first
+            // 2. Send Photo with metadata in caption
             val photoResponse: TelegramResponse<TelegramMessage> = client.submitFormWithBinaryData(
                 url = "$BASE_URL/sendPhoto",
                 formData = formData {
@@ -84,28 +70,14 @@ object TelegramMarketplaceService {
                         append(HttpHeaders.ContentDisposition, "filename=\"preview.jpg\"")
                         append(HttpHeaders.ContentType, "image/jpeg")
                     })
-                    append("caption", "New wallpaper from Waller!")
+                    append("caption", "[WallerData]\n$jsonString")
                 }
             ).body()
 
-            if (!photoResponse.ok) return Result.failure(Exception(photoResponse.description))
-
-            // 3. Send Document (the .wall file)
-            val docResponse: TelegramResponse<TelegramMessage> = client.submitFormWithBinaryData(
-                url = "$BASE_URL/sendDocument",
-                formData = formData {
-                    append("chat_id", CHANNEL_ID)
-                    append("document", jsonString.toByteArray(), Headers.build {
-                        append(HttpHeaders.ContentDisposition, "filename=\"waller_${System.currentTimeMillis()}.wall\"")
-                        append(HttpHeaders.ContentType, "application/json")
-                    })
-                }
-            ).body()
-
-            if (docResponse.ok && docResponse.result != null) {
-                Result.success(docResponse.result.message_id)
+            if (photoResponse.ok && photoResponse.result != null) {
+                Result.success(photoResponse.result.message_id)
             } else {
-                Result.failure(Exception(docResponse.description ?: "Unknown error"))
+                Result.failure(Exception(photoResponse.description ?: "Unknown error"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -113,34 +85,7 @@ object TelegramMarketplaceService {
     }
 
     /**
-     * Downloads a file from Telegram given its file_id.
-     */
-    suspend fun downloadWallFile(fileId: String): Result<FavoriteWallpaper> {
-        return try {
-            // 1. Get file path from Telegram
-            val fileInfoResponse: TelegramResponse<TelegramFile> = client.get("$BASE_URL/getFile") {
-                parameter("file_id", fileId)
-            }.body()
-
-            val filePath = fileInfoResponse.result?.file_path
-                ?: return Result.failure(Exception("Could not get file path"))
-
-            // 2. Download the actual file
-            val fileUrl = "https://api.telegram.org/file/bot$BOT_TOKEN/$filePath"
-            val jsonString = client.get(fileUrl).body<String>()
-
-            val wallFile = json.decodeFromString(WallFile.serializer(), jsonString)
-            val fav = wallFile.walls.firstOrNull()?.toFavoriteWallpaper()
-                ?: return Result.failure(Exception("Empty wall file"))
-
-            Result.success(fav)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    /**
-     * Downloads a wallpaper from a direct URL.
+     * Downloads a wallpaper from a direct URL (if needed for backward compatibility).
      */
     suspend fun downloadFromUrl(url: String): Result<FavoriteWallpaper> {
         return try {

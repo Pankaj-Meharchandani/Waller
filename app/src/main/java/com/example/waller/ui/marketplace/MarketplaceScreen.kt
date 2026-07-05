@@ -76,20 +76,19 @@ fun MarketplaceScreen(
                         onClick = {
                             if (downloadingItem == null) {
                                 Haptics.confirm(view)
-                                downloadingItem = item.messageId
-                                scope.launch {
-                                    // Hack: The scraper gives us a direct URL to the .wall file on Telegram's servers if possible,
-                                    // but usually t.me/s/ links are to the post.
-                                    // For now, we'll try to use TelegramMarketplaceService.downloadWallFile if we had fileId.
-                                    // Since we only have the URL from scraping, we'll download it directly.
-                                    
-                                    val result = TelegramMarketplaceService.downloadFromUrl(item.wallFileUrl)
-                                    downloadingItem = null
-                                    
-                                    if (result.isSuccess) {
-                                        onWallpaperSelected(result.getOrThrow())
-                                    } else {
-                                        android.widget.Toast.makeText(context, "Download failed", android.widget.Toast.LENGTH_SHORT).show()
+                                if (item.wallpaper != null) {
+                                    onWallpaperSelected(item.wallpaper)
+                                } else if (item.wallFileUrl.isNotEmpty()) {
+                                    // Fallback for older items with separate file uploads
+                                    downloadingItem = item.messageId
+                                    scope.launch {
+                                        val result = TelegramMarketplaceService.downloadFromUrl(item.wallFileUrl)
+                                        downloadingItem = null
+                                        if (result.isSuccess) {
+                                            onWallpaperSelected(result.getOrThrow())
+                                        } else {
+                                            android.widget.Toast.makeText(context, "Download failed", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                 }
                             }
