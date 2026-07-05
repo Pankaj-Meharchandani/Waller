@@ -183,5 +183,11 @@
     <string name="live_wallpaper_speed">Animation Speed</string>
     <string name="style_label">Styles</string>
 
-
+    <!-- Marketplace -->
+    <string name="nav_market">Market</string>
+    <string name="share_to_market">Marketplace</string>
+    <string name="share_to_market_subtitle">Publish to community gallery</string>
+    <string name="publish_success">Published to Marketplace!</string>
+    <string name="publish_failed">Failed to publish</string>
+    <string name="market_empty">No wallpapers found in the marketplace.</string>
 </resources>

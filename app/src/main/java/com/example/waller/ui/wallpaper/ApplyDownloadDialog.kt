@@ -20,6 +20,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Share
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.waller.R
+import com.example.waller.data.network.TelegramMarketplaceService
 import com.example.waller.ui.wallfile.WallFileManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -350,6 +352,55 @@ fun ApplyDownloadDialog(
                                 )
                                 Text(
                                     text = stringResource(R.string.share_png_subtitle),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+
+                    // ── Marketplace: Upload ──
+                    FilledTonalButton(
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        onClick = {
+                            showShareOptions = false
+                            onWorkingChange(true)
+                            coroutineScope.launch(Dispatchers.IO) {
+                                val fav = FavoriteWallpaper(wallpaper, effects)
+                                // Generate a small preview for the marketplace
+                                val previewBmp = createGradientBitmap(context, wallpaper, isPortrait, effects)
+                                
+                                val result = TelegramMarketplaceService.uploadWallpaper(fav, previewBmp)
+                                withContext(Dispatchers.Main) {
+                                    onWorkingChange(false)
+                                    if (result.isSuccess) {
+                                        Toast.makeText(context, context.getString(R.string.publish_success), Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "${context.getString(R.string.publish_failed)}: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudUpload,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.share_to_market),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = stringResource(R.string.share_to_market_subtitle),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Normal,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)

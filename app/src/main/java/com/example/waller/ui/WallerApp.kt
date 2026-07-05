@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import com.example.waller.R
+import com.example.waller.ui.marketplace.MarketplaceScreen
 import com.example.waller.ui.onboarding.ModePickerDialog
 import com.example.waller.ui.onboarding.UpdateAvailableDialog
 import com.example.waller.ui.onboarding.UpdateChecker
@@ -58,7 +59,7 @@ import com.example.waller.ui.wallpaper.components.FloatingNavItem
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
+private enum class RootScreen { HOME, FAVOURITES, MARKET, SETTINGS, ABOUT }
 
 private const val FAVOURITES_KEY              = "favourites_v2"
 private const val FAVOURITES_KEY_LEGACY       = "favourites_v1"
@@ -376,6 +377,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
     val selectedForNav = when (currentScreen) {
         RootScreen.HOME      -> RootScreen.HOME
         RootScreen.FAVOURITES -> RootScreen.FAVOURITES
+        RootScreen.MARKET -> RootScreen.MARKET
         RootScreen.SETTINGS, RootScreen.ABOUT -> RootScreen.SETTINGS
     }
 
@@ -384,6 +386,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
             RootScreen.ABOUT      -> RootScreen.SETTINGS
             RootScreen.SETTINGS   -> RootScreen.HOME
             RootScreen.FAVOURITES -> RootScreen.HOME
+            RootScreen.MARKET     -> RootScreen.HOME
             RootScreen.HOME       -> RootScreen.HOME
         }
     }
@@ -458,6 +461,16 @@ fun WallerApp(openedWallUri: Uri? = null) {
                         )
                     }
 
+                    RootScreen.MARKET -> {
+                        MarketplaceScreen(
+                            modifier = Modifier.padding(innerPadding),
+                            onWallpaperSelected = { fav ->
+                                addFavouriteDirect(fav)
+                                currentScreen = RootScreen.FAVOURITES
+                            }
+                        )
+                    }
+
                     RootScreen.SETTINGS -> {
                         SettingsScreen(
                             modifier = Modifier.padding(innerPadding),
@@ -500,12 +513,14 @@ fun WallerApp(openedWallUri: Uri? = null) {
                         selectedItem = when (selectedForNav) {
                             RootScreen.HOME       -> FloatingNavItem.HOME
                             RootScreen.FAVOURITES -> FloatingNavItem.FAVOURITES
+                            RootScreen.MARKET     -> FloatingNavItem.MARKET
                             else                  -> FloatingNavItem.SETTINGS
                         },
                         onItemSelected = { item ->
                             currentScreen = when (item) {
                                 FloatingNavItem.HOME       -> RootScreen.HOME
                                 FloatingNavItem.FAVOURITES -> RootScreen.FAVOURITES
+                                FloatingNavItem.MARKET     -> RootScreen.MARKET
                                 FloatingNavItem.SETTINGS   -> RootScreen.SETTINGS
                             }
                         },

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -46,7 +47,7 @@ import androidx.compose.ui.unit.sp
 import com.example.waller.ui.wallpaper.Haptics
 
 enum class FloatingNavItem {
-    HOME, FAVOURITES, SETTINGS
+    HOME, FAVOURITES, MARKET, SETTINGS
 }
 private val MicroTween = tween<Float>(
     durationMillis = 60,
@@ -169,6 +170,17 @@ fun FloatingNavBar(
                 selected = selectedItem == FloatingNavItem.FAVOURITES,
                 onClick = {
                     onItemSelected(FloatingNavItem.FAVOURITES)
+                    Haptics.confirm(view)
+                },
+                primary = primary,
+                isDark = isDark
+            )
+            NavItem(
+                label = "Market",
+                icon = Icons.Default.Language,
+                selected = selectedItem == FloatingNavItem.MARKET,
+                onClick = {
+                    onItemSelected(FloatingNavItem.MARKET)
                     Haptics.confirm(view)
                 },
                 primary = primary,
