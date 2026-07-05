@@ -78,9 +78,20 @@ fun MarketplaceScreen(
                     isAppDarkMode = isAppDarkMode,
                     showOrientationToggle = true,
                     isPortrait = isPortrait,
-                    onOrientationChange = onOrientationChange,
-                    title = stringResource(R.string.market_title)
+                    onOrientationChange = onOrientationChange
                 )
+            }
+
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(spanCount) }) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.market_title),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             }
 
             if (items.isEmpty() && !isLoading) {

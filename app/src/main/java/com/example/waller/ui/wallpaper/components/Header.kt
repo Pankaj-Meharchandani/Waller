@@ -47,9 +47,7 @@ fun Header(
     isAppDarkMode: Boolean,             // kept for backwards compatibility (unused)
     showOrientationToggle: Boolean = false,
     isPortrait: Boolean = true,
-    onOrientationChange: (Boolean) -> Unit = {},
-    title: String? = null,
-    subtitle: String? = null
+    onOrientationChange: (Boolean) -> Unit = {}
 ) {
     val chipSize = 42.dp
     val chipShape = RoundedCornerShape(12.dp)
@@ -85,11 +83,11 @@ fun Header(
 
         Column (modifier = Modifier.weight(4f) ) {
             Text(
-                text = title ?: stringResource(id = R.string.app_name),
+                text = stringResource(id = R.string.app_name),
                 style = MaterialTheme.typography.headlineSmall
             )
             Text(
-                text = subtitle ?: stringResource(id = R.string.header_subtitle),
+                text = stringResource(id = R.string.header_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
