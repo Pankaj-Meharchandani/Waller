@@ -464,6 +464,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
                     RootScreen.MARKET -> {
                         MarketplaceScreen(
                             modifier = Modifier.padding(innerPadding),
+                            favouriteWallpapers = favouriteWallpapers,
                             onWallpaperSelected = { fav ->
                                 addFavouriteDirect(fav)
                                 currentScreen = RootScreen.FAVOURITES

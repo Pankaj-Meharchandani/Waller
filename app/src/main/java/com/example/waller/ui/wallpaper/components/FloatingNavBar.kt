@@ -44,6 +44,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.waller.R
 import com.example.waller.ui.wallpaper.Haptics
 
 enum class FloatingNavItem {
@@ -176,7 +178,7 @@ fun FloatingNavBar(
                 isDark = isDark
             )
             NavItem(
-                label = "Market",
+                label = stringResource(R.string.nav_market),
                 icon = Icons.Default.Language,
                 selected = selectedItem == FloatingNavItem.MARKET,
                 onClick = {
