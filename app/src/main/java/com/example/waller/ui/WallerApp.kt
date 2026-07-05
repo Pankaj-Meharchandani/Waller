@@ -247,9 +247,13 @@ fun WallerApp(openedWallUri: Uri? = null) {
     val enableNothingState   = remember { mutableStateOf(prefs.getBoolean("default_enable_nothing", false)) }
     val enableSnowState      = remember { mutableStateOf(prefs.getBoolean("default_enable_snow", false)) }
     val enableStripesState   = remember { mutableStateOf(prefs.getBoolean("default_enable_stripes", false)) }
+    val enableGeometricState = remember { mutableStateOf(prefs.getBoolean("default_enable_geometric", false)) }
+    val enableBlurState      = remember { mutableStateOf(prefs.getBoolean("default_enable_blur", false)) }
     var enableNothingByDefault   by enableNothingState
     var enableSnowByDefault      by enableSnowState
     var enableStripesByDefault   by enableStripesState
+    var enableGeometricByDefault by enableGeometricState
+    var enableBlurByDefault      by enableBlurState
 
     // ── Tone / multicolor defaults ────────────────────────────────────────────
     val defaultToneModeState = remember {
@@ -273,9 +277,11 @@ fun WallerApp(openedWallUri: Uri? = null) {
     val activeEffectsState = remember {
         mutableStateOf(
             WallpaperEffects.defaultMap()
-                .withEnabled("noise",   enableSnowState.value)
-                .withEnabled("stripes", enableStripesState.value)
-                .withEnabled("overlay", enableNothingState.value)
+                .withEnabled("overlay",   enableNothingState.value)
+                .withEnabled("noise",     enableSnowState.value)
+                .withEnabled("stripes",   enableStripesState.value)
+                .withEnabled("geometric", enableGeometricState.value)
+                .withEnabled("blur",      enableBlurState.value)
         )
     }
     var activeEffects by activeEffectsState
@@ -291,6 +297,21 @@ fun WallerApp(openedWallUri: Uri? = null) {
     fun updateEnableStripes(value: Boolean) {
         enableStripesState.value = value; prefs.edit { putBoolean("default_enable_stripes", value) }
         activeEffectsState.value = activeEffectsState.value.withEnabled("stripes", value)
+    }
+    fun updateEnableGeometric(value: Boolean) {
+        enableGeometricState.value = value; prefs.edit { putBoolean("default_enable_geometric", value) }
+        activeEffectsState.value = activeEffectsState.value.withEnabled("geometric", value)
+    }
+    fun updateEnableBlur(value: Boolean) {
+        enableBlurState.value = value; prefs.edit { putBoolean("default_enable_blur", value) }
+        activeEffectsState.value = activeEffectsState.value.withEnabled("blur", value)
+    }
+
+    fun clearCache() {
+        try {
+            context.cacheDir?.deleteRecursively()
+            android.widget.Toast.makeText(context, R.string.cache_cleared, android.widget.Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {}
     }
 
     // ── Home session state ────────────────────────────────────────────────────
@@ -511,6 +532,11 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             onEnableSnowByDefaultChange = { updateEnableSnow(it) },
                             enableStripesByDefault = enableStripesByDefault,
                             onEnableStripesByDefaultChange = { updateEnableStripes(it) },
+                            enableGeometricByDefault = enableGeometricByDefault,
+                            onEnableGeometricByDefaultChange = { updateEnableGeometric(it) },
+                            enableBlurByDefault = enableBlurByDefault,
+                            onEnableBlurByDefaultChange = { updateEnableBlur(it) },
+                            onClearCache = { clearCache() },
                             defaultToneMode = defaultToneMode,
                             onDefaultToneModeChange = { updateDefaultToneMode(it) },
                             defaultEnableMulticolor = enableMulticolorByDefault,

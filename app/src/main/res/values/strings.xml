@@ -77,6 +77,13 @@
     <string name="settings_enable_nothing">Enable Glass effect by default</string>
     <string name="settings_enable_snow">Enable Snow effect by default</string>
     <string name="settings_enable_stripes">Enable Refraction by default</string>
+    <string name="settings_enable_geometric">Enable Geometry by default</string>
+    <string name="settings_enable_blur">Enable Blur by default</string>
+
+    <string name="settings_section_maintenance">Maintenance</string>
+    <string name="settings_clear_cache">Clear cache</string>
+    <string name="settings_clear_cache_summary">Remove temporary images and files.</string>
+    <string name="cache_cleared">Cache cleared</string>
 
     <string name="settings_section_about">About</string>
     <string name="settings_about_summary">Learn more about Waller and the developer.</string>

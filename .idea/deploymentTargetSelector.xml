@@ -3,11 +3,11 @@
   <component name="deploymentTargetSelector">
     <selectionStates>
       <SelectionState runConfigName="app">
-        <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-04-02T06:25:12.681109400Z">
+        <option name="selectionMode" value="DIALOG" />
+        <DropdownSelection timestamp="2026-07-05T17:26:09.432289800Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\DELL\.android\avd\Essential_phone.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\pmeha\.android\avd\Essential.avd" />
             </handle>
           </Target>
         </DropdownSelection>
@@ -15,12 +15,12 @@
           <targets>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\DELL\.android\avd\Essential_phone.avd" />
+                <DeviceId pluginId="PhysicalDevice" identifier="serial=10BE6S1NYZ000AZ" />
               </handle>
             </Target>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="PhysicalDevice" identifier="serial=10BE6S1NYZ000AZ" />
+                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\pmeha\.android\avd\Essential.avd" />
               </handle>
             </Target>
           </targets>
