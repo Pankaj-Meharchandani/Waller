@@ -1,14 +1,10 @@
 package com.example.waller.ui.marketplace
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -16,7 +12,6 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.waller.R
@@ -32,10 +27,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun MarketplaceScreen(
     favouriteWallpapers: List<FavoriteWallpaper>,
-    onWallpaperSelected: (FavoriteWallpaper) -> Unit,
+    onToggleFavorite: (FavoriteWallpaper) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     val items = remember { mutableStateListOf<MarketplaceItem>() }
     var isLoading by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
@@ -107,16 +101,17 @@ fun MarketplaceScreen(
                                 effects = fav.effects,
                                 isPortrait = true,
                                 isFavorite = isFavorite,
-                                onFavoriteToggle = { _, _ -> }, // Not needed for market browse
+                                onFavoriteToggle = { _, _ -> 
+                                    Haptics.confirm(view)
+                                    onToggleFavorite(fav)
+                                },
                                 onClick = {
                                     Haptics.confirm(view)
-                                    onWallpaperSelected(fav)
-                                    Toast.makeText(context, context.getString(R.string.added_to_favourites), Toast.LENGTH_SHORT).show()
+                                    onToggleFavorite(fav)
                                 },
                                 onLongClick = {
                                     Haptics.confirm(view)
-                                    onWallpaperSelected(fav)
-                                    Toast.makeText(context, context.getString(R.string.added_to_favourites), Toast.LENGTH_SHORT).show()
+                                    onToggleFavorite(fav)
                                 }
                             )
                         }

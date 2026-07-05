@@ -191,4 +191,5 @@
     <string name="publish_failed">Failed to publish</string>
     <string name="market_empty">No wallpapers found in the market.</string>
     <string name="added_to_favourites">Added to favourites</string>
+    <string name="removed_from_favourites">Removed from favourites</string>
 </resources>

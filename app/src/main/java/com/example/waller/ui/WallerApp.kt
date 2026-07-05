@@ -465,9 +465,21 @@ fun WallerApp(openedWallUri: Uri? = null) {
                         MarketplaceScreen(
                             modifier = Modifier.padding(innerPadding),
                             favouriteWallpapers = favouriteWallpapers,
-                            onWallpaperSelected = { fav ->
-                                addFavouriteDirect(fav)
-                                currentScreen = RootScreen.FAVOURITES
+                            onToggleFavorite = { fav ->
+                                val existing = favouriteWallpapers.find {
+                                    it.wallpaper.type == fav.wallpaper.type &&
+                                            it.wallpaper.angleDeg.compareTo(fav.wallpaper.angleDeg) == 0 &&
+                                            it.wallpaper.colors.size == fav.wallpaper.colors.size &&
+                                            it.wallpaper.colors.zip(fav.wallpaper.colors).all { (x, y) -> x.toHexString() == y.toHexString() } &&
+                                            it.effects == fav.effects
+                                }
+                                if (existing != null) {
+                                    removeFavourite(existing)
+                                    android.widget.Toast.makeText(context, R.string.removed_from_favourites, android.widget.Toast.LENGTH_SHORT).show()
+                                } else {
+                                    addFavouriteDirect(fav)
+                                    android.widget.Toast.makeText(context, R.string.added_to_favourites, android.widget.Toast.LENGTH_SHORT).show()
+                                }
                             }
                         )
                     }
