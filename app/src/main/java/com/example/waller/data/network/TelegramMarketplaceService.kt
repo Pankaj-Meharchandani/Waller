@@ -1,6 +1,7 @@
 package com.example.waller.data.network
 
 import android.graphics.Bitmap
+import com.example.waller.BuildConfig
 import com.example.waller.ui.wallfile.WallFile
 import com.example.waller.ui.wallfile.WallFavorite
 import com.example.waller.ui.wallpaper.FavoriteWallpaper
@@ -46,9 +47,9 @@ private data class TelegramFile(
 )
 
 object TelegramMarketplaceService {
-    private const val BOT_TOKEN = "YOUR_BOT_TOKEN" // Placeholder
-    private const val CHANNEL_ID = "@YOUR_CHANNEL_ID" // Placeholder
-    private const val BASE_URL = "https://api.telegram.org/bot$BOT_TOKEN"
+    private val BOT_TOKEN = BuildConfig.TELEGRAM_BOT_TOKEN
+    private const val CHANNEL_ID = "@waller_wallpapers"
+    private val BASE_URL = "https://api.telegram.org/bot$BOT_TOKEN"
 
     private val json = Json {
         ignoreUnknownKeys = true

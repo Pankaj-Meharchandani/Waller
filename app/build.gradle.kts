@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -10,6 +12,12 @@ android {
         version = release(36)
     }
 
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(localPropertiesFile.inputStream())
+    }
+
     defaultConfig {
         applicationId = "com.example.waller"
         minSdk = 30
@@ -18,6 +26,12 @@ android {
         versionName = "2.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "TELEGRAM_BOT_TOKEN",
+            "\"${localProperties.getProperty("TELEGRAM_BOT_TOKEN") ?: ""}\""
+        )
     }
 
     buildTypes {
@@ -43,6 +57,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

@@ -16,7 +16,7 @@ data class MarketplaceItem(
 
 object TelegramScraper {
     private val client = HttpClient(OkHttp)
-    private const val CHANNEL_NAME = "waller_marketplace" // Change to your channel handle
+    private const val CHANNEL_NAME = "waller_wallpapers" 
 
     /**
      * Scrapes the public Telegram channel preview for marketplace items.
