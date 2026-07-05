@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -19,6 +17,7 @@ import com.example.waller.data.network.MarketplaceItem
 import com.example.waller.data.network.TelegramScraper
 import com.example.waller.ui.wallpaper.FavoriteWallpaper
 import com.example.waller.ui.wallpaper.Haptics
+import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
 import com.example.waller.ui.wallpaper.toHexString
 import kotlinx.coroutines.launch
@@ -28,6 +27,10 @@ import kotlinx.coroutines.launch
 fun MarketplaceScreen(
     favouriteWallpapers: List<FavoriteWallpaper>,
     onToggleFavorite: (FavoriteWallpaper) -> Unit,
+    isPortrait: Boolean,
+    onOrientationChange: (Boolean) -> Unit,
+    isAppDarkMode: Boolean,
+    onThemeChange: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val items = remember { mutableStateListOf<MarketplaceItem>() }
@@ -54,74 +57,75 @@ fun MarketplaceScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.nav_market)) },
-                actions = {
-                    IconButton(onClick = { loadItems(refresh = true) }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
-                    }
-                }
-            )
-        },
-        modifier = modifier
-    ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { loadItems(refresh = true) },
-            state = refreshState,
-            modifier = Modifier.padding(padding).fillMaxSize()
+    val spanCount = if (isPortrait) 2 else 1
+
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { loadItems(refresh = true) },
+        state = refreshState,
+        modifier = modifier.fillMaxSize()
+    ) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(spanCount),
+            contentPadding = PaddingValues(top = 12.dp, bottom = 12.dp + 96.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxSize()
         ) {
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(spanCount) }) {
+                Header(
+                    onThemeChange = onThemeChange,
+                    isAppDarkMode = isAppDarkMode,
+                    showOrientationToggle = true,
+                    isPortrait = isPortrait,
+                    onOrientationChange = onOrientationChange,
+                    title = stringResource(R.string.market_title)
+                )
+            }
+
             if (items.isEmpty() && !isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(R.string.market_empty))
+                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(spanCount) }) {
+                    Box(Modifier.fillMaxWidth().padding(top = 64.dp), contentAlignment = Alignment.Center) {
+                        Text(stringResource(R.string.market_empty))
+                    }
                 }
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(top = 12.dp, bottom = 12.dp + 96.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxSize()
-                ) {
-                    items(items) { item ->
-                        val fav = item.wallpaper
-                        if (fav != null) {
-                            val isFavorite = favouriteWallpapers.any { existing ->
-                                existing.wallpaper.type == fav.wallpaper.type &&
-                                        existing.wallpaper.angleDeg.compareTo(fav.wallpaper.angleDeg) == 0 &&
-                                        existing.wallpaper.colors.size == fav.wallpaper.colors.size &&
-                                        existing.wallpaper.colors.zip(fav.wallpaper.colors).all { (x, y) -> x.toHexString() == y.toHexString() } &&
-                                        existing.effects == fav.effects
-                            }
-
-                            WallpaperItemCard(
-                                wallpaper = fav.wallpaper,
-                                effects = fav.effects,
-                                isPortrait = true,
-                                isFavorite = isFavorite,
-                                onFavoriteToggle = { _, _ -> 
-                                    Haptics.confirm(view)
-                                    onToggleFavorite(fav)
-                                },
-                                onClick = {
-                                    Haptics.confirm(view)
-                                    onToggleFavorite(fav)
-                                },
-                                onLongClick = {
-                                    Haptics.confirm(view)
-                                    onToggleFavorite(fav)
-                                }
-                            )
+                items(items) { item ->
+                    val fav = item.wallpaper
+                    if (fav != null) {
+                        val isFavorite = favouriteWallpapers.any { existing ->
+                            existing.wallpaper.type == fav.wallpaper.type &&
+                                    existing.wallpaper.angleDeg.compareTo(fav.wallpaper.angleDeg) == 0 &&
+                                    existing.wallpaper.colors.size == fav.wallpaper.colors.size &&
+                                    existing.wallpaper.colors.zip(fav.wallpaper.colors).all { (x, y) -> x.toHexString() == y.toHexString() } &&
+                                    existing.effects == fav.effects
                         }
+
+                        WallpaperItemCard(
+                            wallpaper = fav.wallpaper,
+                            effects = fav.effects,
+                            isPortrait = isPortrait,
+                            isFavorite = isFavorite,
+                            onFavoriteToggle = { _, _ ->
+                                Haptics.confirm(view)
+                                onToggleFavorite(fav)
+                            },
+                            onClick = {
+                                Haptics.confirm(view)
+                                onToggleFavorite(fav)
+                            },
+                            onLongClick = {
+                                Haptics.confirm(view)
+                                onToggleFavorite(fav)
+                            }
+                        )
                     }
                 }
             }
+        }
 
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            }
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         }
     }
 }

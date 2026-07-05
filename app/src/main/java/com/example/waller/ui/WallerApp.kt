@@ -465,6 +465,16 @@ fun WallerApp(openedWallUri: Uri? = null) {
                         MarketplaceScreen(
                             modifier = Modifier.padding(innerPadding),
                             favouriteWallpapers = favouriteWallpapers,
+                            isPortrait = sessionIsPortrait,
+                            onOrientationChange = { sessionIsPortraitState.value = it },
+                            isAppDarkMode = isDarkTheme,
+                            onThemeChange = {
+                                updateThemeMode(when (appThemeMode) {
+                                    AppThemeMode.LIGHT -> AppThemeMode.DARK
+                                    AppThemeMode.DARK  -> AppThemeMode.LIGHT
+                                    AppThemeMode.SYSTEM -> if (systemIsDark) AppThemeMode.LIGHT else AppThemeMode.DARK
+                                })
+                            },
                             onToggleFavorite = { fav ->
                                 val existing = favouriteWallpapers.find {
                                     it.wallpaper.type == fav.wallpaper.type &&
