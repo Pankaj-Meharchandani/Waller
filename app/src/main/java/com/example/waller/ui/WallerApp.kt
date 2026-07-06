@@ -496,6 +496,8 @@ fun WallerApp(openedWallUri: Uri? = null) {
                                     AppThemeMode.SYSTEM -> if (systemIsDark) AppThemeMode.LIGHT else AppThemeMode.DARK
                                 })
                             },
+                            interactionMode = interactionMode,
+                            onPreviewVisibilityChanged = { isPreviewOpen = it },
                             onToggleFavorite = { fav ->
                                 val existing = favouriteWallpapers.find {
                                     it.wallpaper.type == fav.wallpaper.type &&
