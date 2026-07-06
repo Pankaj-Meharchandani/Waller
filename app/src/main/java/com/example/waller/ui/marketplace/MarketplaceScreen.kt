@@ -3,14 +3,19 @@ package com.example.waller.ui.marketplace
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -69,7 +74,7 @@ fun MarketplaceScreen(
                 canLoadMore = false
             } else {
                 items.addAll(fetched)
-                if (fetched.size < 15) canLoadMore = false // Telegram typically returns 20, if less we are likely at the end
+                if (fetched.size < 15) canLoadMore = false 
             }
 
             if (refresh) isRefreshing = false else isLoading = false
@@ -89,7 +94,6 @@ fun MarketplaceScreen(
             .map { it.last().index }
             .distinctUntilChanged()
             .collect { lastIndex ->
-                // Load more when user reaches index (size - 6) i.e. around 14 if batch is 20
                 if (canLoadMore && !isLoading && !isRefreshing && lastIndex >= items.size - 6 && items.isNotEmpty()) {
                     loadItems()
                 }
@@ -152,6 +156,10 @@ fun MarketplaceScreen(
                         Text(stringResource(R.string.market_empty))
                     }
                 }
+            } else if (items.isEmpty() && isLoading) {
+                items(6) {
+                    MarketItemSkeleton(isPortrait)
+                }
             } else {
                 items(items, key = { it.messageId }) { item ->
                     val fav = item.wallpaper
@@ -193,19 +201,13 @@ fun MarketplaceScreen(
                         )
                     }
                 }
-            }
-            
-            if (isLoading && items.isNotEmpty()) {
-                item(span = { GridItemSpan(spanCount) }) {
-                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                
+                if (isLoading) {
+                    items(2) {
+                        MarketItemSkeleton(isPortrait)
                     }
                 }
             }
-        }
-
-        if (isLoading && items.isEmpty()) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         }
     }
 
@@ -255,5 +257,27 @@ fun MarketplaceScreen(
         writePermissionLauncher = writePermissionLauncher,
         context = context,
         coroutineScope = scope
+    )
+}
+
+@Composable
+fun MarketItemSkeleton(isPortrait: Boolean) {
+    val transition = rememberInfiniteTransition(label = "skeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(if (isPortrait) 9f / 16f else 16f / 9f)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.Gray.copy(alpha = alpha))
     )
 }
