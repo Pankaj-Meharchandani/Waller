@@ -21,7 +21,7 @@
     <img src="https://img.shields.io/github/license/Pankaj-Meharchandani/Waller?style=for-the-badge&color=625b71" />
   </a>
   &nbsp;
-  <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
+  <img src="https://img.shields.io/badge/Android-11.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
 </p>
 
 <p align="center">
@@ -80,12 +80,12 @@
 |---|---|
 | 🎨 **4 Gradient Styles** | Linear, Radial, Angular (sweep), Diamond — each with a 0°–360° rotation slider |
 | ✨ **5 Visual Effects** | Snow, Stripes, Glass overlay, Geometric grid, Blur — each with individual opacity |
+| 🌐 **Marketplace** | Browse and download community-generated wallpapers via Telegram integration |
+| 🎞 **Live Wallpaper** | Set any of your favourites as an animated live wallpaper |
 | 👁 **Live Preview Mode** | Fullscreen overlay to tweak style, angle & effects before applying |
 | ❤️ **Favourites** | Snapshot any wallpaper including exact effects & alphas; import/export as `.wall` |
 | 📤 **Share Anywhere** | Export as PNG, `.wall`, SVG, or production-ready CSS |
 | 🎛 **Two Interaction Modes** | Simple (tap → apply) or Advanced (tap → live preview) |
-| 🎵 **Haptic Feedback** | Toggleable, context-sensitive — snaps at 90° angle checkpoints |
-| 🔔 **Auto Update Check** | Silent GitHub releases check on launch |
 | 💎 **Material You** | Dynamic color, floating nav bar, animated chips, spring physics |
 
 ---
@@ -100,6 +100,18 @@
 - Three tone modes: **Dark**, **Neutral**, **Light** — applied during color generation and shading.
 - **Multi-color mode** produces 3–5 stop gradients.
 - Toggle any combination of gradient types per session.
+
+### Marketplace & Community
+
+- **Browse & Discovery:** Access a curated feed of wallpapers from the community Telegram channel.
+- **Instant Preview:** Tap any marketplace item to preview it with your current effects.
+- **Download & Share:** Save community creations directly to your device or share them with others.
+
+### Live Wallpaper
+
+- **Animated Backgrounds:** Set any favourite wallpaper as a live wallpaper.
+- **Smooth Transitions:** Experience subtle animations and transitions as you interact with your device.
+- **Battery Efficient:** Optimized rendering to ensure minimal battery impact.
 
 ### Effects
 
@@ -138,20 +150,6 @@ Each effect has a **0–100% opacity slider** in Advanced mode. Effects are snap
 - SVG export mirrors `BitmapUtils` rendering math exactly (gradient anchoring, stripe pattern, noise filter, base64 overlays).
 - CSS export produces ready-to-use classes with `linear-gradient` / `conic-gradient` / `radial-gradient` and `filter: blur()` — paste straight into a project.
 
-### Settings
-
-| Setting | Options |
-|---|---|
-| App theme | System / Light / Dark |
-| Gradient background | On / Off |
-| Haptics | On / Off |
-| Interaction mode | Simple / Advanced |
-| Default orientation | Auto / Portrait / Landscape |
-| Default gradient count | 12 / 16 / 20 |
-| Default tone mode | Dark / Neutral / Light |
-| Default multicolor | On / Off |
-| Default effects | Snow / Stripes / Glass pre-enabled |
-
 ---
 
 ## ✦ Download
@@ -177,7 +175,7 @@ git clone https://github.com/Pankaj-Meharchandani/Waller.git
 cd Waller
 ```
 
-Open in **Android Studio** (Flamingo or newer), let Gradle sync, then run on a device or emulator.
+Open in **Android Studio** (Koala or newer), let Gradle sync, then run on a device or emulator.
 
 Or from the command line:
 
@@ -190,10 +188,10 @@ Or from the command line:
 
 **Requirements:**
 
-- Android Studio Flamingo or newer
+- Android Studio Koala or newer
 - Kotlin (matching the project Kotlin version)
 - Jetpack Compose with Material3
-- Min SDK **API 26** (Android 8.0) · Tested on Android 11–14
+- Min SDK **API 30** (Android 11.0) · Tested on Android 11–15
 - Blur preview requires **API 31+** and degrades gracefully on older devices
 
 ---
@@ -202,11 +200,10 @@ Or from the command line:
 
 | Permission | When required |
 |---|---|
-| `WRITE_EXTERNAL_STORAGE` | API ≤ 28 only — saving PNGs to `Pictures/Waller` |
 | `SET_WALLPAPER` | Normal permission, no runtime prompt needed |
-| `INTERNET` | Update checker — one GitHub API call per launch |
+| `INTERNET` | Marketplace and Update checker |
 
-On API 29+ the app uses `MediaStore` with `RELATIVE_PATH` and `IS_PENDING` — no storage permission required. Lock-screen wallpaper (`WallpaperManager.FLAG_LOCK`) works on API 24+; behavior on some OEM skins (MIUI, One UI) may vary.
+The app uses `MediaStore` with `RELATIVE_PATH` and `IS_PENDING` — no storage permission required. Lock-screen wallpaper (`WallpaperManager.FLAG_LOCK`) works on API 24+; behavior on some OEM skins (MIUI, One UI) may vary.
 
 ---
 
@@ -218,136 +215,80 @@ On API 29+ the app uses `MediaStore` with `RELATIVE_PATH` and `IS_PENDING` — n
 
 ### Bitmap Rendering (`BitmapUtils.kt`)
 
-When applying or downloading, `createGradientBitmap()` draws into an Android `Canvas` in layer order:
+When applying or downloading, `createGradientBitmap()` draws into an Android `Canvas` in layer order using `drawWallpaperOnCanvas()`:
 
 1. **Gradient** — `LinearGradient`, `RadialGradient`, or `SweepGradient` shader via `drawRect`.
-2. **Snow** — random white circles at ~2% pixel density with randomized alpha.
-3. **Stripes** — canvas rotated −45°, soft-fade gradient rects at `width/12` spacing.
-4. **Glass overlay** — `overlay_stripes.png` scaled to canvas with per-alpha `Paint`.
-5. **Geometric overlay** — `overlay_geometric.png` scaled to width with per-alpha `Paint`.
-6. **Blur** — pure-Kotlin Stack Blur (`stackBlur()`), radius 1–25 px scaled by `blurAlpha`. Applied last so it affects the fully composited image.
+2. **Effects** — Iterates through `EffectMap` and applies overlays based on `WallpaperEffects` registry.
+3. **Snow** — random white circles at ~2% pixel density with randomized alpha.
+4. **Stripes** — canvas rotated −45°, soft-fade gradient rects at `width/12` spacing.
+5. **Glass overlay** — `overlay_stripes.png` scaled to canvas with per-alpha `Paint`.
+6. **Geometric overlay** — `overlay_geometric.png` scaled to width with per-alpha `Paint`.
+7. **Blur** — pure-Kotlin Stack Blur (`stackBlur()`), radius 1–25 px scaled by `blurAlpha`. Applied last so it affects the fully composited image.
 
 ### Compose Preview Rendering
 
 `WallpaperItemCard` and `PreviewWallpaperRender` mirror the same pipeline using Compose `Brush`, Canvas drawscope, and `Image` composables. Angular gradients use a `SweepGradient` shader drawn via `nativeCanvas` since Compose's sweep brush doesn't support rotation. Blur uses `RenderEffect.createBlurEffect()` (API 31+) on a `graphicsLayer` wrapping only the gradient/effects — keeping the bottom type/color tag sharp outside the blur group.
 
-### Favourites Persistence
+### Favourites & `.wall` File Format
 
-Favourites are encoded as a delimited string in `SharedPreferences`. Each entry stores: gradient type, hex color list, 5 effect flags, angle, and 5 alpha floats. The format is backward-compatible — older entries missing alpha fields default to `1f`.
-
-### `.wall` File Format
-
-A `.wall` file is JSON produced by `kotlinx.serialization`:
-
-```json
-{
-  "version": 1,
-  "walls": [
-    {
-      "colors": [-13421773, -6710887],
-      "gradientType": "Linear",
-      "angleDeg": 135.0,
-      "addNoise": false,
-      "addStripes": true,
-      "addOverlay": false,
-      "addGeometric": false,
-      "addBlur": false,
-      "noiseAlpha": 1.0,
-      "stripesAlpha": 0.6,
-      "overlayAlpha": 1.0,
-      "geometricAlpha": 1.0,
-      "blurAlpha": 1.0
-    }
-  ]
-}
-```
-
-Colors are ARGB `Int` values. Multiple wallpapers can be packed into one file for bulk sharing or backup.
+Favourites are stored as snapshots of `Wallpaper` and `EffectMap`. The `.wall` file is a JSON representation produced by `kotlinx.serialization`, allowing for easy sharing and backup of wallpaper configurations.
 
 ---
 
 ## ✦ Key Files / Structure
 
 ```
+data/
+└── network/
+    ├── TelegramScraper.kt           # Ktor-based scraper for marketplace items
+    └── TelegramMarketplaceService.kt # Service for marketplace data
 ui/
-├── WallerApp.kt                     # Root composable, global state, navigation, persistence
+├── WallerApp.kt                     # Root composable, global state, navigation
+├── marketplace/
+│   └── MarketplaceScreen.kt         # Community marketplace UI
 ├── wallpaper/
-│   ├── WallpaperModels.kt           # Wallpaper, GradientType, ToneMode, FavoriteWallpaper
-│   ├── WallpaperGeneratorScreen.kt  # Home screen — grid, options panel, refresh
-│   ├── FavoritesScreen.kt           # Favourites grid, import/export, preview
-│   ├── ApplyDownloadDialog.kt       # Apply / Download / Share dialog
-│   ├── BitmapUtils.kt               # Bitmap rendering, save, apply, Stack Blur
-│   ├── ColorUtils.kt                # HSV helpers, random color generation, shading
-│   ├── WallpaperSessionState.kt     # Per-session state (colors, scroll, gradient types)
-│   ├── ShareUtils.kt                # PNG / SVG / CSS share helpers
-│   ├── Haptics.kt                   # Global haptic feedback wrapper
-│   └── InteractionMode.kt           # SIMPLE / ADVANCED enum
+│   ├── WallpaperModels.kt           # Single source of truth for Effects & Gradients
+│   ├── WallpaperGeneratorScreen.kt  # Home screen grid & generator
+│   ├── FavoritesScreen.kt           # Favourites management
+│   ├── BitmapUtils.kt               # Core bitmap rendering & Stack Blur
+│   ├── ColorUtils.kt                # HSV color generation logic
+│   ├── LiveWallpaperService.kt      # Live Wallpaper engine
+│   ├── ShareUtils.kt                # PNG / SVG / CSS export helpers
 │   └── components/
-│       ├── WallpaperItemCard.kt     # Grid preview card (Compose Canvas rendering)
-│       ├── CompactOptionsPanel.kt   # Effect/gradient/tone/color chips row
-│       ├── Header.kt                # App title + orientation chip
-│       ├── FloatingNavBar.kt        # Animated floating navigation bar
-│       ├── EffectsSelector.kt       # Switch list (Settings context)
+│       ├── WallpaperItemCard.kt     # Grid preview (Compose Canvas)
 │       └── previewOverlay/
-│           ├── WallpaperPreviewOverlay.kt    # Fullscreen preview screen
-│           ├── PreviewWallpaperRender.kt     # Stateless preview renderer
-│           ├── PreviewRenderer.kt            # Brush/shader factory functions
-│           ├── PreviewControlsComponents.kt  # Effect chips, sliders, gradient selectors
-│           └── PreviewState.kt               # Default alpha constants
+│           ├── WallpaperPreviewOverlay.kt # Fullscreen preview & controls
+│           └── PreviewWallpaperRender.kt  # Stateless preview renderer
 ├── wallfile/
-│   ├── WallFile.kt                  # Serializable data classes for .wall format
-│   ├── WallFileManager.kt           # Import / export / share .wall files
-│   ├── WallConverters.kt            # FavoriteWallpaper ↔ WallFavorite converters
-│   └── SvgExporter.kt               # SVG and CSS file generation
-├── settings/
-│   ├── SettingsScreen.kt            # Settings UI
-│   └── AboutScreen.kt               # About screen with links
-└── onboarding/
-    ├── OnboardingModeDialog.kt      # First-launch mode picker
-    ├── UpdateAvailableDialog.kt     # Update available dialog
-    └── UpdateChecker.kt             # GitHub releases API check
+│   ├── WallFileManager.kt           # .wall file I/O
+│   └── SvgExporter.kt               # SVG and CSS generation
+└── settings/
+    └── SettingsScreen.kt            # App configuration
 ```
 
 ---
 
 ## ✦ Adding a New Effect
 
-The architecture is designed so adding a new effect touches **two core files** plus a handful of wiring files:
+The architecture uses a **Single Source of Truth** registry in `WallpaperModels.kt`. To add a new effect:
 
-**Core (rendering logic):**
-1. `WallpaperModels.kt` — add the boolean flag and alpha `Float` to `FavoriteWallpaper`.
-2. `BitmapUtils.kt` — add a drawing block in `createGradientBitmap()`.
+1. **Register:** Add an `EffectDef` to `WallpaperEffects.ALL` in `WallpaperModels.kt`.
+2. **Render:** Add the drawing logic in `BitmapUtils.kt` (for Bitmaps) and `PreviewWallpaperRender.kt` (for Compose Preview).
 
-**Wiring (plumbing the new state through):**
-- `WallFile.kt` + `WallConverters.kt` — extend the serializable format and converter.
-- `CompactOptionsPanel.kt` — add an entry to the `effects` list (icon key + label).
-- `WallpaperPreviewOverlay.kt` — add an `EffectConfig` entry and a slider `when` branch.
-- `WallpaperItemCard.kt` + `PreviewWallpaperRender.kt` — add the Compose Canvas rendering blocks.
-- `WallerApp.kt` + `WallpaperGeneratorScreen.kt` + `FavoritesScreen.kt` — thread state through the call chain.
-
-> **Architectural note:** The dual rendering path (Compose Canvas in `WallpaperItemCard` vs. Android Canvas in `BitmapUtils`) is a known tension. A future refactor toward a shared `EffectRenderer` interface would reduce the per-effect file count to 2.
+That's it. The UI chips, sliders, and serialization will automatically adapt to the new effect.
 
 ---
 
 ## ✦ Troubleshooting
 
-**Bitmap looks low resolution on some devices**
-`getScreenSizeForBitmap()` uses `currentWindowMetrics` (API 30+) and subtracts system bar insets. On unusual OEM configurations the returned dimensions can be smaller than expected.
+**Blur preview not visible**
+Requires **API 31+** for live Compose blur. On older devices, the blur is still applied to the final saved/applied wallpaper via the Kotlin Stack Blur implementation.
 
-**Blur has no visual effect in preview**
-The Compose `RenderEffect` blur requires **API 31+**. On API 30 the blur chip still works but the preview render is a no-op. The bitmap blur (`stackBlur`) works on all API levels.
+**Lock screen apply issues**
+Some OEMs (MIUI, One UI) restrict programmatic lock-screen changes. If the apply fails, try setting the downloaded PNG manually via system settings.
 
-**Lock screen apply does nothing**
-Some OEM skins (MIUI, One UI) restrict programmatic lock-screen changes. The app falls back to `FLAG_SYSTEM` silently — no crash, but the toast will show the failure message.
-
-**Save fails on Android 8 or 9**
-Grant `WRITE_EXTERNAL_STORAGE` when prompted. The app requests it at the point of saving on API ≤ 28.
-
-**Gallery doesn't show the saved image**
-On API 29+ MediaStore insertion with `IS_PENDING = 0` surfaces the file immediately. On older versions a media scanner broadcast is sent. If it still doesn't appear, reboot or navigate to `Pictures/Waller` in a file manager.
-
-**`.wall` file not recognized by the picker**
-The picker launches with `*/*` since `.wall` has no registered MIME type. The app filters to `.wall` extension after selection, falling back to all selected files if none match.
+**Marketplace not loading**
+Requires an active internet connection. If the channel is unreachable, the marketplace will show a connection error.
 
 ---
 
@@ -359,11 +300,7 @@ Contributions are welcome!
 2. Commit with a clear message: `git commit -m "Add my feature"`
 3. Push and open a pull request.
 
-Please:
-- Keep both rendering paths (Compose + Android Canvas) in sync when touching effect logic.
-- Test on both API 30 and API 31+ (blur behavior differs).
-- Run through portrait and landscape for any UI change.
-- Prefer stdlib/regex over new third-party dependencies for simple tasks.
+Please keep both rendering paths (Compose + Android Canvas) in sync when touching effect logic.
 
 ---
 
@@ -377,11 +314,6 @@ Please:
 <p>
   <a href="https://t.me/walllller">
     <img src="https://img.shields.io/badge/💬 Telegram-@walllller%20(Support%20%26%20Chat)-26A5E4?style=for-the-badge&logo=telegram&logoColor=white" />
-  </a>
-</p>
-<p>
-  <a href="https://github.com/Pankaj-Meharchandani/Waller/issues">
-    <img src="https://img.shields.io/badge/🐛 GitHub-Issues%20%26%20Feature%20Requests-181717?style=for-the-badge&logo=github&logoColor=white" />
   </a>
 </p>
 
