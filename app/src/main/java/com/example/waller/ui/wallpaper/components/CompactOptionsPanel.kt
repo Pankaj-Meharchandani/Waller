@@ -13,7 +13,9 @@ package com.example.waller.ui.wallpaper.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -62,6 +64,7 @@ private val EFFECT_ICON_KEYS = mapOf(
     "stripes"   to "stripes",
     "overlay"   to "glass",
     "geometric" to "geo",
+    "petals"    to "petals",
     "blur"      to "blur"
 )
 
@@ -90,9 +93,9 @@ fun CompactOptionsPanel(
     val screenW = LocalConfiguration.current.screenWidthDp
     val scale   = (screenW / 360f).coerceIn(0.82f, 1.20f)
 
-    val gradientChipH = (35 * scale).dp
-    val effectChipH   = (46 * scale).dp
-    val colorH        = (30 * scale).dp
+    val gradientChipH = (34 * scale).dp
+    val effectChipH   = (38 * scale).dp
+    val colorH        = (32 * scale).dp
     val spacing       = (ChipSpacing.value * scale).dp
     val rowGap        = (RowSpacing.value * scale).dp
 
@@ -199,6 +202,7 @@ fun CompactOptionsPanel(
                                 GradientType.Radial  -> stringResource(R.string.gradient_style_radial)
                                 GradientType.Angular -> stringResource(R.string.gradient_style_angular)
                                 GradientType.Diamond -> stringResource(R.string.gradient_style_diamond)
+                                GradientType.Pastels -> stringResource(R.string.gradient_style_pastels)
                             },
                             height   = gradientChipH,
                             isDark   = isDark,
@@ -210,25 +214,56 @@ fun CompactOptionsPanel(
         }
 
         /* ── Row 3: Effects ──────────────────────────────────────────── */
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(spacing)
-        ) {
-            effectItems.forEach { effect ->
-                Box(modifier = Modifier.weight(1f)) {
-                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        val iconFs  = (maxWidth.value * 0.28f).coerceIn(11f, 22f).sp
-                        val labelFs = (maxWidth.value * 0.16f).coerceIn(7f,  13f).sp
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val visibleEffectSlots = 5
+            val effectChipW = ((maxWidth - spacing * (visibleEffectSlots - 1)) / visibleEffectSlots)
+                .coerceAtLeast((58 * scale).dp)
+            val effectScrollState = rememberScrollState()
+            val showMoreEffects by remember {
+                derivedStateOf { effectScrollState.value < effectScrollState.maxValue }
+            }
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.horizontalScroll(effectScrollState),
+                    horizontalArrangement = Arrangement.spacedBy(spacing)
+                ) {
+                    effectItems.forEach { effect ->
                         EffectChip(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.width(effectChipW),
                             iconKey  = effect.iconKey,
                             label    = effect.label,
                             selected = effect.selected,
                             onClick  = { Haptics.light(view); effect.onClick() },
                             isDark   = isDark,
-                            iconFs   = iconFs,
-                            labelFs  = labelFs,
+                            iconFs   = (14 * scale).sp,
+                            labelFs  = (10 * scale).sp,
                             height   = effectChipH
+                        )
+                    }
+                }
+
+                if (showMoreEffects) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .width((30 * scale).dp)
+                            .height(effectChipH)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        MaterialTheme.colorScheme.background.copy(alpha = 0.92f)
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Text(
+                            text = ">",
+                            fontSize = (16 * scale).sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)
                         )
                     }
                 }

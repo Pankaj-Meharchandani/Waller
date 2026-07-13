@@ -19,6 +19,9 @@ import android.graphics.SweepGradient
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.luminance
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
@@ -70,6 +73,11 @@ fun createBrushForPreview(
         GradientType.Angular -> {
             Brush.sweepGradient(colors = colors)
         }
+        GradientType.Pastels -> {
+            // For Pastels, the main rendering happens via drawPastelsOverlay.
+            // We return a solid brush of the first color as a base.
+            SolidColor(colors.first())
+        }
     }
 }
 
@@ -85,4 +93,35 @@ fun createRotatedSweepShader(widthPx: Float, heightPx: Float, androidColors: Int
         // Some devices/VMs may not support setLocalMatrix; fail gracefully and return sweep un-rotated.
     }
     return sweep
+}
+
+fun DrawScope.drawPastelsOverlay(
+    colors: List<Color>,
+    alpha: Float,
+    angleDeg: Float = 0f
+) {
+    if (colors.isEmpty() || alpha <= 0f) return
+
+    val clampedAlpha = alpha.coerceIn(0f, 1f)
+    val focus = Offset(size.width * 0.95f, size.height * 0.45f)
+    val outer = hypot(size.width, size.height) * 1.2f
+    val count = 20
+    val step = (Math.PI.toFloat() * 2f) / count
+    val phase = Math.toRadians((angleDeg * 0.1f).toDouble()).toFloat()
+
+    repeat(count) { index ->
+        val angle = phase + index * step
+        val center = Offset(
+            focus.x + cos(angle) * outer * 0.45f,
+            focus.y + sin(angle) * outer * 0.45f
+        )
+        val r = outer * 0.65f
+        val color = colors[index % colors.size]
+
+        drawCircle(
+            color = color.copy(alpha = 0.12f * clampedAlpha),
+            radius = r,
+            center = center
+        )
+    }
 }

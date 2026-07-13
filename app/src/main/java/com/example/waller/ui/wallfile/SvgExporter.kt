@@ -112,6 +112,7 @@ object SvgExporter {
                 sb.appendLine("""    </radialGradient>""")
             }
             GradientType.Angular -> { /* rendered via foreignObject below */ }
+            GradientType.Pastels -> { /* rendered via circles below */ }
         }
 
         // ── Stripes pattern ───────────────────────────────────────────────────
@@ -159,6 +160,9 @@ object SvgExporter {
             sb.appendLine("""  <foreignObject x="0" y="0" width="$W" height="$H">""")
             sb.appendLine("""    <div xmlns="http://www.w3.org/1999/xhtml" style="width:${W}px;height:${H}px;background:conic-gradient(from ${rotDeg}deg at 50% 50%, $stops)"/>""")
             sb.appendLine("""  </foreignObject>""")
+        } else if (w.type == GradientType.Pastels) {
+            sb.appendLine("""  <rect width="$W" height="$H" fill="${hex.first()}"/>""")
+            appendPastelsSvg(sb, hex, angleDeg)
         } else {
             sb.appendLine("""  <rect width="$W" height="$H" fill="url(#grad)"/>""")
         }
@@ -245,6 +249,7 @@ object SvgExporter {
             GradientType.Diamond -> "linear-gradient(${normAngle(90f - (angleDeg - 45f))}deg, $colorStops)"
             GradientType.Radial  -> "radial-gradient(ellipse at center, $colorStops)"
             GradientType.Angular -> "conic-gradient(from ${angleDeg.roundToInt()}deg at 50% 50%, $colorStops)"
+            GradientType.Pastels -> hex.first()
         }
 
         val spacing = (W / 12f).roundToInt()
@@ -366,6 +371,24 @@ object SvgExporter {
     // ─────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────
+
+    private fun appendPastelsSvg(sb: StringBuilder, hex: List<String>, angleDeg: Float) {
+        val focusX = W * 0.95f
+        val focusY = H * 0.45f
+        val outer = kotlin.math.hypot(W.toFloat(), H.toFloat()) * 1.2f
+        val count = 20
+        val step = (Math.PI.toFloat() * 2f) / count
+        val phase = Math.toRadians((angleDeg * 0.1f).toDouble()).toFloat()
+
+        repeat(count) { index ->
+            val angle = phase + index * step
+            val cx = focusX + kotlin.math.cos(angle) * outer * 0.45f
+            val cy = focusY + kotlin.math.sin(angle) * outer * 0.45f
+            val r = outer * 0.65f
+            val color = hex[index % hex.size]
+            sb.appendLine("""  <circle cx="${cx.fmt()}" cy="${cy.fmt()}" r="${r.fmt()}" fill="$color" opacity="0.12"/>""")
+        }
+    }
 
     private fun appendStops(sb: StringBuilder, hexColors: List<String>) {
         hexColors.forEachIndexed { i, hex ->

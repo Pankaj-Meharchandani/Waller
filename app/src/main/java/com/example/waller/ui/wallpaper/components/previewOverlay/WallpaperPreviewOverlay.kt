@@ -254,7 +254,8 @@ fun WallpaperPreviewOverlay(
                                 GradientType.Linear to Icons.Default.LinearScale,
                                 GradientType.Radial to Icons.Default.RadioButtonChecked,
                                 GradientType.Angular to Icons.Default.DonutLarge,
-                                GradientType.Diamond to Icons.Default.Diamond
+                                GradientType.Diamond to Icons.Default.Diamond,
+                                GradientType.Pastels to Icons.Default.BlurCircular
                             ).forEach { (type, icon) ->
                                 val isSel = selectedGradient == type
                                 Box(

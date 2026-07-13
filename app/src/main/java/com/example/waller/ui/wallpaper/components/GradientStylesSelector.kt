@@ -78,6 +78,13 @@ fun GradientStylesSelector(
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(stringResource(id = R.string.gradient_style_diamond))
+            Spacer(modifier = Modifier.width(16.dp))
+            Checkbox(
+                checked = GradientType.Pastels in selectedGradientTypes,
+                onCheckedChange = { onStyleChange(GradientType.Pastels) }
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(stringResource(id = R.string.gradient_style_pastels))
         }
     }
 }

@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.nativeCanvas
 import com.example.waller.ui.wallpaper.components.previewOverlay.createBrushForPreview
 import com.example.waller.ui.wallpaper.components.previewOverlay.createRotatedSweepShader
+import com.example.waller.ui.wallpaper.components.previewOverlay.drawPastelsOverlay
 import androidx.compose.ui.platform.LocalView
 import com.example.waller.ui.wallpaper.Haptics
 
@@ -236,6 +237,11 @@ fun WallpaperItem(
                     val brush = createBrushForPreview(wallpaper.colors, wallpaper.type, widthPx, heightPx, wallpaper.angleDeg)
 
                     Box(modifier = Modifier.matchParentSize().background(brush)) {
+                        if (wallpaper.type == GradientType.Pastels) {
+                            Canvas(modifier = Modifier.matchParentSize()) {
+                                drawPastelsOverlay(wallpaper.colors, 1f, wallpaper.angleDeg)
+                            }
+                        }
 
                         if (addNoise && noiseAlpha > 0f) {
                             Canvas(modifier = Modifier.matchParentSize()) {

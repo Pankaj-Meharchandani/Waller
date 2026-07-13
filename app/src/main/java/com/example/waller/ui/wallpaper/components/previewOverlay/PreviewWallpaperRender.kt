@@ -167,6 +167,11 @@ fun PreviewWallpaperRender(
 
                 } else {
                     Box(modifier = Modifier.fillMaxSize().background(brush)) {
+                        if (previewType == GradientType.Pastels) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                drawPastelsOverlay(wallpaper.colors, 1f, angleDeg)
+                            }
+                        }
 
                         if (addNoise && noiseAlpha > 0f) {
                             Canvas(modifier = Modifier.fillMaxSize()) {

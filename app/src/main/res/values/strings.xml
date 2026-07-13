@@ -32,6 +32,7 @@
     <string name="gradient_style_radial">Radial</string>
     <string name="gradient_style_angular">Angular</string>
     <string name="gradient_style_diamond">Diamond</string>
+    <string name="gradient_style_pastels">Pastels</string>
     <string name="wallpaper_theme_title">Wallpaper Theme</string>
     <string name="wallpaper_theme_dark_tones">Dark Tones</string>
     <string name="wallpaper_theme_light_tones">Light Tones</string>
