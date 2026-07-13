@@ -32,7 +32,7 @@ object TelegramScraper {
      */
     suspend fun fetchItems(beforeMessageId: Long? = null): List<MarketplaceItem> {
         return try {
-            val url = "https://t.me/s/$CHANNEL_NAME" + if (beforeMessageId != null) "?before=$beforeMessageId" else ""
+            val url = "https://telegram.me/s/$CHANNEL_NAME" + if (beforeMessageId != null) "?before=$beforeMessageId" else ""
             val html = client.get(url).bodyAsText()
             
             parseHtml(html)
