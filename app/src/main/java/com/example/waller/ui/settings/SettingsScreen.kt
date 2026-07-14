@@ -76,6 +76,8 @@ fun SettingsScreen(
     onDefaultToneModeChange: (ToneMode) -> Unit,
     interactionMode: InteractionMode,
     onInteractionModeChange: (InteractionMode) -> Unit,
+    showBetaUpdates: Boolean,
+    onShowBetaUpdatesChange: (Boolean) -> Unit,
     hapticsEnabled: Boolean,
     onHapticsEnabledChange: (Boolean) -> Unit,
     onAboutClick: () -> Unit
@@ -163,6 +165,39 @@ fun SettingsScreen(
                         if (it) Haptics.confirm(view)
                         Haptics.enabled = it
                         onHapticsEnabledChange(it)
+                    }
+                )
+            }
+        }
+
+        // Update Settings -------------------------------------------------
+        SectionCard {
+            Text(
+                text = stringResource(id = R.string.settings_section_updates),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(id = R.string.settings_beta_updates),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = stringResource(id = R.string.settings_beta_updates_summary),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = showBetaUpdates,
+                    onCheckedChange = {
+                        if (hapticsEnabled) Haptics.light(view)
+                        onShowBetaUpdatesChange(it)
                     }
                 )
             }

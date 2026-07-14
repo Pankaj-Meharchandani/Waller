@@ -68,6 +68,10 @@
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_use_gradient_bg">Use gradient background in app</string>
 
+    <string name="settings_section_updates">Update Settings</string>
+    <string name="settings_beta_updates">Beta updates</string>
+    <string name="settings_beta_updates_summary">Receive notifications for pre-release and beta versions</string>
+
     <string name="settings_section_wallpaper">Wallpaper Settings</string>
     <string name="settings_wallpaper_orientation">Default wallpaper orientation</string>
     <string name="settings_orientation_auto">Auto</string>

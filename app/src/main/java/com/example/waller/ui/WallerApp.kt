@@ -66,6 +66,7 @@ private const val FAVOURITES_KEY_LEGACY       = "favourites_v1"
 private const val PREF_KEY_INTERACTION_MODE   = "interaction_mode_v1"
 private const val PREF_KEY_LOCKED_ORIENTATION = "locked_orientation_v1"
 private const val PREF_KEY_HAPTICS_ENABLED    = "haptics_enabled_v1"
+private const val PREF_KEY_BETA_UPDATES       = "beta_updates_v1"
 private const val PREF_KEY_MODE_PICKER_SHOWN_VERSION = "mode_picker_shown_version_v1"
 
 @SuppressLint("LocalContextGetResourceValueCall")
@@ -89,6 +90,14 @@ fun WallerApp(openedWallUri: Uri? = null) {
     fun updateHapticsEnabled(value: Boolean) {
         hapticsState.value = value; Haptics.enabled = value
         prefs.edit { putBoolean(PREF_KEY_HAPTICS_ENABLED, value) }
+    }
+
+    // ── Beta Updates ─────────────────────────────────────────────────────────
+    val betaUpdatesState = remember { mutableStateOf(prefs.getBoolean(PREF_KEY_BETA_UPDATES, false)) }
+    var showBetaUpdates by betaUpdatesState
+    fun updateBetaUpdates(value: Boolean) {
+        betaUpdatesState.value = value
+        prefs.edit { putBoolean(PREF_KEY_BETA_UPDATES, value) }
     }
 
     // ── Theme ─────────────────────────────────────────────────────────────────
@@ -156,7 +165,8 @@ fun WallerApp(openedWallUri: Uri? = null) {
         UpdateChecker.check(
             currentVersion = appVersion,
             repoOwner = "Pankaj-Meharchandani",
-            repoName = "Waller"
+            repoName = "Waller",
+            includePreReleases = showBetaUpdates
         ) { latestVersion, releaseNotes, releaseUrl ->
             updateInfo = UpdateInfo(
                 version = latestVersion,
@@ -546,6 +556,8 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             onAboutClick = { currentScreen = RootScreen.ABOUT },
                             interactionMode = interactionMode,
                             onInteractionModeChange = { updateInteractionMode(it) },
+                            showBetaUpdates = showBetaUpdates,
+                            onShowBetaUpdatesChange = { updateBetaUpdates(it) },
                             hapticsEnabled = hapticsEnabled,
                             onHapticsEnabledChange = { updateHapticsEnabled(it) }
                         )
