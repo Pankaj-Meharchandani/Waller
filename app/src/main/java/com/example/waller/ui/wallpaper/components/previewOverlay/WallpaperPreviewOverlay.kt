@@ -65,6 +65,7 @@ import com.example.waller.ui.wallpaper.LiveWallpaperService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.json.Json
 import androidx.core.content.edit
+import com.example.waller.R
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 // No hardcoded colors — using MaterialTheme.colorScheme
@@ -253,7 +254,8 @@ fun WallpaperPreviewOverlay(
                                 GradientType.Linear to Icons.Default.LinearScale,
                                 GradientType.Radial to Icons.Default.RadioButtonChecked,
                                 GradientType.Angular to Icons.Default.DonutLarge,
-                                GradientType.Diamond to Icons.Default.Diamond
+                                GradientType.Diamond to Icons.Default.Diamond,
+                                GradientType.Pastels to Icons.Default.BlurCircular
                             ).forEach { (type, icon) ->
                                 val isSel = selectedGradient == type
                                 Box(
@@ -549,7 +551,7 @@ private fun ApplyButton(
         Icon(Icons.Default.Check, null, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(12.dp))
         Text(
-            if (isLiveEnabled) "Set as Live Wallpaper" else "Apply Wallpaper",
+            if (isLiveEnabled) stringResource(R.string.set_as_live_wallpaper) else "Apply Wallpaper",
             fontWeight = FontWeight.ExtraBold,
             fontSize = 18.sp,
             letterSpacing = 0.5.sp,

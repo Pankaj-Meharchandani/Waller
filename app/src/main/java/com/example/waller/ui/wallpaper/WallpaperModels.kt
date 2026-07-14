@@ -44,7 +44,8 @@ enum class GradientType {
     Linear,
     Radial,
     Angular,
-    Diamond
+    Diamond,
+    Pastels
 }
 
 // Tone mode used for random color generation and shading.

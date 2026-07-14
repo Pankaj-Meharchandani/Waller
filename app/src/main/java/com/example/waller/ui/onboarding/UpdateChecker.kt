@@ -27,6 +27,7 @@ object UpdateChecker {
         currentVersion: String,
         repoOwner: String,
         repoName: String,
+        includePreReleases: Boolean = false,
         onUpdateAvailable: (
             latestVersion: String,
             releaseNotes: String,
@@ -35,11 +36,11 @@ object UpdateChecker {
     ) {
         withContext(Dispatchers.IO) {
             try {
-                if (isBetaVersion(currentVersion)) {
-                    // Beta user: check all releases (stable + pre-release)
+                if (includePreReleases || isBetaVersion(currentVersion)) {
+                    // Check all releases (stable + pre-release)
                     checkAllReleases(repoOwner, repoName, currentVersion, onUpdateAvailable)
                 } else {
-                    // Stable user: only check latest stable release
+                    // Only check latest stable release
                     checkLatestStable(repoOwner, repoName, currentVersion, onUpdateAvailable)
                 }
             } catch (_: Exception) {

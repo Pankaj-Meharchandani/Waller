@@ -1,0 +1,115 @@
+package com.example.waller.data.network
+
+import android.graphics.Bitmap
+import com.example.waller.BuildConfig
+import com.example.waller.ui.wallfile.WallFile
+import com.example.waller.ui.wallpaper.FavoriteWallpaper
+import com.example.waller.ui.wallfile.toFavoriteWallpaper
+import com.example.waller.ui.wallfile.toWallFavorite
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.engine.okhttp.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import java.io.ByteArrayOutputStream
+
+@Serializable
+private data class TelegramResponse<T>(
+    val ok: Boolean,
+    val result: T? = null,
+    val description: String? = null
+)
+
+@Serializable
+private data class TelegramMessage(
+    val message_id: Long,
+    val text: String? = null
+)
+
+object TelegramMarketplaceService {
+    private val BOT_TOKEN = BuildConfig.TELEGRAM_BOT_TOKEN
+    private const val CHANNEL_ID = "@waller_wallpapers"
+    private val BASE_URL = "https://api.telegram.org/bot$BOT_TOKEN"
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = false
+    }
+
+    private val client = HttpClient(OkHttp) {
+        install(ContentNegotiation) {
+            json(json)
+        }
+    }
+
+    /**
+     * Uploads a wallpaper to the Telegram channel with a preview image.
+     * The wallpaper data is encoded into the photo's caption.
+     */
+    suspend fun uploadWallpaper(fav: FavoriteWallpaper, previewBitmap: Bitmap): Result<Long> {
+        return try {
+            val wallFile = WallFile(walls = listOf(fav.toWallFavorite()))
+            val jsonString = json.encodeToString(WallFile.serializer(), wallFile)
+            
+            // 1. Convert bitmap to byte array
+            val stream = ByteArrayOutputStream()
+            previewBitmap.compress(Bitmap.CompressFormat.JPEG, 80, stream)
+            val previewBytes = stream.toByteArray()
+
+            // 2. Send Photo with metadata in caption
+            val photoResponse: TelegramResponse<TelegramMessage> = client.submitFormWithBinaryData(
+                url = "$BASE_URL/sendPhoto",
+                formData = formData {
+                    append("chat_id", CHANNEL_ID)
+                    append("photo", previewBytes, Headers.build {
+                        append(HttpHeaders.ContentDisposition, "filename=\"preview.jpg\"")
+                        append(HttpHeaders.ContentType, "image/jpeg")
+                    })
+                    append("caption", "[WallerData]\n$jsonString")
+                }
+            ).body()
+
+            if (photoResponse.ok && photoResponse.result != null) {
+                Result.success(photoResponse.result.message_id)
+            } else {
+                Result.failure(Exception(photoResponse.description ?: "Unknown error"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Downloads a wallpaper from a direct URL (if needed for backward compatibility).
+     */
+    suspend fun downloadFromUrl(url: String): Result<FavoriteWallpaper> {
+        return try {
+            val jsonString = client.get(url).body<String>()
+            val wallFile = json.decodeFromString(WallFile.serializer(), jsonString)
+            val fav = wallFile.walls.firstOrNull()?.toFavoriteWallpaper()
+                ?: return Result.failure(Exception("Empty wall file"))
+            Result.success(fav)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * This is the "Registry" approach:
+     * We read a pinned message that contains a list of Message IDs or File IDs.
+     */
+    suspend fun fetchMarketplaceItems(registryMessageId: Long): Result<List<String>> {
+        return try {
+            // Note: bots can't easily get a message by ID unless they just sent it or it's in updates.
+            // But we can use getChat to get the pinned message ID.
+            Result.failure(Exception("Registry logic needed"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}

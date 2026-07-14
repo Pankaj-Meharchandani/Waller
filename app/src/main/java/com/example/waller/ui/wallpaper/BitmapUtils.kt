@@ -164,6 +164,19 @@ fun drawWallpaperOnCanvas(
                 isAntiAlias = true; shader = sweep
             })
         }
+
+        GradientType.Pastels -> {
+            // Background fill with first color (slightly darkened/muted maybe?)
+            canvas.drawColor(colors.first())
+            drawPastelsOverlay(
+                canvas = canvas,
+                width = width,
+                height = height,
+                colors = colors,
+                alpha = 1f,
+                angleDeg = angleDeg
+            )
+        }
     }
 
     // ── Effect layers ──────────────────────────────────────────────────────
@@ -261,6 +274,42 @@ fun drawWallpaperOnCanvas(
                 } catch (e: Exception) { e.printStackTrace() }
             }
         }
+    }
+}
+
+private fun drawPastelsOverlay(
+    canvas: android.graphics.Canvas,
+    width: Int,
+    height: Int,
+    colors: IntArray,
+    alpha: Float,
+    angleDeg: Float
+) {
+    if (colors.isEmpty() || alpha <= 0f) return
+
+    val clampedAlpha = alpha.coerceIn(0f, 1f)
+    val focusX = width * 0.95f
+    val focusY = height * 0.45f
+    val outer = kotlin.math.hypot(width.toFloat(), height.toFloat()) * 1.2f
+    val count = 20
+    val step = (Math.PI.toFloat() * 2f) / count
+    val phase = Math.toRadians((angleDeg * 0.1f).toDouble()).toFloat()
+    val paint = Paint().apply { isAntiAlias = true; style = Paint.Style.FILL }
+
+    repeat(count) { index ->
+        val angle = phase + index * step
+        val cx = focusX + kotlin.math.cos(angle) * outer * 0.45f
+        val cy = focusY + kotlin.math.sin(angle) * outer * 0.45f
+        val r = outer * 0.65f
+
+        val source = colors[index % colors.size]
+        paint.color = android.graphics.Color.argb(
+            (0.12f * clampedAlpha * 255f).toInt().coerceIn(0, 255),
+            android.graphics.Color.red(source),
+            android.graphics.Color.green(source),
+            android.graphics.Color.blue(source)
+        )
+        canvas.drawCircle(cx, cy, r, paint)
     }
 }
 

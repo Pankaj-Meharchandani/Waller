@@ -1,21 +1,25 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Waller R8 / Proguard Rules
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ── SLF4J (Fixes Ktor build failure) ──────────────────────────────────────
+-dontwarn org.slf4j.**
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ── Ktor & OkHttp ────────────────────────────────────────────────────────
+-dontwarn io.ktor.**
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn org.conscrypt.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ── Serialization ─────────────────────────────────────────────────────────
+# Keep your data models so they don't get renamed (breaking JSON parsing)
+-keep class com.example.waller.ui.wallfile.** { *; }
+-keep class com.example.waller.ui.wallpaper.** { *; }
+-keep class com.example.waller.data.network.** { *; }
+
+# General Kotlinx Serialization
+-keepattributes *Annotation*, EnclosingMethod, Signature
+-keepclassmembers class **$serializer {
+    kotlinx.serialization.KSerializer INSTANCE;
+}
+-keepclassmembers class * {
+    *** Companion;
+}

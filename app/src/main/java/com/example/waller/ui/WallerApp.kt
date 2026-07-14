@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import com.example.waller.R
+import com.example.waller.ui.marketplace.MarketplaceScreen
 import com.example.waller.ui.onboarding.ModePickerDialog
 import com.example.waller.ui.onboarding.UpdateAvailableDialog
 import com.example.waller.ui.onboarding.UpdateChecker
@@ -58,13 +59,14 @@ import com.example.waller.ui.wallpaper.components.FloatingNavItem
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private enum class RootScreen { HOME, FAVOURITES, SETTINGS, ABOUT }
+private enum class RootScreen { HOME, FAVOURITES, MARKET, SETTINGS, ABOUT }
 
 private const val FAVOURITES_KEY              = "favourites_v2"
 private const val FAVOURITES_KEY_LEGACY       = "favourites_v1"
 private const val PREF_KEY_INTERACTION_MODE   = "interaction_mode_v1"
 private const val PREF_KEY_LOCKED_ORIENTATION = "locked_orientation_v1"
 private const val PREF_KEY_HAPTICS_ENABLED    = "haptics_enabled_v1"
+private const val PREF_KEY_BETA_UPDATES       = "beta_updates_v1"
 private const val PREF_KEY_MODE_PICKER_SHOWN_VERSION = "mode_picker_shown_version_v1"
 
 @SuppressLint("LocalContextGetResourceValueCall")
@@ -88,6 +90,14 @@ fun WallerApp(openedWallUri: Uri? = null) {
     fun updateHapticsEnabled(value: Boolean) {
         hapticsState.value = value; Haptics.enabled = value
         prefs.edit { putBoolean(PREF_KEY_HAPTICS_ENABLED, value) }
+    }
+
+    // ── Beta Updates ─────────────────────────────────────────────────────────
+    val betaUpdatesState = remember { mutableStateOf(prefs.getBoolean(PREF_KEY_BETA_UPDATES, false)) }
+    var showBetaUpdates by betaUpdatesState
+    fun updateBetaUpdates(value: Boolean) {
+        betaUpdatesState.value = value
+        prefs.edit { putBoolean(PREF_KEY_BETA_UPDATES, value) }
     }
 
     // ── Theme ─────────────────────────────────────────────────────────────────
@@ -155,7 +165,8 @@ fun WallerApp(openedWallUri: Uri? = null) {
         UpdateChecker.check(
             currentVersion = appVersion,
             repoOwner = "Pankaj-Meharchandani",
-            repoName = "Waller"
+            repoName = "Waller",
+            includePreReleases = showBetaUpdates
         ) { latestVersion, releaseNotes, releaseUrl ->
             updateInfo = UpdateInfo(
                 version = latestVersion,
@@ -246,9 +257,13 @@ fun WallerApp(openedWallUri: Uri? = null) {
     val enableNothingState   = remember { mutableStateOf(prefs.getBoolean("default_enable_nothing", false)) }
     val enableSnowState      = remember { mutableStateOf(prefs.getBoolean("default_enable_snow", false)) }
     val enableStripesState   = remember { mutableStateOf(prefs.getBoolean("default_enable_stripes", false)) }
+    val enableGeometricState = remember { mutableStateOf(prefs.getBoolean("default_enable_geometric", false)) }
+    val enableBlurState      = remember { mutableStateOf(prefs.getBoolean("default_enable_blur", false)) }
     var enableNothingByDefault   by enableNothingState
     var enableSnowByDefault      by enableSnowState
     var enableStripesByDefault   by enableStripesState
+    var enableGeometricByDefault by enableGeometricState
+    var enableBlurByDefault      by enableBlurState
 
     // ── Tone / multicolor defaults ────────────────────────────────────────────
     val defaultToneModeState = remember {
@@ -272,9 +287,11 @@ fun WallerApp(openedWallUri: Uri? = null) {
     val activeEffectsState = remember {
         mutableStateOf(
             WallpaperEffects.defaultMap()
-                .withEnabled("noise",   enableSnowState.value)
-                .withEnabled("stripes", enableStripesState.value)
-                .withEnabled("overlay", enableNothingState.value)
+                .withEnabled("overlay",   enableNothingState.value)
+                .withEnabled("noise",     enableSnowState.value)
+                .withEnabled("stripes",   enableStripesState.value)
+                .withEnabled("geometric", enableGeometricState.value)
+                .withEnabled("blur",      enableBlurState.value)
         )
     }
     var activeEffects by activeEffectsState
@@ -290,6 +307,21 @@ fun WallerApp(openedWallUri: Uri? = null) {
     fun updateEnableStripes(value: Boolean) {
         enableStripesState.value = value; prefs.edit { putBoolean("default_enable_stripes", value) }
         activeEffectsState.value = activeEffectsState.value.withEnabled("stripes", value)
+    }
+    fun updateEnableGeometric(value: Boolean) {
+        enableGeometricState.value = value; prefs.edit { putBoolean("default_enable_geometric", value) }
+        activeEffectsState.value = activeEffectsState.value.withEnabled("geometric", value)
+    }
+    fun updateEnableBlur(value: Boolean) {
+        enableBlurState.value = value; prefs.edit { putBoolean("default_enable_blur", value) }
+        activeEffectsState.value = activeEffectsState.value.withEnabled("blur", value)
+    }
+
+    fun clearCache() {
+        try {
+            context.cacheDir?.deleteRecursively()
+            android.widget.Toast.makeText(context, R.string.cache_cleared, android.widget.Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {}
     }
 
     // ── Home session state ────────────────────────────────────────────────────
@@ -376,6 +408,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
     val selectedForNav = when (currentScreen) {
         RootScreen.HOME      -> RootScreen.HOME
         RootScreen.FAVOURITES -> RootScreen.FAVOURITES
+        RootScreen.MARKET -> RootScreen.MARKET
         RootScreen.SETTINGS, RootScreen.ABOUT -> RootScreen.SETTINGS
     }
 
@@ -384,6 +417,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
             RootScreen.ABOUT      -> RootScreen.SETTINGS
             RootScreen.SETTINGS   -> RootScreen.HOME
             RootScreen.FAVOURITES -> RootScreen.HOME
+            RootScreen.MARKET     -> RootScreen.HOME
             RootScreen.HOME       -> RootScreen.HOME
         }
     }
@@ -458,6 +492,41 @@ fun WallerApp(openedWallUri: Uri? = null) {
                         )
                     }
 
+                    RootScreen.MARKET -> {
+                        MarketplaceScreen(
+                            modifier = Modifier.padding(innerPadding),
+                            favouriteWallpapers = favouriteWallpapers,
+                            isPortrait = sessionIsPortrait,
+                            onOrientationChange = { sessionIsPortraitState.value = it },
+                            isAppDarkMode = isDarkTheme,
+                            onThemeChange = {
+                                updateThemeMode(when (appThemeMode) {
+                                    AppThemeMode.LIGHT -> AppThemeMode.DARK
+                                    AppThemeMode.DARK  -> AppThemeMode.LIGHT
+                                    AppThemeMode.SYSTEM -> if (systemIsDark) AppThemeMode.LIGHT else AppThemeMode.DARK
+                                })
+                            },
+                            interactionMode = interactionMode,
+                            onPreviewVisibilityChanged = { isPreviewOpen = it },
+                            onToggleFavorite = { fav ->
+                                val existing = favouriteWallpapers.find {
+                                    it.wallpaper.type == fav.wallpaper.type &&
+                                            it.wallpaper.angleDeg.compareTo(fav.wallpaper.angleDeg) == 0 &&
+                                            it.wallpaper.colors.size == fav.wallpaper.colors.size &&
+                                            it.wallpaper.colors.zip(fav.wallpaper.colors).all { (x, y) -> x.toHexString() == y.toHexString() } &&
+                                            it.effects == fav.effects
+                                }
+                                if (existing != null) {
+                                    removeFavourite(existing)
+                                    android.widget.Toast.makeText(context, R.string.removed_from_favourites, android.widget.Toast.LENGTH_SHORT).show()
+                                } else {
+                                    addFavouriteDirect(fav)
+                                    android.widget.Toast.makeText(context, R.string.added_to_favourites, android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+                    }
+
                     RootScreen.SETTINGS -> {
                         SettingsScreen(
                             modifier = Modifier.padding(innerPadding),
@@ -475,6 +544,11 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             onEnableSnowByDefaultChange = { updateEnableSnow(it) },
                             enableStripesByDefault = enableStripesByDefault,
                             onEnableStripesByDefaultChange = { updateEnableStripes(it) },
+                            enableGeometricByDefault = enableGeometricByDefault,
+                            onEnableGeometricByDefaultChange = { updateEnableGeometric(it) },
+                            enableBlurByDefault = enableBlurByDefault,
+                            onEnableBlurByDefaultChange = { updateEnableBlur(it) },
+                            onClearCache = { clearCache() },
                             defaultToneMode = defaultToneMode,
                             onDefaultToneModeChange = { updateDefaultToneMode(it) },
                             defaultEnableMulticolor = enableMulticolorByDefault,
@@ -482,6 +556,8 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             onAboutClick = { currentScreen = RootScreen.ABOUT },
                             interactionMode = interactionMode,
                             onInteractionModeChange = { updateInteractionMode(it) },
+                            showBetaUpdates = showBetaUpdates,
+                            onShowBetaUpdatesChange = { updateBetaUpdates(it) },
                             hapticsEnabled = hapticsEnabled,
                             onHapticsEnabledChange = { updateHapticsEnabled(it) }
                         )
@@ -500,12 +576,14 @@ fun WallerApp(openedWallUri: Uri? = null) {
                         selectedItem = when (selectedForNav) {
                             RootScreen.HOME       -> FloatingNavItem.HOME
                             RootScreen.FAVOURITES -> FloatingNavItem.FAVOURITES
+                            RootScreen.MARKET     -> FloatingNavItem.MARKET
                             else                  -> FloatingNavItem.SETTINGS
                         },
                         onItemSelected = { item ->
                             currentScreen = when (item) {
                                 FloatingNavItem.HOME       -> RootScreen.HOME
                                 FloatingNavItem.FAVOURITES -> RootScreen.FAVOURITES
+                                FloatingNavItem.MARKET     -> RootScreen.MARKET
                                 FloatingNavItem.SETTINGS   -> RootScreen.SETTINGS
                             }
                         },

@@ -67,10 +67,17 @@ fun SettingsScreen(
     onEnableSnowByDefaultChange: (Boolean) -> Unit,
     enableStripesByDefault: Boolean,
     onEnableStripesByDefaultChange: (Boolean) -> Unit,
+    enableGeometricByDefault: Boolean,
+    onEnableGeometricByDefaultChange: (Boolean) -> Unit,
+    enableBlurByDefault: Boolean,
+    onEnableBlurByDefaultChange: (Boolean) -> Unit,
+    onClearCache: () -> Unit,
     defaultToneMode: ToneMode,
     onDefaultToneModeChange: (ToneMode) -> Unit,
     interactionMode: InteractionMode,
     onInteractionModeChange: (InteractionMode) -> Unit,
+    showBetaUpdates: Boolean,
+    onShowBetaUpdatesChange: (Boolean) -> Unit,
     hapticsEnabled: Boolean,
     onHapticsEnabledChange: (Boolean) -> Unit,
     onAboutClick: () -> Unit
@@ -158,6 +165,39 @@ fun SettingsScreen(
                         if (it) Haptics.confirm(view)
                         Haptics.enabled = it
                         onHapticsEnabledChange(it)
+                    }
+                )
+            }
+        }
+
+        // Update Settings -------------------------------------------------
+        SectionCard {
+            Text(
+                text = stringResource(id = R.string.settings_section_updates),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(id = R.string.settings_beta_updates),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = stringResource(id = R.string.settings_beta_updates_summary),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = showBetaUpdates,
+                    onCheckedChange = {
+                        if (hapticsEnabled) Haptics.light(view)
+                        onShowBetaUpdatesChange(it)
                     }
                 )
             }
@@ -348,6 +388,51 @@ fun SettingsScreen(
                     onEnableStripesByDefaultChange(it)
                 }
             )
+            ToggleRow(
+                label = stringResource(id = R.string.settings_enable_geometric),
+                checked = enableGeometricByDefault,
+                onCheckedChange = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onEnableGeometricByDefaultChange(it)
+                }
+            )
+            ToggleRow(
+                label = stringResource(id = R.string.settings_enable_blur),
+                checked = enableBlurByDefault,
+                onCheckedChange = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onEnableBlurByDefaultChange(it)
+                }
+            )
+        }
+
+        // Maintenance -----------------------------------------------------
+        SectionCard {
+            Text(
+                text = stringResource(id = R.string.settings_section_maintenance),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(8.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        if (hapticsEnabled) Haptics.confirm(view)
+                        onClearCache()
+                    }
+                    .padding(vertical = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.settings_clear_cache),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = stringResource(id = R.string.settings_clear_cache_summary),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
         // About -----------------------------------------------------------
