@@ -78,14 +78,15 @@
 
 | | |
 |---|---|
-| 🎨 **4 Gradient Styles** | Linear, Radial, Angular (sweep), Diamond — each with a 0°–360° rotation slider |
+| 🎨 **5 Gradient Styles** | Linear, Radial, Angular, Diamond, Pastels — each with unique rendering logic |
 | ✨ **5 Visual Effects** | Snow, Stripes, Glass overlay, Geometric grid, Blur — each with individual opacity |
-| 🌐 **Marketplace** | Browse and download community-generated wallpapers via Telegram integration |
+| 🌐 **Marketplace** | Browse and download community-generated wallpapers |
 | 🎞 **Live Wallpaper** | Set any of your favourites as an animated live wallpaper |
 | 👁 **Live Preview Mode** | Fullscreen overlay to tweak style, angle & effects before applying |
 | ❤️ **Favourites** | Snapshot any wallpaper including exact effects & alphas; import/export as `.wall` |
 | 📤 **Share Anywhere** | Export as PNG, `.wall`, SVG, or production-ready CSS |
 | 🎛 **Two Interaction Modes** | Simple (tap → apply) or Advanced (tap → live preview) |
+| 🛠 **Beta Channel** | Optional toggle in settings to receive pre-release update notifications |
 | 💎 **Material You** | Dynamic color, floating nav bar, animated chips, spring physics |
 
 ---
@@ -99,6 +100,7 @@
 - Select up to **5 custom colors** via HSV picker, or let the app generate random palettes.
 - Three tone modes: **Dark**, **Neutral**, **Light** — applied during color generation and shading.
 - **Multi-color mode** produces 3–5 stop gradients.
+- **Beta Updates:** Optional toggle in settings to receive notifications for pre-release and beta versions.
 - Toggle any combination of gradient types per session.
 
 ### Marketplace & Community
@@ -217,7 +219,7 @@ The app uses `MediaStore` with `RELATIVE_PATH` and `IS_PENDING` — no storage p
 
 When applying or downloading, `createGradientBitmap()` draws into an Android `Canvas` in layer order using `drawWallpaperOnCanvas()`:
 
-1. **Gradient** — `LinearGradient`, `RadialGradient`, or `SweepGradient` shader via `drawRect`.
+1. **Gradient** — `LinearGradient`, `RadialGradient`, `SweepGradient`, or **Pastels** (Abstract rendering) via `drawRect`.
 2. **Effects** — Iterates through `EffectMap` and applies overlays based on `WallpaperEffects` registry.
 3. **Snow** — random white circles at ~2% pixel density with randomized alpha.
 4. **Stripes** — canvas rotated −45°, soft-fade gradient rects at `width/12` spacing.
