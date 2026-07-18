@@ -53,6 +53,7 @@ fun ApplyDownloadDialog(
     isWorking: Boolean,
     onWorkingChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
+    onApplied: (Wallpaper, EffectMap) -> Unit = { _, _ -> },
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     context: android.content.Context,
     coroutineScope: CoroutineScope,
@@ -142,12 +143,12 @@ fun ApplyDownloadDialog(
                             )
                             withContext(Dispatchers.Main) {
                                 onWorkingChange(false)
-                                Toast.makeText(
-                                    context,
-                                    if (success) context.getString(R.string.apply_success_both)
-                                    else         context.getString(R.string.apply_failed),
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                if (success) {
+                                    Toast.makeText(context, context.getString(R.string.apply_success_both), Toast.LENGTH_SHORT).show()
+                                    onApplied(wallpaper, effects)
+                                } else {
+                                    Toast.makeText(context, context.getString(R.string.apply_failed), Toast.LENGTH_SHORT).show()
+                                }
                                 onDismiss()
                             }
                         }
@@ -171,12 +172,12 @@ fun ApplyDownloadDialog(
                                 val success = tryApplyWallpaper(context, bmp, android.app.WallpaperManager.FLAG_SYSTEM)
                                 withContext(Dispatchers.Main) {
                                     onWorkingChange(false)
-                                    Toast.makeText(
-                                        context,
-                                        if (success) context.getString(R.string.apply_success_home)
-                                        else         context.getString(R.string.apply_failed),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    if (success) {
+                                        Toast.makeText(context, context.getString(R.string.apply_success_home), Toast.LENGTH_SHORT).show()
+                                        onApplied(wallpaper, effects)
+                                    } else {
+                                        Toast.makeText(context, context.getString(R.string.apply_failed), Toast.LENGTH_SHORT).show()
+                                    }
                                     onDismiss()
                                 }
                             }
@@ -198,12 +199,12 @@ fun ApplyDownloadDialog(
                                 else tryApplyWallpaper(context, bmp, android.app.WallpaperManager.FLAG_SYSTEM)
                                 withContext(Dispatchers.Main) {
                                     onWorkingChange(false)
-                                    Toast.makeText(
-                                        context,
-                                        if (success) context.getString(R.string.apply_success_lock)
-                                        else         context.getString(R.string.apply_failed),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    if (success) {
+                                        Toast.makeText(context, context.getString(R.string.apply_success_lock), Toast.LENGTH_SHORT).show()
+                                        onApplied(wallpaper, effects)
+                                    } else {
+                                        Toast.makeText(context, context.getString(R.string.apply_failed), Toast.LENGTH_SHORT).show()
+                                    }
                                     onDismiss()
                                 }
                             }

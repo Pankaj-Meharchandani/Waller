@@ -24,10 +24,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -50,16 +52,22 @@ fun FavoritesScreen(
     onThemeChange: () -> Unit,
     onPreviewVisibilityChanged: (Boolean) -> Unit,
     favourites: List<FavoriteWallpaper>,
+    history: List<HistoryWallpaper>,
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit,
     onRemoveFavourite: (FavoriteWallpaper) -> Unit,
     onAddFavourite: (FavoriteWallpaper) -> Unit,
     onAddFavourites: (List<FavoriteWallpaper>) -> Unit,
+    onRemoveHistory: (HistoryWallpaper) -> Unit,
+    onApplied: (Wallpaper, EffectMap) -> Unit,
     interactionMode: InteractionMode
 ) {
     val context        = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val gridState      = rememberLazyGridState()
+    
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val tabs = listOf(stringResource(R.string.tab_favourite), stringResource(R.string.tab_history))
 
     // ── Import launcher ───────────────────────────────────────────────────────
     val importWallLauncher = rememberLauncherForActivityResult(
@@ -168,92 +176,166 @@ fun FavoritesScreen(
         }
 
         item(span = { GridItemSpan(spanCount) }) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (favourites.isEmpty()) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(18.dp)
-                    ) {
-                        Text(text = stringResource(R.string.favourites_empty), style = MaterialTheme.typography.titleMedium)
-                        Box(
-                            modifier = Modifier
-                                .size(160.dp)
-                                .background(MaterialTheme.colorScheme.surfaceContainer)
-                                .premiumAddColorBorder(isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f)
-                                .clickable { importWallLauncher.launch(arrayOf("*/*")) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.FileUpload,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                                Text(
-                                    text = stringResource(R.string.import_wall),
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.primary,
+                divider = {},
+                indicator = { tabPositions ->
+                    if (selectedTab < tabPositions.size) {
+                        TabRowDefaults.SecondaryIndicator(
+                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
-                } else {
-                    Text(
-                        text = stringResource(R.string.favourites_count, favourites.size),
-                        style = MaterialTheme.typography.titleMedium
-                    )
                 }
-
-                Box(
-                    modifier = Modifier
-                        .height(38.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainer)
-                        .premiumAddColorBorder(isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f)
-                        .clickable { showImportExportDialog = true }
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(R.string.import_export),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index; coroutineScope.launch { gridState.scrollToItem(0) } },
+                        text = { Text(text = title, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
                     )
                 }
             }
         }
 
-        // Favourites cards
-        items(favourites.asReversed()) { fav ->
-            WallpaperItemCard(
-                wallpaper        = fav.wallpaper,
-                isPortrait       = isPortrait,
-                effects          = fav.effects,
-                isFavorite       = true,
-                onFavoriteToggle = { _, _ -> onRemoveFavourite(fav) },
-                onClick = {
-                    when (interactionMode) {
-                        InteractionMode.SIMPLE   -> { pendingClickedWallpaper = fav; showApplyDialog = true }
-                        InteractionMode.ADVANCED -> { 
-                            pendingClickedWallpaper = fav
-                            showPreview = true
-                            onPreviewVisibilityChanged(true)
+        item(span = { GridItemSpan(spanCount) }) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val isEmpty = if (selectedTab == 0) favourites.isEmpty() else history.isEmpty()
+                if (isEmpty) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        Text(
+                            text = if (selectedTab == 0) stringResource(R.string.favourites_empty)
+                                   else stringResource(R.string.history_empty),
+                            style = MaterialTheme.typography.titleMedium,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 24.dp)
+                        )
+                        if (selectedTab == 0) {
+                            Box(
+                                modifier = Modifier
+                                    .size(160.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                                    .premiumAddColorBorder(isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f)
+                                    .clickable { importWallLauncher.launch(arrayOf("*/*")) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.FileUpload,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.import_wall),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
                         }
                     }
-                },
-                onLongClick = { pendingClickedWallpaper = fav; showApplyDialog = true }
-            )
+                } else {
+                    Text(
+                        text = if (selectedTab == 0) stringResource(R.string.favourites_count, favourites.size)
+                               else stringResource(R.string.wallpaper_count, history.size),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+
+                if (selectedTab == 0) {
+                    Box(
+                        modifier = Modifier
+                            .height(38.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
+                            .premiumAddColorBorder(isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f)
+                            .clickable { showImportExportDialog = true }
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.import_export),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+
+        // Items cards
+        if (selectedTab == 0) {
+            items(favourites.asReversed()) { fav ->
+                WallpaperItemCard(
+                    wallpaper        = fav.wallpaper,
+                    isPortrait       = isPortrait,
+                    effects          = fav.effects,
+                    isFavorite       = true,
+                    onFavoriteToggle = { _, _ -> onRemoveFavourite(fav) },
+                    onClick = {
+                        when (interactionMode) {
+                            InteractionMode.SIMPLE   -> { pendingClickedWallpaper = fav; showApplyDialog = true }
+                            InteractionMode.ADVANCED -> { 
+                                pendingClickedWallpaper = fav
+                                showPreview = true
+                                onPreviewVisibilityChanged(true)
+                            }
+                        }
+                    },
+                    onLongClick = { pendingClickedWallpaper = fav; showApplyDialog = true }
+                )
+            }
+        } else {
+            items(history) { hist ->
+                val isFavorite = favourites.any { it.wallpaper == hist.wallpaper && it.effects == hist.effects }
+                WallpaperItemCard(
+                    wallpaper        = hist.wallpaper,
+                    isPortrait       = isPortrait,
+                    effects          = hist.effects,
+                    isFavorite       = isFavorite,
+                    onFavoriteToggle = { w, fx ->
+                        if (isFavorite) {
+                            val fav = favourites.find { it.wallpaper == w && it.effects == fx }
+                            if (fav != null) onRemoveFavourite(fav)
+                        } else {
+                            onAddFavourite(FavoriteWallpaper(w, fx))
+                        }
+                    },
+                    onClick = {
+                        when (interactionMode) {
+                            InteractionMode.SIMPLE   -> { 
+                                pendingClickedWallpaper = FavoriteWallpaper(hist.wallpaper, hist.effects)
+                                showApplyDialog = true 
+                            }
+                            InteractionMode.ADVANCED -> { 
+                                pendingClickedWallpaper = FavoriteWallpaper(hist.wallpaper, hist.effects)
+                                showPreview = true
+                                onPreviewVisibilityChanged(true)
+                            }
+                        }
+                    },
+                    onLongClick = { 
+                        pendingClickedWallpaper = FavoriteWallpaper(hist.wallpaper, hist.effects)
+                        showApplyDialog = true 
+                    }
+                )
+            }
         }
 
         if (favourites.isNotEmpty()) {
@@ -351,6 +433,7 @@ fun FavoritesScreen(
         isWorking        = isWorking,
         onWorkingChange  = { isWorking = it },
         onDismiss        = { showApplyDialog = false; pendingClickedWallpaper = null },
+        onApplied        = onApplied,
         writePermissionLauncher = writePermissionLauncher,
         context          = context,
         coroutineScope   = coroutineScope

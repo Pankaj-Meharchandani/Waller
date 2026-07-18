@@ -137,7 +137,7 @@ fun EffectMap.withAlpha(id: String, alpha: Float): EffectMap =
     toMutableMap().also { it[id] = (it[id] ?: EffectState()).copy(alpha = alpha) }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FavoriteWallpaper — snapshot stored in favourites list
+// Favorite & History — snapshots stored in persistent lists
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -147,4 +147,13 @@ fun EffectMap.withAlpha(id: String, alpha: Float): EffectMap =
 data class FavoriteWallpaper(
     val wallpaper: Wallpaper,
     val effects: EffectMap = WallpaperEffects.defaultMap()
+)
+
+/**
+ * Snapshot of a wallpaper when it was applied.
+ */
+data class HistoryWallpaper(
+    val wallpaper: Wallpaper,
+    val effects: EffectMap = WallpaperEffects.defaultMap(),
+    val appliedAt: Long = System.currentTimeMillis()
 )

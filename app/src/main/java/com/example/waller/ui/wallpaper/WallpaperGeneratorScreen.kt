@@ -70,6 +70,7 @@ fun WallpaperGeneratorScreen(
     onToggleFavourite: (wallpaper: Wallpaper, effects: EffectMap) -> Unit,
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit,
+    onApplied: (Wallpaper, EffectMap) -> Unit,
     interactionMode: InteractionMode
 ) {
     val view = LocalView.current
@@ -379,6 +380,7 @@ fun WallpaperGeneratorScreen(
         isWorking        = isWorking,
         onWorkingChange  = { isWorking = it },
         onDismiss        = { showApplyDialog = false; pendingClickedWallpaper = null },
+        onApplied        = onApplied,
         writePermissionLauncher = writePermissionLauncher,
         context          = context,
         coroutineScope   = coroutineScope

@@ -42,6 +42,7 @@ fun MarketplaceScreen(
     onThemeChange: () -> Unit,
     interactionMode: InteractionMode,
     onPreviewVisibilityChanged: (Boolean) -> Unit,
+    onApplied: (Wallpaper, EffectMap) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -254,6 +255,7 @@ fun MarketplaceScreen(
             showApplyDialog = false
             pendingClickedWallpaper = null
         },
+        onApplied = onApplied,
         writePermissionLauncher = writePermissionLauncher,
         context = context,
         coroutineScope = scope

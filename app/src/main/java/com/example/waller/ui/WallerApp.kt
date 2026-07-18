@@ -63,6 +63,7 @@ private enum class RootScreen { HOME, FAVOURITES, MARKET, SETTINGS, ABOUT }
 
 private const val FAVOURITES_KEY              = "favourites_v2"
 private const val FAVOURITES_KEY_LEGACY       = "favourites_v1"
+private const val HISTORY_KEY                 = "history_v1"
 private const val PREF_KEY_INTERACTION_MODE   = "interaction_mode_v1"
 private const val PREF_KEY_LOCKED_ORIENTATION = "locked_orientation_v1"
 private const val PREF_KEY_HAPTICS_ENABLED    = "haptics_enabled_v1"
@@ -343,6 +344,31 @@ fun WallerApp(openedWallUri: Uri? = null) {
         prefs.edit { putString(FAVOURITES_KEY, encodeFavourites(favouriteWallpapersState.value)) }
     }
 
+    // ── History ───────────────────────────────────────────────────────────────
+    val historyWallpapersState = remember {
+        mutableStateOf(
+            prefs.getString(HISTORY_KEY, null)?.let { decodeHistory(it) } ?: emptyList<HistoryWallpaper>()
+        )
+    }
+    var historyWallpapers by historyWallpapersState
+    fun persistHistory() {
+        prefs.edit { putString(HISTORY_KEY, encodeHistory(historyWallpapersState.value)) }
+    }
+
+    fun addToHistory(wallpaper: Wallpaper, effects: EffectMap) {
+        val entry = HistoryWallpaper(wallpaper, effects, System.currentTimeMillis())
+        // Keep only last 50 entries to avoid bloat
+        val current = historyWallpapersState.value
+        val updated = (listOf(entry) + current).take(50)
+        historyWallpapersState.value = updated
+        persistHistory()
+    }
+    
+    fun removeHistory(item: HistoryWallpaper) {
+        historyWallpapersState.value = historyWallpapers - item
+        persistHistory()
+    }
+
     // Toggle from Home: snapshot current EffectMap when adding
     fun toggleFavouriteFromHome(wallpaper: Wallpaper, effects: EffectMap) {
         fun exactMatch(a: Wallpaper, b: Wallpaper) =
@@ -466,7 +492,8 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             isPortrait              = sessionIsPortrait,
                             onOrientationChange     = { sessionIsPortraitState.value = it },
                             interactionMode         = interactionMode,
-                            onPreviewVisibilityChanged = { isPreviewOpen = it }
+                            onPreviewVisibilityChanged = { isPreviewOpen = it },
+                            onApplied               = { w, fx -> addToHistory(w, fx) }
                         )
                     }
 
@@ -482,12 +509,15 @@ fun WallerApp(openedWallUri: Uri? = null) {
                                 })
                             },
                             favourites          = favouriteWallpapers,
+                            history             = historyWallpapers,
                             isPortrait          = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortraitState.value = it },
                             onPreviewVisibilityChanged = { isPreviewOpen = it },
                             onRemoveFavourite   = { removeFavourite(it) },
                             onAddFavourite      = { addFavouriteDirect(it) },
                             onAddFavourites     = { addFavouritesBatch(it) },
+                            onRemoveHistory     = { removeHistory(it) },
+                            onApplied           = { w, fx -> addToHistory(w, fx) },
                             interactionMode     = interactionMode
                         )
                     }
@@ -508,6 +538,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             },
                             interactionMode = interactionMode,
                             onPreviewVisibilityChanged = { isPreviewOpen = it },
+                            onApplied = { w, fx -> addToHistory(w, fx) },
                             onToggleFavorite = { fav ->
                                 val existing = favouriteWallpapers.find {
                                     it.wallpaper.type == fav.wallpaper.type &&
@@ -705,6 +736,54 @@ private fun decodeFavourites(raw: String): List<FavoriteWallpaper> =
         FavoriteWallpaper(
             wallpaper = Wallpaper(colors = safeColors, type = type, angleDeg = angleDeg),
             effects   = base
+        )
+    }
+
+// ── History encode / decode ──────────────────────────────────────────────────
+
+private fun encodeHistory(list: List<HistoryWallpaper>): String =
+    list.joinToString(";") { hist ->
+        val typeName  = hist.wallpaper.type.name
+        val colorsStr = hist.wallpaper.colors.joinToString(",") { it.toHexString() }
+        val angleInt  = hist.wallpaper.angleDeg.roundToInt()
+        val effectsStr = WallpaperEffects.ALL.joinToString(",") { def ->
+            val enabled = if (hist.effects.isEnabled(def.id)) "1" else "0"
+            val alpha   = String.format(Locale.US, "%.3f", hist.effects.alpha(def.id))
+            "${def.id}:$enabled:$alpha"
+        }
+        val timestamp = hist.appliedAt
+        "$typeName|$colorsStr|$angleInt|$effectsStr|$timestamp"
+    }
+
+private fun decodeHistory(raw: String): List<HistoryWallpaper> =
+    raw.split(";").mapNotNull { item ->
+        if (item.isBlank()) return@mapNotNull null
+        val parts = item.split("|")
+        if (parts.size < 4) return@mapNotNull null
+
+        val type    = runCatching { GradientType.valueOf(parts[0]) }.getOrNull() ?: return@mapNotNull null
+        val colors  = parts[1].split(",").mapNotNull { colorFromHexOrNull(it) }
+        if (colors.isEmpty()) return@mapNotNull null
+        val safeColors = if (colors.size == 1) listOf(colors[0], colors[0]) else colors
+        val angleDeg   = parts[2].toFloatOrNull() ?: 0f
+
+        val base    = WallpaperEffects.defaultMap().toMutableMap()
+        parts[3].split(",").forEach { token ->
+            val tk = token.split(":")
+            if (tk.size >= 3) {
+                val id      = tk[0]
+                val enabled = tk[1] == "1"
+                val alpha   = tk[2].toFloatOrNull() ?: 1f
+                if (WallpaperEffects.find(id) != null) base[id] = EffectState(enabled, alpha)
+            }
+        }
+        
+        val appliedAt = parts.getOrNull(4)?.toLongOrNull() ?: System.currentTimeMillis()
+
+        HistoryWallpaper(
+            wallpaper = Wallpaper(colors = safeColors, type = type, angleDeg = angleDeg),
+            effects   = base,
+            appliedAt = appliedAt
         )
     }
 
