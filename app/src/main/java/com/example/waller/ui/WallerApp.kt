@@ -362,10 +362,13 @@ fun WallerApp(openedWallUri: Uri? = null) {
     }
 
     fun addToHistory(wallpaper: Wallpaper, effects: EffectMap) {
-        val entry = HistoryWallpaper(wallpaper, effects, System.currentTimeMillis())
-        // Keep only last 50 entries to avoid bloat
         val current = historyWallpapersState.value
-        val updated = (listOf(entry) + current).take(50)
+        // Remove existing entry of same wallpaper + effects to avoid duplicates
+        val filtered = current.filterNot { it.wallpaper == wallpaper && it.effects == effects }
+        
+        val entry = HistoryWallpaper(wallpaper, effects, System.currentTimeMillis())
+        val updated = (listOf(entry) + filtered).take(50)
+        
         historyWallpapersState.value = updated
         persistHistory()
     }
