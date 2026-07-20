@@ -88,7 +88,7 @@
 
     <string name="settings_section_maintenance">Maintenance</string>
     <string name="settings_clear_cache">Clear cache</string>
-    <string name="settings_clear_cache_summary">Remove temporary images and files.</string>
+    <string name="settings_clear_cache_summary">Remove history, temporary images and files.</string>
     <string name="cache_cleared">Cache cleared</string>
 
     <string name="settings_section_about">About</string>

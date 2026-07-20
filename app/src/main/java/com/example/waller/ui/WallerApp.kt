@@ -331,13 +331,6 @@ fun WallerApp(openedWallUri: Uri? = null) {
         activeEffectsState.value = activeEffectsState.value.withEnabled("blur", value)
     }
 
-    fun clearCache() {
-        try {
-            context.cacheDir?.deleteRecursively()
-            android.widget.Toast.makeText(context, R.string.cache_cleared, android.widget.Toast.LENGTH_SHORT).show()
-        } catch (_: Exception) {}
-    }
-
     // ── Home session state ────────────────────────────────────────────────────
     val homeSessionState = remember {
         WallpaperSessionState(toneMode = defaultToneMode, isMulticolor = enableMulticolorByDefault)
@@ -380,6 +373,15 @@ fun WallerApp(openedWallUri: Uri? = null) {
     fun removeHistory(item: HistoryWallpaper) {
         historyWallpapersState.value = historyWallpapers - item
         persistHistory()
+    }
+
+    fun clearCache() {
+        try {
+            context.cacheDir?.deleteRecursively()
+            historyWallpapersState.value = emptyList()
+            persistHistory()
+            android.widget.Toast.makeText(context, R.string.cache_cleared, android.widget.Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {}
     }
 
     // Toggle from Home: snapshot current EffectMap when adding
