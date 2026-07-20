@@ -364,6 +364,7 @@ fun WallpaperGeneratorScreen(
             initialEffects  = effects,
             onFavoriteToggle = { w, fx -> onToggleFavourite(w, fx) },
             onDismiss = { showPreview = false; onPreviewVisibilityChanged(false) },
+            onApplied = onApplied,
             writePermissionLauncher = writePermissionLauncher,
             context         = context,
             coroutineScope  = coroutineScope

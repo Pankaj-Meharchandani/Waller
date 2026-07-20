@@ -82,6 +82,7 @@ fun WallpaperPreviewOverlay(
     initialEffects: EffectMap,
     onFavoriteToggle: (wallpaper: Wallpaper, effects: EffectMap) -> Unit,
     onDismiss: () -> Unit,
+    onApplied: (Wallpaper, EffectMap) -> Unit = { _, _ -> },
     writePermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     context: Context,
     coroutineScope: CoroutineScope
@@ -421,6 +422,7 @@ fun WallpaperPreviewOverlay(
                 isWorking = isBusy,
                 onWorkingChange = { isBusy = it },
                 onDismiss = { showApplyDialog = false },
+                onApplied = onApplied,
                 writePermissionLauncher = writePermissionLauncher,
                 context = context,
                 coroutineScope = coroutineScope

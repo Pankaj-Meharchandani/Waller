@@ -373,6 +373,7 @@ fun FavoritesScreen(
                 pendingClickedWallpaper = null
                 onPreviewVisibilityChanged(false)
             },
+            onApplied        = onApplied,
             writePermissionLauncher = writePermissionLauncher,
             context          = context,
             coroutineScope   = coroutineScope
