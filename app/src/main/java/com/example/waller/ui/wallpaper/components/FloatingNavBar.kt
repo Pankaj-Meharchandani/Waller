@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Settings
@@ -46,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.example.waller.R
+import com.example.waller.ui.settings.FavoritesTab
 import com.example.waller.ui.wallpaper.Haptics
 
 enum class FloatingNavItem {
@@ -66,7 +68,8 @@ fun FloatingNavBar(
     selectedItem: FloatingNavItem,
     onItemSelected: (FloatingNavItem) -> Unit,
     modifier: Modifier = Modifier,
-    visible: Boolean = true
+    visible: Boolean = true,
+    defaultTab: FavoritesTab = FavoritesTab.FAVOURITES
 ) {
     if (!visible) return
 
@@ -166,9 +169,11 @@ fun FloatingNavBar(
                 primary = primary,
                 isDark = isDark
             )
+            val favLabel = if (defaultTab == FavoritesTab.HISTORY) stringResource(R.string.tab_history) else stringResource(R.string.nav_favourites)
+            val favIcon = if (defaultTab == FavoritesTab.HISTORY) Icons.Default.History else Icons.Default.Favorite
             NavItem(
-                label = "Favourites",
-                icon = Icons.Default.Favorite,
+                label = favLabel,
+                icon = favIcon,
                 selected = selectedItem == FloatingNavItem.FAVOURITES,
                 onClick = {
                     onItemSelected(FloatingNavItem.FAVOURITES)

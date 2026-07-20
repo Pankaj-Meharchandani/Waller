@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.waller.R
 import com.example.waller.ui.wallfile.WallFileManager
+import com.example.waller.ui.settings.FavoritesTab
 import com.example.waller.ui.wallpaper.components.Header
 import com.example.waller.ui.wallpaper.components.WallpaperItemCard
 import com.example.waller.ui.wallpaper.components.premiumAddColorBorder
@@ -53,6 +54,7 @@ fun FavoritesScreen(
     onPreviewVisibilityChanged: (Boolean) -> Unit,
     favourites: List<FavoriteWallpaper>,
     history: List<HistoryWallpaper>,
+    defaultTab: FavoritesTab,
     isPortrait: Boolean,
     onOrientationChange: (Boolean) -> Unit,
     onRemoveFavourite: (FavoriteWallpaper) -> Unit,
@@ -66,7 +68,9 @@ fun FavoritesScreen(
     val coroutineScope = rememberCoroutineScope()
     val gridState      = rememberLazyGridState()
     
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember(defaultTab) { 
+        mutableIntStateOf(if (defaultTab == FavoritesTab.HISTORY) 1 else 0) 
+    }
     val tabs = listOf(stringResource(R.string.tab_favourite), stringResource(R.string.tab_history))
 
     // ── Import launcher ───────────────────────────────────────────────────────

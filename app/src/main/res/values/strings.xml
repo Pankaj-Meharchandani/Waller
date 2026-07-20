@@ -74,6 +74,7 @@
 
     <string name="settings_section_wallpaper">Wallpaper Settings</string>
     <string name="settings_wallpaper_orientation">Default wallpaper orientation</string>
+    <string name="settings_default_tab">Default tab (Favourites/History)</string>
     <string name="settings_orientation_auto">Auto</string>
     <string name="settings_orientation_portrait">Portrait</string>
     <string name="settings_orientation_landscape">Landscape</string>

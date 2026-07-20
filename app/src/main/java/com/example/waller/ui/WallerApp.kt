@@ -50,6 +50,7 @@ import com.example.waller.ui.onboarding.UpdateChecker
 import com.example.waller.ui.settings.AboutScreen
 import com.example.waller.ui.settings.AppThemeMode
 import com.example.waller.ui.settings.DefaultOrientation
+import com.example.waller.ui.settings.FavoritesTab
 import com.example.waller.ui.settings.SettingsScreen
 import com.example.waller.ui.theme.WallerTheme
 import com.example.waller.ui.wallfile.WallFileManager
@@ -64,6 +65,7 @@ private enum class RootScreen { HOME, FAVOURITES, MARKET, SETTINGS, ABOUT }
 private const val FAVOURITES_KEY              = "favourites_v2"
 private const val FAVOURITES_KEY_LEGACY       = "favourites_v1"
 private const val HISTORY_KEY                 = "history_v1"
+private const val PREF_KEY_DEFAULT_TAB        = "default_tab_v1"
 private const val PREF_KEY_INTERACTION_MODE   = "interaction_mode_v1"
 private const val PREF_KEY_LOCKED_ORIENTATION = "locked_orientation_v1"
 private const val PREF_KEY_HAPTICS_ENABLED    = "haptics_enabled_v1"
@@ -228,6 +230,17 @@ fun WallerApp(openedWallUri: Uri? = null) {
     }
     fun updateDefaultOrientation(value: DefaultOrientation) {
         defaultOrientation = value; prefs.edit { putString("default_orientation", value.name) }
+    }
+
+    // ── Default tab ───────────────────────────────────────────────────────────
+    var defaultTab by remember {
+        mutableStateOf(when (prefs.getString(PREF_KEY_DEFAULT_TAB, FavoritesTab.FAVOURITES.name)) {
+            FavoritesTab.HISTORY.name -> FavoritesTab.HISTORY
+            else -> FavoritesTab.FAVOURITES
+        })
+    }
+    fun updateDefaultTab(value: FavoritesTab) {
+        defaultTab = value; prefs.edit { putString(PREF_KEY_DEFAULT_TAB, value.name) }
     }
 
     val configuration = LocalConfiguration.current
@@ -510,6 +523,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             },
                             favourites          = favouriteWallpapers,
                             history             = historyWallpapers,
+                            defaultTab          = defaultTab,
                             isPortrait          = sessionIsPortrait,
                             onOrientationChange = { sessionIsPortraitState.value = it },
                             onPreviewVisibilityChanged = { isPreviewOpen = it },
@@ -567,6 +581,8 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             onUseGradientBackgroundChange = { updateUseGradientBackground(it) },
                             defaultOrientation = defaultOrientation,
                             onDefaultOrientationChange = { updateDefaultOrientation(it) },
+                            defaultTab = defaultTab,
+                            onDefaultTabChange = { updateDefaultTab(it) },
                             defaultGradientCount = defaultGradientCount,
                             onDefaultGradientCountChange = { updateDefaultGradientCount(it) },
                             enableNothingByDefault = enableNothingByDefault,
@@ -610,6 +626,7 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             RootScreen.MARKET     -> FloatingNavItem.MARKET
                             else                  -> FloatingNavItem.SETTINGS
                         },
+                        defaultTab = defaultTab,
                         onItemSelected = { item ->
                             currentScreen = when (item) {
                                 FloatingNavItem.HOME       -> RootScreen.HOME

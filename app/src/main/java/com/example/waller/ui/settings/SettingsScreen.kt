@@ -48,6 +48,9 @@ enum class AppThemeMode { LIGHT, DARK, SYSTEM }
 // Default wallpaper orientation options.
 enum class DefaultOrientation { AUTO, PORTRAIT, LANDSCAPE }
 
+// Default tab for the 2nd navigation item.
+enum class FavoritesTab { FAVOURITES, HISTORY }
+
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -57,6 +60,8 @@ fun SettingsScreen(
     onUseGradientBackgroundChange: (Boolean) -> Unit,
     defaultOrientation: DefaultOrientation,
     onDefaultOrientationChange: (DefaultOrientation) -> Unit,
+    defaultTab: FavoritesTab,
+    onDefaultTabChange: (FavoritesTab) -> Unit,
     defaultGradientCount: Int,
     onDefaultGradientCountChange: (Int) -> Unit,
     defaultEnableMulticolor: Boolean,
@@ -309,6 +314,30 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(12.dp))
             Text(
+                text = stringResource(id = R.string.settings_default_tab),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(Modifier.height(6.dp))
+
+            TabOptionRow(
+                label = stringResource(id = R.string.tab_favourite),
+                selected = defaultTab == FavoritesTab.FAVOURITES,
+                onClick = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onDefaultTabChange(FavoritesTab.FAVOURITES)
+                }
+            )
+            TabOptionRow(
+                label = stringResource(id = R.string.tab_history),
+                selected = defaultTab == FavoritesTab.HISTORY,
+                onClick = {
+                    if (hapticsEnabled) Haptics.light(view)
+                    onDefaultTabChange(FavoritesTab.HISTORY)
+                }
+            )
+
+            Spacer(Modifier.height(12.dp))
+            Text(
                 text = stringResource(id = R.string.settings_wallpaper_count),
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -487,6 +516,21 @@ private fun ThemeOptionRow(
 
 @Composable
 private fun OrientationOptionRow(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Text(text = label)
+    }
+}
+
+@Composable
+private fun TabOptionRow(
     label: String,
     selected: Boolean,
     onClick: () -> Unit
