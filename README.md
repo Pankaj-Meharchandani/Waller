@@ -84,6 +84,7 @@
 | 🎞 **Live Wallpaper** | Set any of your favourites as an animated live wallpaper |
 | 👁 **Live Preview Mode** | Fullscreen overlay to tweak style, angle & effects before applying |
 | ❤️ **Favourites** | Snapshot any wallpaper including exact effects & alphas; import/export as `.wall` |
+| 🕒 **History** | Automatically track and re-apply the last 50 wallpapers you've used |
 | 📤 **Share Anywhere** | Export as PNG, `.wall`, SVG, or production-ready CSS |
 | 🎛 **Two Interaction Modes** | Simple (tap → apply) or Advanced (tap → live preview) |
 | 🛠 **Beta Channel** | Optional toggle in settings to receive pre-release update notifications |
@@ -136,13 +137,12 @@ Each effect has a **0–100% opacity slider** in Advanced mode. Effects are snap
 - Heart button inside preview to favourite the current configuration.
 - **Done** opens the apply/download dialog directly from the overlay.
 
-### Favourites
+### Favourites & History
 
-- Heart any wallpaper from the grid or inside the preview.
-- Favourites store the exact effect flags and opacities at save time.
-- Reverse-chronological grid; supports portrait/landscape toggle.
-- Import individual `.wall` files or bulk-import multiple at once.
-- Export all favourites as a single `.wall` file to share or back up.
+- **Favourites:** Heart any wallpaper from the grid or inside the preview. Stores exact effect flags and opacities.
+- **History:** Automatically tracks the last 50 wallpapers you've applied. Supports re-applying or previewing with one tap.
+- **Default Tab Setting:** Choose whether the 2nd navigation item opens Favourites or History by default.
+- **Import/Export:** Import individual `.wall` files or bulk-import multiple at once. Export all favourites as a single `.wall` file.
 
 ### Apply & Share
 
