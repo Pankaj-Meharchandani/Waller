@@ -26,6 +26,7 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.view.Surface
 import androidx.activity.compose.BackHandler
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -42,12 +43,14 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
+import androidx.core.os.LocaleListCompat
 import com.example.waller.R
 import com.example.waller.ui.marketplace.MarketplaceScreen
 import com.example.waller.ui.onboarding.ModePickerDialog
 import com.example.waller.ui.onboarding.UpdateAvailableDialog
 import com.example.waller.ui.onboarding.UpdateChecker
 import com.example.waller.ui.settings.AboutScreen
+import com.example.waller.ui.settings.AppLanguage
 import com.example.waller.ui.settings.AppThemeMode
 import com.example.waller.ui.settings.DefaultOrientation
 import com.example.waller.ui.settings.FavoritesTab
@@ -71,6 +74,7 @@ private const val PREF_KEY_LOCKED_ORIENTATION = "locked_orientation_v1"
 private const val PREF_KEY_HAPTICS_ENABLED    = "haptics_enabled_v1"
 private const val PREF_KEY_BETA_UPDATES       = "beta_updates_v1"
 private const val PREF_KEY_MODE_PICKER_SHOWN_VERSION = "mode_picker_shown_version_v1"
+private const val PREF_KEY_LANGUAGE           = "app_language_v1"
 
 @SuppressLint("LocalContextGetResourceValueCall")
 @Composable
@@ -85,6 +89,28 @@ fun WallerApp(openedWallUri: Uri? = null) {
     }
 
     val prefs = remember { context.getSharedPreferences("waller_prefs", Context.MODE_PRIVATE) }
+
+    // ── Language ──────────────────────────────────────────────────────────────
+    val appLanguageState = remember {
+        mutableStateOf(when (prefs.getString(PREF_KEY_LANGUAGE, AppLanguage.ENGLISH.code)) {
+            AppLanguage.SPANISH.code -> AppLanguage.SPANISH
+            else -> AppLanguage.ENGLISH
+        })
+    }
+    var appLanguage by appLanguageState
+    fun updateLanguage(language: AppLanguage) {
+        appLanguageState.value = language
+        prefs.edit { putString(PREF_KEY_LANGUAGE, language.code) }
+        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(language.code))
+    }
+
+    // Initialize locale on startup
+    LaunchedEffect(Unit) {
+        val currentLocales = AppCompatDelegate.getApplicationLocales()
+        if (currentLocales.isEmpty) {
+            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(appLanguage.code))
+        }
+    }
 
     // ── Haptics ───────────────────────────────────────────────────────────────
     val hapticsState = remember { mutableStateOf(prefs.getBoolean(PREF_KEY_HAPTICS_ENABLED, true)) }
@@ -582,6 +608,8 @@ fun WallerApp(openedWallUri: Uri? = null) {
                             modifier = Modifier.padding(innerPadding),
                             appThemeMode = appThemeMode,
                             onAppThemeModeChange = { updateThemeMode(it) },
+                            currentLanguage = appLanguage,
+                            onLanguageChange = { updateLanguage(it) },
                             useGradientBackground = useGradientBackground,
                             onUseGradientBackgroundChange = { updateUseGradientBackground(it) },
                             defaultOrientation = defaultOrientation,

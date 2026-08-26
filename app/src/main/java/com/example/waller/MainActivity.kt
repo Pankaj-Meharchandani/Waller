@@ -14,12 +14,12 @@ package com.example.waller
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.fragment.app.FragmentActivity
+import androidx.appcompat.app.AppCompatActivity
 import com.example.waller.ui.WallerApp
 import eltos.simpledialogfragment.SimpleDialog
 import eltos.simpledialogfragment.color.SimpleColorDialog
 
-class MainActivity : FragmentActivity(), SimpleDialog.OnDialogResultListener {
+class MainActivity : AppCompatActivity(), SimpleDialog.OnDialogResultListener {
 
     companion object {
         private const val COLOR_DIALOG_TAG = "COLOR_DIALOG"

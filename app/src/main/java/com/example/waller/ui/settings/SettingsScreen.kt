@@ -11,6 +11,7 @@ package com.example.waller.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,12 +24,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
@@ -39,11 +48,15 @@ import com.example.waller.ui.wallpaper.InteractionMode
 import com.example.waller.ui.wallpaper.SectionCard
 import com.example.waller.ui.wallpaper.ToneMode
 import com.example.waller.ui.wallpaper.Haptics
-import com.google.common.math.LinearTransformation.horizontal
-import com.google.common.math.LinearTransformation.vertical
 
 // App-wide theme modes used by WallerApp and Settings.
 enum class AppThemeMode { LIGHT, DARK, SYSTEM }
+
+// App languages
+enum class AppLanguage(val code: String, val labelRes: Int) {
+    ENGLISH("en", R.string.language_english),
+    SPANISH("es", R.string.language_spanish)
+}
 
 // Default wallpaper orientation options.
 enum class DefaultOrientation { AUTO, PORTRAIT, LANDSCAPE }
@@ -56,6 +69,8 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     appThemeMode: AppThemeMode,
     onAppThemeModeChange: (AppThemeMode) -> Unit,
+    currentLanguage: AppLanguage,
+    onLanguageChange: (AppLanguage) -> Unit,
     useGradientBackground: Boolean,
     onUseGradientBackgroundChange: (Boolean) -> Unit,
     defaultOrientation: DefaultOrientation,
@@ -104,7 +119,50 @@ fun SettingsScreen(
                 text = stringResource(id = R.string.settings_section_theme),
                 style = MaterialTheme.typography.titleMedium
             )
+            Spacer(Modifier.height(12.dp))
+
+            // Language Dropdown
+            var expanded by remember { mutableStateOf(false) }
+            Text(
+                text = stringResource(id = R.string.settings_language),
+                style = MaterialTheme.typography.bodyMedium
+            )
             Spacer(Modifier.height(8.dp))
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedCard(
+                    onClick = { expanded = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = stringResource(id = currentLanguage.labelRes))
+                        Icon(imageVector = Icons.Outlined.ArrowDropDown, contentDescription = null)
+                    }
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.fillMaxWidth(0.9f)
+                ) {
+                    AppLanguage.entries.forEach { language ->
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(id = language.labelRes)) },
+                            onClick = {
+                                if (hapticsEnabled) Haptics.light(view)
+                                onLanguageChange(language)
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
 
             Text(
                 text = stringResource(id = R.string.settings_theme_app_theme),

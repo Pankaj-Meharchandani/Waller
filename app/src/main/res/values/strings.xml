@@ -94,6 +94,11 @@
     <string name="settings_section_about">About</string>
     <string name="settings_about_summary">Learn more about Waller and the developer.</string>
 
+    <!-- Language -->
+    <string name="settings_language">Language</string>
+    <string name="language_english">English</string>
+    <string name="language_spanish">Spanish</string>
+
     <!-- ABOUT -->
 
     <string name="about_back_to_settings">Back to Settings</string>

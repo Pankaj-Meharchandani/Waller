@@ -1,0 +1,207 @@
+<resources>
+    <string name="app_name">Waller</string>
+    <string name="header_subtitle">Genera degradados personalizados</string>
+    <string name="actions_title">Acciones</string>
+    <string name="actions_refresh_all">Actualizar Todo</string>
+    <string name="colors_title">Colores (%1$d/5)</string>
+    <string name="color_selector_no_colors">No hay colores seleccionados - se usarán paletas aleatorias.</string>
+    <string name="color_selector_tweak_color_tip">Toca una muestra o el icono de paleta para ajustar un color.</string>
+    <string name="color_selector_add_color">+ Añadir Color</string>
+    <string name="color_selector_remove_last">- Eliminar Último</string>
+    <string name="color_selector_tip">Consejo: Bloquea 1–5 colores base y Waller generará tonos a su alrededor.</string>
+    <string name="edit">Editar</string>
+    <string name="delete">Eliminar</string>
+    <string name="effects_title">Efectos</string>
+    <string name="effects_subtitle">Ruido, rayas y superposición opcional estilo Nothing.</string>
+    <string name="effects_snow_effect">Nieve</string>
+    <string name="effects_snow_effect_subtitle">Textura de nieve suave.</string>
+    <string name="effects_stripes_overlay">Refracción</string>
+    <string name="effects_stripes">Refracción</string>
+    <string name="effect_geometric">Geometría</string>
+    <string name="effects_stripes_overlay_subtitle">Refracción vertical translúcida.</string>
+    <string name="effects_nothing_style">Cristal</string>
+    <string name="effects_nothing_style_subtitle">Añadir efecto de cristal tipo Nothing</string>
+    <string name="orientation_title">Orientación</string>
+    <string name="orientation_portrait">Retrato</string>
+    <string name="orientation_landscape">Paisaje</string>
+    <string name="gradient_styles_title">Estilos de Degradado (%1$d/4)</string>
+    <string name="select_all">Seleccionar Todo</string>
+    <string name="clear">Limpiar</string>
+    <string name="gradient_styles_subtitle">Mezcla varios estilos para una cuadrícula variada.</string>
+    <string name="gradient_style_linear">Lineal</string>
+    <string name="gradient_style_radial">Radial</string>
+    <string name="gradient_style_angular">Angular</string>
+    <string name="gradient_style_diamond">Diamante</string>
+    <string name="gradient_style_pastels">Pasteles</string>
+    <string name="wallpaper_theme_title">Tema del Fondo de Pantalla</string>
+    <string name="wallpaper_theme_dark_tones">Tonos Oscuros</string>
+    <string name="wallpaper_theme_light_tones">Tonos Claros</string>
+    <string name="apply_download_title">Aplicar / Descargar</string>
+    <string name="apply_download_subtitle">Aplicar, Guardar o Compartir fondo de pantalla.</string>
+    <string name="apply_success_both">Aplicado a pantalla de inicio y bloqueo</string>
+    <string name="apply_failed">Error al aplicar</string>
+    <string name="apply_both_screens">Ambas pantallas</string>
+    <string name="apply_success_home">Aplicado a pantalla de inicio</string>
+    <string name="apply_home_screen">Pantalla de inicio</string>
+    <string name="apply_success_lock">Aplicado a pantalla de bloqueo</string>
+    <string name="apply_lock_screen">Pantalla de bloqueo</string>
+    <string name="grant_storage_permission">Por favor, concede permiso de almacenamiento y toca Descargar de nuevo</string>
+    <string name="save_success">Guardado en Imágenes</string>
+    <string name="save_failed">Error al guardar</string>
+    <string name="download">Descargar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="storage_permission_denied">Permiso de almacenamiento denegado. No se puede guardar el fondo.</string>
+    <string name="wallpaper_count">%1$d fondos</string>
+    <string name="all">todos</string>
+    <string name="wallpaper_info">%1$s • %2$s</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_market">Mercado</string>
+    <string name="nav_settings">Ajustes</string>
+
+    <!-- Settings -->
+    <string name="settings_section_theme">Ajustes de Tema</string>
+    <string name="settings_theme_app_theme">Tema de la aplicación</string>
+    <string name="settings_theme_system">Predeterminado del sistema</string>
+    <string name="settings_theme_light">Claro</string>
+    <string name="settings_theme_dark">Oscuro</string>
+    <string name="settings_theme_use_gradient_bg">Usar fondo degradado en la app</string>
+
+    <string name="settings_section_updates">Ajustes de Actualización</string>
+    <string name="settings_beta_updates">Actualizaciones beta</string>
+    <string name="settings_beta_updates_summary">Recibir notificaciones para versiones preliminares y beta</string>
+
+    <string name="settings_section_wallpaper">Ajustes de Fondo de Pantalla</string>
+    <string name="settings_wallpaper_orientation">Orientación predeterminada</string>
+    <string name="settings_default_tab">Pestaña predeterminada (Favoritos/Historial)</string>
+    <string name="settings_orientation_auto">Auto</string>
+    <string name="settings_orientation_portrait">Retrato</string>
+    <string name="settings_orientation_landscape">Paisaje</string>
+
+    <string name="settings_wallpaper_count">Cantidad de degradados</string>
+    <string name="settings_enable_nothing">Efecto Cristal por defecto</string>
+    <string name="settings_enable_snow">Efecto Nieve por defecto</string>
+    <string name="settings_enable_stripes">Refracción por defecto</string>
+    <string name="settings_enable_geometric">Geometría por defecto</string>
+    <string name="settings_enable_blur">Desenfoque por defecto</string>
+
+    <string name="settings_section_maintenance">Mantenimiento</string>
+    <string name="settings_clear_cache">Limpiar caché</string>
+    <string name="settings_clear_cache_summary">Eliminar historial, imágenes temporales y archivos.</string>
+    <string name="cache_cleared">Caché limpiada</string>
+
+    <string name="settings_section_about">Acerca de</string>
+    <string name="settings_about_summary">Saber más sobre Waller y el desarrollador.</string>
+
+    <!-- Language -->
+    <string name="settings_language">Idioma</string>
+    <string name="language_english">Inglés</string>
+    <string name="language_spanish">Español</string>
+
+    <!-- ABOUT -->
+
+    <string name="about_back_to_settings">Volver a Ajustes</string>
+
+    <!-- App info -->
+    <string name="about_app_name">Waller</string>
+    <string name="about_app_version">Versión %1$s</string>
+    <string name="about_app_description">
+        Un generador de fondos de pantalla degradados de alta calidad.
+    </string>
+
+    <!-- Developer & community -->
+    <string name="about_developer_title">Desarrollador y Comunidad</string>
+    <string name="about_developer_name">
+        Desarrollador: Pankaj Meharchandani
+    </string>
+
+    <!-- Legal -->
+    <string name="about_legal_title">Legal</string>
+    <string name="about_rate_app">Estrella en Github</string>
+    <string name="about_privacy_policy">Política de privacidad</string>
+    <string name="about_terms">Términos y condiciones</string>
+
+    <!-- About: link titles -->
+    <string name="about_developer_github_title">GitHub del Desarrollador</string>
+    <string name="about_app_source_title">Código fuente de la app</string>
+    <string name="about_telegram_channel_title">Canal de Telegram</string>
+    <string name="about_telegram_support_title">Grupo de soporte</string>
+
+    <string name="settings_default_wallpaper_tone">Tono predeterminado</string>
+    <string name="wallpaper_theme_neutral_tones">Neutral</string>
+    <string name="nav_favourites">Favoritos</string>
+    <string name="tab_favourite">Favorito</string>
+    <string name="tab_history">Historial</string>
+    <string name="history_empty">No hay historial aún. Los fondos que apliques aparecerán aquí.</string>
+    <string name="favourites_empty">No hay favoritos aún. Toca el corazón en un fondo para guardarlo.</string>
+    <string name="favourites_count">%1$d favoritos</string>
+    <string name="scroll_to_top">Subir</string>
+    <string name="multicolor_label">Multicolor</string>
+    <string name="settings_enable_multicolor">Usar degradados multicolor por defecto</string>
+    <string name="preview_done">Hecho</string>
+    <string name="preview_close">Cerrar</string>
+    <string name="preview_effect_nothing">Cristal</string>
+    <string name="preview_effect_snow">Nieve</string>
+    <string name="preview_effect_stripes">Refracción</string>
+    <string name="gradient_style_title">Estilo de Degradado</string>
+    <string name="preview_opacity_nothing">Opacidad del efecto Cristal</string>
+    <string name="preview_opacity_snow">Opacidad del efecto Nieve</string>
+    <string name="preview_opacity_stripes">Opacidad de la Refracción</string>
+    <string name="preview_off">Apagado</string>
+    <string name="preview_high">Alto</string>
+    <string name="preview_favorite">Favorito</string>
+
+    <string name="interaction_mode_title">Modo de interacción</string>
+    <string name="interaction_mode_simple">Simple</string>
+    <string name="interaction_mode_simple_sub">Aplicar/descargar fondos con un toque</string>
+    <string name="interaction_mode_advanced">Avanzado</string>
+    <string name="interaction_mode_advanced_sub">Abrir vista previa con controles completos. \nAdvertencia: Rotación automática bloqueada.</string>
+
+    <string name="confirm">Confirmar</string>
+    <string name="interaction_mode_change_note">Puedes cambiar esto en cualquier momento desde Ajustes.</string>
+    <string name="interaction_mode_simple_sub_short">Aplicación rápida - sin vista previa</string>
+    <string name="interaction_mode_advanced_sub_short">Ver vista previa y controles</string>
+    <string name="preview_opacity_geometric">Opacidad de Líneas Geométricas</string>
+    <string name="update">Actualizar</string>
+    <string name="later">Más tarde</string>
+    <string name="update_available_title">Nueva actualización disponible</string>
+    <string name="update_available_message">Actualiza la app a la última versión</string>
+    <string name="settings_enable_haptics">Activar háptica</string>
+    <string name="whats_new">Novedades</string>
+    <string name="share_wallpaper">Compartir fondo</string>
+    <string name="share_png">Compartir PNG</string>
+    <string name="share_wall_file">Compartir archivo .wall</string>
+    <string name="import_export">Importar / Exportar</string>
+    <string name="import_wall">Importar .wall</string>
+    <string name="export_favourites">Exportar favoritos</string>
+    <string name="_1_wallpaper_imported">1 fondo importado</string>
+    <string name="wallpaper_already_exists">El fondo ya existe</string>
+    <string name="error_unsupported_file">Archivo no compatible. Por favor, selecciona un archivo .wall.</string>
+    <string name="wallpapers_imported">%1$d fondos importados</string>
+    <string name="non_wall_skipped">(%1$d archivo(s) no .wall omitidos)</string>
+    <string name="share_svg_file">Compartir como SVG</string>
+    <string name="share_css_file">Compartir como CSS</string>
+
+    <string name="share_wall_file_subtitle">Re-importable · mantiene efectos</string>
+    <string name="share_png_subtitle">Imagen · funciona en cualquier lugar</string>
+    <string name="share_svg_label">SVG</string>
+    <string name="share_svg_sublabel">Vector</string>
+    <string name="share_css_label">CSS</string>
+    <string name="share_css_sublabel">Código web</string>
+
+    <string name="live_wallpaper_description">Fondos degradados animados de Waller.</string>
+    <string name="set_as_live_wallpaper">Establecer como Fondo Animado</string>
+    <string name="live_wallpaper_label">Vivo</string>
+    <string name="live_wallpaper_speed">Velocidad de Animación</string>
+    <string name="style_label">Estilos</string>
+
+    <string name="share_to_market">Mercado</string>
+    <string name="share_to_market_subtitle">Publicar en la galería comunitaria</string>
+    <string name="publish_success">¡Publicado en el Mercado!</string>
+    <string name="publish_failed">Error al publicar</string>
+    <string name="market_empty">No se encontraron fondos en el mercado.</string>
+    <string name="added_to_favourites">Añadido a favoritos</string>
+    <string name="removed_from_favourites">Eliminado de favoritos</string>
+    <string name="market_title">Mercado Comunitario</string>
+</resources>
