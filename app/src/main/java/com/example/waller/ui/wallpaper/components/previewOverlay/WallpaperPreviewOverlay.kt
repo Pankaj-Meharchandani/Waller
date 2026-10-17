@@ -21,10 +21,12 @@ import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.animation.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -40,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -66,6 +69,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.json.Json
 import androidx.core.content.edit
 import com.example.waller.R
+import kotlin.math.roundToInt
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 // No hardcoded colors — using MaterialTheme.colorScheme
@@ -100,6 +104,9 @@ fun WallpaperPreviewOverlay(
 
     var selectedGradient by remember(wallpaper) { mutableStateOf(wallpaper.type) }
     var gradientAngle    by remember(wallpaper) { mutableFloatStateOf(wallpaper.angleDeg) }
+    var radialCenterX    by remember(wallpaper) { mutableFloatStateOf(wallpaper.radialCenterX) }
+    var radialCenterY    by remember(wallpaper) { mutableFloatStateOf(wallpaper.radialCenterY) }
+    var radialIntensity  by remember(wallpaper) { mutableFloatStateOf(wallpaper.radialIntensity) }
 
     // Live animation logic: Manual accumulation for smooth speed changes
     var animatedAngle by remember { mutableFloatStateOf(0f) }
@@ -120,8 +127,16 @@ fun WallpaperPreviewOverlay(
     }
 
     val displayAngle = if (isLiveEnabled) (gradientAngle + animatedAngle) % 360f else gradientAngle
-    val previewWallpaper = remember(wallpaper, selectedGradient, displayAngle) {
-        wallpaper.copy(type = selectedGradient, angleDeg = displayAngle)
+    val previewWallpaper = remember(
+        wallpaper, selectedGradient, displayAngle, radialCenterX, radialCenterY, radialIntensity
+    ) {
+        wallpaper.copy(
+            type = selectedGradient,
+            angleDeg = displayAngle,
+            radialCenterX = radialCenterX,
+            radialCenterY = radialCenterY,
+            radialIntensity = radialIntensity
+        )
     }
 
     var showApplyDialog by remember { mutableStateOf(false) }
@@ -130,6 +145,21 @@ fun WallpaperPreviewOverlay(
     BackHandler { onDismiss() }
 
     val sideBarHeight = if (isPortrait) 240.dp else 180.dp
+    val radialDragModifier = if (selectedGradient == GradientType.Radial) {
+        Modifier.pointerInput(selectedGradient) {
+            detectDragGestures(
+                onDragStart = { offset ->
+                    radialCenterX = (offset.x / size.width).coerceIn(0f, 1f)
+                    radialCenterY = (offset.y / size.height).coerceIn(0f, 1f)
+                },
+                onDrag = { change, _ ->
+                    change.consume()
+                    radialCenterX = (change.position.x / size.width).coerceIn(0f, 1f)
+                    radialCenterY = (change.position.y / size.height).coerceIn(0f, 1f)
+                }
+            )
+        }
+    } else Modifier
 
     Box(
         modifier = Modifier
@@ -145,7 +175,7 @@ fun WallpaperPreviewOverlay(
                 previewType = selectedGradient,
                 angleDeg = displayAngle,
                 effects = localEffects,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().then(radialDragModifier),
                 showTypeLabel = false
             )
         } else {
@@ -157,7 +187,7 @@ fun WallpaperPreviewOverlay(
                     previewType = selectedGradient,
                     angleDeg = displayAngle,
                     effects = localEffects,
-                    modifier = Modifier.fillMaxSize().graphicsLayer(alpha = 0.4f),
+                    modifier = Modifier.fillMaxSize().graphicsLayer(alpha = 0.4f).then(radialDragModifier),
                     showTypeLabel = false
                 )
                 // Focused landscape box
@@ -169,11 +199,13 @@ fun WallpaperPreviewOverlay(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1.77f)
-                        .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+                        .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                        .then(radialDragModifier),
                     showTypeLabel = false
                 )
             }
         }
+
 
         // 2. Control Layers
         AnimatedVisibility(
@@ -277,7 +309,10 @@ fun WallpaperPreviewOverlay(
                             }
                         }
 
-                        VerticalAngleSlider(gradientAngle, sideBarHeight) { newAngle ->
+                        if (selectedGradient == GradientType.Radial) {
+                            VerticalIntensitySlider(radialIntensity, sideBarHeight) { radialIntensity = it }
+                        } else {
+                            VerticalAngleSlider(gradientAngle, sideBarHeight) { newAngle ->
                             val snapped = when {
                                 kotlin.math.abs(newAngle - 0f) < 8f -> 0f
                                 kotlin.math.abs(newAngle - 90f) < 8f -> 90f
@@ -287,6 +322,7 @@ fun WallpaperPreviewOverlay(
                                 else -> newAngle
                             }
                             gradientAngle = snapped
+                            }
                         }
                     }
 
@@ -365,6 +401,7 @@ fun WallpaperPreviewOverlay(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+
                     EffectsConfigCard(
                         localEffects = localEffects,
                         activeEffectId = activeEffectId,
@@ -616,6 +653,62 @@ private fun VerticalAngleSlider(angle: Float, height: androidx.compose.ui.unit.D
             fontSize = 11.sp,
             fontWeight = FontWeight.Black,
             style = MaterialTheme.typography.labelSmall
+        )
+    }
+}
+
+@Composable
+private fun VerticalIntensitySlider(
+    intensity: Float,
+    height: androidx.compose.ui.unit.Dp,
+    onIntensity: (Float) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(48.dp)
+            .height(height)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+            .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
+            .padding(vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            "LUM",
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+        )
+        Spacer(Modifier.height(8.dp))
+        Box(
+            modifier = Modifier.height(height - 78.dp).fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Slider(
+                value = intensity,
+                onValueChange = onIntensity,
+                valueRange = 0.25f..2f,
+                modifier = Modifier
+                    .graphicsLayer {
+                        rotationZ = -90f
+                        transformOrigin = TransformOrigin.Center
+                    }
+                    .requiredWidth(height - 78.dp)
+                    .requiredHeight(48.dp),
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                )
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            (intensity * 100).roundToInt().toString() + "%",
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold
         )
     }
 }

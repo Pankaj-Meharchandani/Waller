@@ -20,6 +20,9 @@ fun FavoriteWallpaper.toWallFavorite(): WallFavorite {
         colors        = wallpaper.colors.map { it.toArgb() },
         gradientType  = wallpaper.type,
         angleDeg      = wallpaper.angleDeg,
+        radialCenterX = wallpaper.radialCenterX,
+        radialCenterY = wallpaper.radialCenterY,
+        radialIntensity = wallpaper.radialIntensity,
         effectIds     = ids,
         effectEnabled = enabled,
         effectAlphas  = alphas
@@ -52,7 +55,10 @@ fun WallFavorite.toFavoriteWallpaper(): FavoriteWallpaper {
         wallpaper = Wallpaper(
             colors   = colors.map { Color(it) },
             type     = gradientType,
-            angleDeg = angleDeg
+            angleDeg = angleDeg,
+            radialCenterX = radialCenterX,
+            radialCenterY = radialCenterY,
+            radialIntensity = radialIntensity
         ),
         effects = base
     )

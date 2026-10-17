@@ -234,7 +234,10 @@ fun WallpaperItem(
                     }
 
                 } else {
-                    val brush = createBrushForPreview(wallpaper.colors, wallpaper.type, widthPx, heightPx, wallpaper.angleDeg)
+                    val brush = createBrushForPreview(
+                        wallpaper.colors, wallpaper.type, widthPx, heightPx, wallpaper.angleDeg,
+                        wallpaper.radialCenterX, wallpaper.radialCenterY, wallpaper.radialIntensity
+                    )
 
                     Box(modifier = Modifier.matchParentSize().background(brush)) {
                         if (wallpaper.type == GradientType.Pastels) {

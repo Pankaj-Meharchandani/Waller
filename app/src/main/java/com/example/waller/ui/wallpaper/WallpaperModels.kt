@@ -36,7 +36,10 @@ import kotlinx.serialization.Serializable
 data class Wallpaper(
     val colors: List<Color>,
     val type: GradientType,
-    val angleDeg: Float = 0f
+    val angleDeg: Float = 0f,
+    val radialCenterX: Float = 0.5f,
+    val radialCenterY: Float = 0.5f,
+    val radialIntensity: Float = 1f
 )
 
 @Serializable

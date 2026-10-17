@@ -10,5 +10,8 @@ data class WallpaperSessionState(
     var selectedGradientTypes: List<GradientType> = listOf(GradientType.Linear),
     var toneMode: ToneMode = ToneMode.LIGHT,
     var isMulticolor: Boolean = false,
+    var radialCenterX: Float = 0.5f,
+    var radialCenterY: Float = 0.5f,
+    var radialIntensity: Float = 1f,
     var scrollIndex: Int = 0
 )

@@ -65,7 +65,16 @@ object SvgExporter {
 
     private fun buildSvg(context: Context, fav: FavoriteWallpaper): String {
         val w        = fav.wallpaper
-        val hex      = w.colors.map { it.toHex() }
+        val hex      = w.colors.mapIndexed { index, color ->
+            if (w.type == GradientType.Radial && index == 0) {
+                Color(
+                    red = (color.red * w.radialIntensity).coerceIn(0f, 1f),
+                    green = (color.green * w.radialIntensity).coerceIn(0f, 1f),
+                    blue = (color.blue * w.radialIntensity).coerceIn(0f, 1f),
+                    alpha = color.alpha
+                ).toHex()
+            } else color.toHex()
+        }
         val angleDeg = w.angleDeg
         val angleRad = Math.toRadians(angleDeg.toDouble())
         val cx       = W / 2f
@@ -105,8 +114,8 @@ object SvgExporter {
             }
             GradientType.Radial -> {
                 val radius = max(W, H) * 0.6
-                val ox = cx + cos(angleRad) * radius * 0.22
-                val oy = cy + sin(angleRad) * radius * 0.22
+                val ox = W * w.radialCenterX.coerceIn(0f, 1f)
+                val oy = H * w.radialCenterY.coerceIn(0f, 1f)
                 sb.appendLine("""    <radialGradient id="grad" cx="${ox.fmt()}" cy="${oy.fmt()}" r="${radius.fmt()}" gradientUnits="userSpaceOnUse">""")
                 appendStops(sb, hex)
                 sb.appendLine("""    </radialGradient>""")
@@ -218,7 +227,16 @@ object SvgExporter {
 
     private fun buildCss(context: Context, fav: FavoriteWallpaper): String {
         val w        = fav.wallpaper
-        val hex      = w.colors.map { it.toHex() }
+        val hex      = w.colors.mapIndexed { index, color ->
+            if (w.type == GradientType.Radial && index == 0) {
+                Color(
+                    red = (color.red * w.radialIntensity).coerceIn(0f, 1f),
+                    green = (color.green * w.radialIntensity).coerceIn(0f, 1f),
+                    blue = (color.blue * w.radialIntensity).coerceIn(0f, 1f),
+                    alpha = color.alpha
+                ).toHex()
+            } else color.toHex()
+        }
         val angleDeg = w.angleDeg
 
         // Convenience accessors

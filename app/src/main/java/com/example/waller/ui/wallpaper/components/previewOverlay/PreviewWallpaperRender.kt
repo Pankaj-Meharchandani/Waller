@@ -88,8 +88,20 @@ fun PreviewWallpaperRender(
                 val heightPx = with(density) { heightDp.toPx() }
                 val androidColors = wallpaper.colors.map { it.toArgb() }.toIntArray()
 
-                val brush = remember(wallpaper.colors, previewType, angleDeg, widthPx, heightPx) {
-                    createBrushForPreview(wallpaper.colors, previewType, widthPx, heightPx, angleDeg)
+                val brush = remember(
+                    wallpaper.colors,
+                    previewType,
+                    angleDeg,
+                    widthPx,
+                    heightPx,
+                    wallpaper.radialCenterX,
+                    wallpaper.radialCenterY,
+                    wallpaper.radialIntensity
+                ) {
+                    createBrushForPreview(
+                        wallpaper.colors, previewType, widthPx, heightPx, angleDeg,
+                        wallpaper.radialCenterX, wallpaper.radialCenterY, wallpaper.radialIntensity
+                    )
                 }
 
                 if (previewType == GradientType.Angular) {

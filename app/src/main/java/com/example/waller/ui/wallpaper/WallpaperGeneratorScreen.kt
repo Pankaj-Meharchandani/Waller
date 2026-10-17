@@ -150,7 +150,9 @@ fun WallpaperGeneratorScreen(
                 available.random()
             }
             previousType = gradientType
-            wallpapers.add(Wallpaper(colors = colors, type = gradientType))
+            wallpapers.add(
+                Wallpaper(colors = colors, type = gradientType)
+            )
         }
         return wallpapers
     }

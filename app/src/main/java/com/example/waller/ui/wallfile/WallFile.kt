@@ -22,6 +22,9 @@ data class WallFavorite(
     val colors: List<Int>,
     val gradientType: GradientType,
     val angleDeg: Float,
+    val radialCenterX: Float = 0.5f,
+    val radialCenterY: Float = 0.5f,
+    val radialIntensity: Float = 1f,
 
     // ── New format (v2): generic effect lists ─────────────────────────────────
     val effectIds: List<String> = emptyList(),

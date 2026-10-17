@@ -85,7 +85,7 @@ fun CompactOptionsPanel(
     onMultiColorChange: (Boolean) -> Unit,
     onGradientToggle: (GradientType) -> Unit,
     effects: EffectMap,
-    onEffectToggle: (EffectMap) -> Unit,
+    onEffectToggle: (EffectMap) -> Unit
 ) {
     val view   = LocalView.current
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
@@ -212,6 +212,7 @@ fun CompactOptionsPanel(
                 }
             }
         }
+
 
         /* ── Row 3: Effects ──────────────────────────────────────────── */
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {

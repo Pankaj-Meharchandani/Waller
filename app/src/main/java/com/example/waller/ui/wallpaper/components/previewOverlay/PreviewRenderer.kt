@@ -35,7 +35,10 @@ fun createBrushForPreview(
     type: GradientType,
     widthPx: Float,
     heightPx: Float,
-    angleDeg: Float
+    angleDeg: Float,
+    radialCenterX: Float = 0.5f,
+    radialCenterY: Float = 0.5f,
+    radialIntensity: Float = 1f
 ): Brush {
     val a = Math.toRadians(angleDeg.toDouble()).toFloat()
     val cx = widthPx / 2f
@@ -65,10 +68,17 @@ fun createBrushForPreview(
 
         GradientType.Radial -> {
             val radius = max(widthPx, heightPx) * 0.6f
-            val shiftFactor = 0.22f
-            val ox = cx + cos(a) * radius * shiftFactor
-            val oy = cy + sin(a) * radius * shiftFactor
-            Brush.radialGradient(colors = colors, center = Offset(ox, oy), radius = radius)
+            val radialColors = colors.mapIndexed { index, color ->
+                if (index == 0) color.withBrightness(radialIntensity) else color
+            }
+            Brush.radialGradient(
+                colors = radialColors,
+                center = Offset(
+                    widthPx * radialCenterX.coerceIn(0f, 1f),
+                    heightPx * radialCenterY.coerceIn(0f, 1f)
+                ),
+                radius = radius
+            )
         }
         GradientType.Angular -> {
             Brush.sweepGradient(colors = colors)
@@ -80,6 +90,12 @@ fun createBrushForPreview(
         }
     }
 }
+private fun Color.withBrightness(multiplier: Float): Color = Color(
+    red = (red * multiplier).coerceIn(0f, 1f),
+    green = (green * multiplier).coerceIn(0f, 1f),
+    blue = (blue * multiplier).coerceIn(0f, 1f),
+    alpha = alpha
+)
 
 fun createRotatedSweepShader(widthPx: Float, heightPx: Float, androidColors: IntArray, angleDeg: Float): SweepGradient {
     val cx = widthPx / 2f
