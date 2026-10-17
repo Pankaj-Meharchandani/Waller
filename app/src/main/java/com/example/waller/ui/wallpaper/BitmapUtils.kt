@@ -146,20 +146,10 @@ fun drawWallpaperOnCanvas(
         }
 
         GradientType.Radial -> {
-            val radius = max(width, height) * 0.6f
+            val radius = max(width, height) * 0.6f * wallpaper.radialIntensity.coerceIn(0.25f, 2f)
             val ox = width * wallpaper.radialCenterX.coerceIn(0f, 1f)
             val oy = height * wallpaper.radialCenterY.coerceIn(0f, 1f)
-            val radialColors = colors.mapIndexed { index, color ->
-                if (index == 0) {
-                    android.graphics.Color.argb(
-                        android.graphics.Color.alpha(color),
-                        (android.graphics.Color.red(color) * wallpaper.radialIntensity).roundToInt().coerceIn(0, 255),
-                        (android.graphics.Color.green(color) * wallpaper.radialIntensity).roundToInt().coerceIn(0, 255),
-                        (android.graphics.Color.blue(color) * wallpaper.radialIntensity).roundToInt().coerceIn(0, 255)
-                    )
-                } else color
-            }.toIntArray()
-            val shader = RadialGradient(ox, oy, radius, radialColors, null, Shader.TileMode.CLAMP)
+            val shader = RadialGradient(ox, oy, radius, colors, null, Shader.TileMode.CLAMP)
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), Paint().apply {
                 isAntiAlias = true; this.shader = shader
             })

@@ -65,16 +65,7 @@ object SvgExporter {
 
     private fun buildSvg(context: Context, fav: FavoriteWallpaper): String {
         val w        = fav.wallpaper
-        val hex      = w.colors.mapIndexed { index, color ->
-            if (w.type == GradientType.Radial && index == 0) {
-                Color(
-                    red = (color.red * w.radialIntensity).coerceIn(0f, 1f),
-                    green = (color.green * w.radialIntensity).coerceIn(0f, 1f),
-                    blue = (color.blue * w.radialIntensity).coerceIn(0f, 1f),
-                    alpha = color.alpha
-                ).toHex()
-            } else color.toHex()
-        }
+        val hex      = w.colors.map { it.toHex() }
         val angleDeg = w.angleDeg
         val angleRad = Math.toRadians(angleDeg.toDouble())
         val cx       = W / 2f
@@ -113,7 +104,7 @@ object SvgExporter {
                 sb.appendLine("""    </linearGradient>""")
             }
             GradientType.Radial -> {
-                val radius = max(W, H) * 0.6
+                val radius = max(W, H) * 0.6 * w.radialIntensity.coerceIn(0.25f, 2f).toDouble()
                 val ox = W * w.radialCenterX.coerceIn(0f, 1f)
                 val oy = H * w.radialCenterY.coerceIn(0f, 1f)
                 sb.appendLine("""    <radialGradient id="grad" cx="${ox.fmt()}" cy="${oy.fmt()}" r="${radius.fmt()}" gradientUnits="userSpaceOnUse">""")
@@ -227,16 +218,7 @@ object SvgExporter {
 
     private fun buildCss(context: Context, fav: FavoriteWallpaper): String {
         val w        = fav.wallpaper
-        val hex      = w.colors.mapIndexed { index, color ->
-            if (w.type == GradientType.Radial && index == 0) {
-                Color(
-                    red = (color.red * w.radialIntensity).coerceIn(0f, 1f),
-                    green = (color.green * w.radialIntensity).coerceIn(0f, 1f),
-                    blue = (color.blue * w.radialIntensity).coerceIn(0f, 1f),
-                    alpha = color.alpha
-                ).toHex()
-            } else color.toHex()
-        }
+        val hex      = w.colors.map { it.toHex() }
         val angleDeg = w.angleDeg
 
         // Convenience accessors
